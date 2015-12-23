@@ -11,12 +11,14 @@ import java.util.logging.Logger;
  */
 public class ConfigFileParser<T> {
 
+    private final Class<T> mClazz;
     private Yaml mYaml;
     private String mConfigFilePath;
 
-    public ConfigFileParser(String configFilePath) {
+    public ConfigFileParser(String configFilePath, Class<T> clazz) {
         mConfigFilePath = configFilePath;
         mYaml = new Yaml();
+        mClazz = clazz;
     }
 
     public T loadFromFile(String path) {
@@ -24,9 +26,20 @@ public class ConfigFileParser<T> {
         try {
             input = new FileInputStream(new File(path));
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            Logger.getGlobal().log(Level.WARNING, "File not found");
         }
-        return (T) mYaml.load(input);
+        if (input != null) {
+            return (T) mYaml.load(input);
+        } else {
+            try {
+                return mClazz.newInstance();
+            } catch (InstantiationException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
     }
 
     public void saveToFile(T configuration) throws IOException {

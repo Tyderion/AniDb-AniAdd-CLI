@@ -87,10 +87,10 @@ public class Main {
         }
 
 //        AniConfiguration config = new AniConfiguration();
-        ConfigFileParser<AniConfiguration> configParser = new ConfigFileParser<AniConfiguration>("config.conf");
+        ConfigFileParser<AniConfiguration> configParser = new ConfigFileParser<AniConfiguration>("config.conf", AniConfiguration.class);
 
+        AniConfiguration config = configParser.loadFromFile("config.conf");
         try {
-            AniConfiguration config = configParser.loadFromFile("config.conf");
             configParser.saveToFile(config);
 
         } catch (IOException e) {
@@ -98,6 +98,7 @@ public class Main {
         }
 
         if (noGUi) {
+            Logger.getGlobal().log(Level.WARNING, "No Gui Mode is not implemented yet. Shutting down.");
             System.exit(0);
         }
 
