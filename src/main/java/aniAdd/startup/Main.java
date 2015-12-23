@@ -87,15 +87,6 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        try {
-            UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
-        } catch (Exception ex) {
-        }
-        /*try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception ex) { }*/
-
-        aniAdd = new AniAdd();
-
-        // create Options object
         CommandLineParser parser = new DefaultParser();
         CommandLine basicCmd = null;
         try {
@@ -141,7 +132,12 @@ public class Main {
             Logger.getGlobal().log(Level.WARNING, "No Gui Mode is not implemented yet. Shutting down.");
             System.exit(0);
         } else {
+            try {
+                UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
+            } catch (Exception ex) {
+            }        /*try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception ex) { }*/
 
+            aniAdd = new AniAdd();
             frm.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             frm.addWindowListener(new WindowAdapter() {
 
