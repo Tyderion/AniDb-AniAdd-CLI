@@ -11,6 +11,7 @@ import aniAdd.Communication.ComEvent;
 import aniAdd.config.AniConfiguration;
 import aniAdd.config.ConfigFileParser;
 import aniAdd.config.XBMCDefaultConfiguration;
+import com.sun.istack.internal.NotNull;
 import gui.GUI;
 
 import java.awt.event.WindowAdapter;
@@ -77,6 +78,14 @@ public class Main {
     private static Options sCliOptions = AOMOptions.toCliOptions();
     private static Options sBasicOptions = AOMOptions.toBasicOptions();
 
+    private static String getCliOption(@NotNull CommandLine cmd, AOMOption option, String defaultValue) {
+        return cmd.getOptionValue(option.getName(), defaultValue);
+    }
+
+    private static boolean hasCliOption(@NotNull CommandLine cmd, AOMOption option) {
+        return cmd.hasOption(option.getName());
+    }
+
     public static void main(String[] args) {
         try {
             UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
@@ -92,10 +101,10 @@ public class Main {
         boolean noGUi = false;
         try {
             CommandLine cmd = parser.parse(sBasicOptions, args, true);
-            printHelp = cmd.hasOption(AOMOptions.help.getName());
-            noGUi = cmd.hasOption(AOMOptions.noGui.getName());
-            username = cmd.getOptionValue(AOMOptions.usernameGui.getName(), null);
-            password = cmd.getOptionValue(AOMOptions.passwordGui.getName(), null);
+            printHelp = hasCliOption(cmd, AOMOptions.help);
+            noGUi = hasCliOption(cmd, AOMOptions.noGui);
+            username = getCliOption(cmd, AOMOptions.usernameGui, null);
+            password = getCliOption(cmd, AOMOptions.passwordGui, null);
         } catch (ParseException e) {
             e.printStackTrace();
         }
@@ -117,9 +126,8 @@ public class Main {
                 System.exit(0);
             }
 
-            Logger.getGlobal().log(Level.WARNING, "parsed username: " + cmd.getOptionValue("u"));
-            if (cmd.hasOption(AOMOptions.config.getName())) {
-                String path = cmd.getOptionValue(AOMOptions.config.getName());
+            if (hasCliOption(cmd, AOMOptions.config)) {
+                String path = getCliOption(cmd, AOMOptions.config, "");
                 ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration> configParser =
                         new ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration>(path, XBMCDefaultConfiguration.class);
 
