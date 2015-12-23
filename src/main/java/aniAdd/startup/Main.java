@@ -113,12 +113,11 @@ public class Main {
             try {
                 cmd = parser.parse(sCliOptions, args);
             } catch (ParseException e) {
-                Logger.getGlobal().log(Level.WARNING, e.getMessage());
+                System.out.println(e.getMessage());
                 System.exit(0);
             }
 
             Logger.getGlobal().log(Level.WARNING, "parsed username: " + cmd.getOptionValue("u"));
-            Logger.getGlobal().log(Level.WARNING, "No Gui Mode is not implemented yet. Shutting down.");
             if (cmd.hasOption(AOMOptions.config.getName())) {
                 String path = cmd.getOptionValue(AOMOptions.config.getName());
                 ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration> configParser =
@@ -133,6 +132,7 @@ public class Main {
                 }
             }
 
+            Logger.getGlobal().log(Level.WARNING, "No Gui Mode is not implemented yet. Shutting down.");
             System.exit(0);
         } else {
 
