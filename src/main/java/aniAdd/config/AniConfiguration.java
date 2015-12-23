@@ -5,10 +5,28 @@ package aniAdd.config;
  * Created by Archie on 23.12.2015.
  */
 public class AniConfiguration {
+    private enum StorageType {
+        UNKOWN, INTERNAL, EXTERNAL, DELETE
+    }
+
+    private boolean mEnableFileMove = true;
+
+    private boolean mEnableFileRenaming = true;
+    private String mMoveToFolder = "";
+    private boolean mOverwriteMLEntries = false;
+    private boolean mRecursivelyDeleteEmptyFolders = false;
+    private boolean mRenameFiles = false;
+    private boolean mRenameRelatedFiles = false;
+    private boolean mRenameTypeAniDBFileName = false;
+    private StorageType mSetStorageType = StorageType.INTERNAL;
+
+    private String mFolderToLoad = "/path/to/anime";
+    private boolean mSetWatched = false;
+
     private boolean mAddToMylist = false;
     private boolean mAdvancedMode = false;
     private String mTestString = "This is a test";
-    private boolean mMoveTypeUseFolder;
+    private boolean mMoveTypeUseFolder = false;
     private String mTagSystemCode = "BaseTVShowPath:=\"H:\\Anime\\TV Shows\\\"                       #Set to your root folder for anime TV shows\n" +
             "BaseMoviePath:=\"H:\\Anime\\Movies\\\"                          #Set to your root folder for anime movies\n" +
             "ShowTitle:=[%ATr%, %ATe%, %ATk%]\n" +
@@ -93,7 +111,98 @@ public class AniConfiguration {
         return mMoveTypeUseFolder;
     }
 
+
+    public boolean isEnableFileRenaming() {
+        return mEnableFileRenaming;
+    }
+
+    public void setEnableFileRenaming(boolean enableFileRenaming) {
+        mEnableFileRenaming = enableFileRenaming;
+    }
+
+    public String getMoveToFolder() {
+        return mMoveToFolder;
+    }
+
+    public void setMoveToFolder(String moveToFolder) {
+        mMoveToFolder = moveToFolder;
+    }
+
+    public boolean isOverwriteMLEntries() {
+        return mOverwriteMLEntries;
+    }
+
+    public void setOverwriteMLEntries(boolean overwriteMLEntries) {
+        mOverwriteMLEntries = overwriteMLEntries;
+    }
+
+    public boolean isRecursivelyDeleteEmptyFolders() {
+        return mRecursivelyDeleteEmptyFolders;
+    }
+
+    public void setRecursivelyDeleteEmptyFolders(boolean recursivelyDeleteEmptyFolders) {
+        mRecursivelyDeleteEmptyFolders = recursivelyDeleteEmptyFolders;
+    }
+
+    public boolean isRenameFiles() {
+        return mRenameFiles;
+    }
+
+    public void setRenameFiles(boolean renameFiles) {
+        mRenameFiles = renameFiles;
+    }
+
+    public boolean isRenameRelatedFiles() {
+        return mRenameRelatedFiles;
+    }
+
+    public void setRenameRelatedFiles(boolean renameRelatedFiles) {
+        mRenameRelatedFiles = renameRelatedFiles;
+    }
+
+    public boolean isRenameTypeAniDBFileName() {
+        return mRenameTypeAniDBFileName;
+    }
+
+    public void setRenameTypeAniDBFileName(boolean renameTypeAniDBFileName) {
+        mRenameTypeAniDBFileName = renameTypeAniDBFileName;
+    }
+
+    public StorageType getSetStorageType() {
+        return mSetStorageType;
+    }
+
+    public void setSetStorageType(StorageType setStorageType) {
+        mSetStorageType = setStorageType;
+    }
+
     public void setMoveTypeUseFolder(boolean moveTypeUseFolder) {
         mMoveTypeUseFolder = moveTypeUseFolder;
     }
+
+    public boolean isEnableFileMove() {
+        return mEnableFileMove;
+    }
+
+    public void setEnableFileMove(boolean enableFileMove) {
+        mEnableFileMove = enableFileMove;
+    }
+
+    public String getFolderToLoad() {
+        return mFolderToLoad;
+    }
+
+    public void setFolderToLoad(String folderToLoad) {
+        mFolderToLoad = folderToLoad;
+    }
+
+    public boolean isSetWatched() {
+        return mSetWatched;
+    }
+
+    public void setSetWatched(boolean setWatched) {
+        mSetWatched = setWatched;
+    }
+
+
 }

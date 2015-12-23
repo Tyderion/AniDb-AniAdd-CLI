@@ -14,6 +14,7 @@ import gui.GUI;
 
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -68,10 +69,11 @@ public class Main {
         // create Options object
         CommandLineParser parser = new DefaultParser();
         boolean printHelp = false;
+        boolean noGUi = false;
         try {
             CommandLine cmd = parser.parse(sOptions, args);
             printHelp = cmd.hasOption(AOMOptions.help.getName());
-//            Logger.getGlobal().log(Level.WARNING, Arrays.toString(cmd.getArgs()));
+            noGUi = cmd.hasOption(AOMOptions.noGui.getName());
         } catch (ParseException e) {
             e.printStackTrace();
         }
@@ -87,15 +89,17 @@ public class Main {
 //        AniConfiguration config = new AniConfiguration();
         ConfigFileParser<AniConfiguration> configParser = new ConfigFileParser<AniConfiguration>("config.conf");
 
-//        try {
-        AniConfiguration config = configParser.loadFromFile("config.conf");
-        //configParser.saveToFile(config);
-//
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+        try {
+            AniConfiguration config = configParser.loadFromFile("config.conf");
+            configParser.saveToFile(config);
 
-        System.exit(0);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        if (noGUi) {
+            System.exit(0);
+        }
 
         frm.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frm.addWindowListener(new WindowAdapter() {
