@@ -4,7 +4,7 @@ package aniAdd.config;
 /**
  * Created by Archie on 23.12.2015.
  */
-public abstract class AniConfiguration {
+public class AniConfiguration {
     protected enum StorageType {
         UNKOWN, INTERNAL, EXTERNAL, DELETE
     }

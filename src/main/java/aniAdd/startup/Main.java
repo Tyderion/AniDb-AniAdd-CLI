@@ -35,27 +35,38 @@ public class Main {
     static AniAdd aniAdd;
 
     private static class AOMOptions {
-        public static AOMOption directory = new AOMOption("u", "username", "username", true, "USERNAME");
-        public static AOMOption username = new AOMOption("u", "username", "username", true, "USERNAME");
-        public static AOMOption password = new AOMOption("p", "password", "password", true, "PASSWORD");
-        public static AOMOption noGui = new AOMOption(null, "no-gui", "Use cli instead of GUI.", false, null);
-        public static AOMOption help = new AOMOption("h", "help", "print this help message", false, null);
-        public static AOMOption config = new AOMOption("c", "config", "the path to the config file. Specified parameters will override values from the config file.", false, "FILEPATH");
 
-        public static Options toOptions() {
+        public static String sCliHeader = "Use AniAdd form the commandline.\n\n";
+
+        public static String sBasicHeader = "";
+        public static String sBasicFooter = "\nWhen using with the --no-gui flag, following options are available: \n";
+
+        public static AOMOption directory = new AOMOption("d", "directory", "directory", true, "PATH", true);
+        public static AOMOption username = new AOMOption("u", "username", "username", true, "USERNAME", true);
+        public static AOMOption password = new AOMOption("p", "password", "password", true, "PASSWORD", true);
+        public static AOMOption noGui = new AOMOption(null, "no-gui", "Use cli instead of GUI.", false, null, false);
+        public static AOMOption help = new AOMOption("h", "help", "print this help message", false, null, false);
+        public static AOMOption config = new AOMOption("c", "config", "the path to the config file. Specified parameters will override values from the config file.", false, "FILEPATH", false);
+
+        public static Options toCliOptions() {
             Options options = new Options();
             options.addOption(AOMOptions.directory.toOption());
             options.addOption(AOMOptions.username.toOption());
             options.addOption(AOMOptions.password.toOption());
+            options.addOption(AOMOptions.config.toOption());
+            return options;
+        }
+
+        public static Options toBasicOptions() {
+            Options options = new Options();
             options.addOption(AOMOptions.noGui.toOption());
             options.addOption(AOMOptions.help.toOption());
-            options.addOption(AOMOptions.config.toOption());
-
             return options;
         }
     }
 
-    private static Options sOptions = AOMOptions.toOptions();
+    private static Options sCliOptions = AOMOptions.toCliOptions();
+    private static Options sBasicOptions = AOMOptions.toBasicOptions();
 
     public static void main(String[] args) {
         try {
@@ -71,7 +82,7 @@ public class Main {
         boolean printHelp = false;
         boolean noGUi = false;
         try {
-            CommandLine cmd = parser.parse(sOptions, args);
+            CommandLine cmd = parser.parse(sBasicOptions, args);
             printHelp = cmd.hasOption(AOMOptions.help.getName());
             noGUi = cmd.hasOption(AOMOptions.noGui.getName());
         } catch (ParseException e) {
@@ -79,52 +90,58 @@ public class Main {
         }
 
         if (printHelp) {
-            String header = "Do something useful with an input file\n\n";
             // automatically generate the help statement
             HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp("aom <directory>", header, sOptions, "", true);
+            formatter.printHelp("aom", AOMOptions.sBasicHeader, sBasicOptions, AOMOptions.sBasicFooter, true);
+            formatter.printHelp("aom", AOMOptions.sCliHeader, sCliOptions, "", true);
             System.exit(0);
-        }
-
-//        AniConfiguration config = new AniConfiguration();
-        ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration> configParser =
-                new ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration>("config.conf", XBMCDefaultConfiguration.class);
-
-        AniConfiguration config = configParser.loadFromFile("config.conf");
-        try {
-            configParser.saveToFile(config);
-
-        } catch (IOException e) {
-            e.printStackTrace();
         }
 
         if (noGUi) {
-            Logger.getGlobal().log(Level.WARNING, "No Gui Mode is not implemented yet. Shutting down.");
-            System.exit(0);
-        }
-
-        frm.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frm.addWindowListener(new WindowAdapter() {
-
-            @Override
-            public void windowClosing(WindowEvent e) {
-                super.windowClosing(e);
-                aniAdd.Stop();
+            try {
+                CommandLine cmd = parser.parse(sCliOptions, args);
+            } catch (ParseException e) {
+                Logger.getGlobal().log(Level.WARNING, e.getMessage());
             }
-        });
+            Logger.getGlobal().log(Level.WARNING, "No Gui Mode is not implemented yet. Shutting down.");
 
-        aniAdd.addComListener(new Communication.ComListener() {
+            ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration> configParser =
+                    new ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration>("config.conf", XBMCDefaultConfiguration.class);
 
-            public void EventHandler(ComEvent comEvent) {
-                if (comEvent.Type() == ComEvent.eType.Information) {
-                    if ((IModule.eModState) comEvent.Params(0) == IModule.eModState.Initialized) {
-                        Initialize();
+            AniConfiguration config = configParser.loadFromFile("config.conf");
+            try {
+                configParser.saveToFile(config);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            System.exit(0);
+        } else {
+
+            frm.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            frm.addWindowListener(new WindowAdapter() {
+
+                @Override
+                public void windowClosing(WindowEvent e) {
+                    super.windowClosing(e);
+                    aniAdd.Stop();
+                }
+            });
+
+            aniAdd.addComListener(new Communication.ComListener() {
+
+                public void EventHandler(ComEvent comEvent) {
+                    if (comEvent.Type() == ComEvent.eType.Information) {
+                        if ((IModule.eModState) comEvent.Params(0) == IModule.eModState.Initialized) {
+                            Initialize();
+                        }
                     }
                 }
-            }
-        });
+            });
 
-        aniAdd.Start();
+            aniAdd.Start();
+        }
     }
 
     private static void Initialize() {

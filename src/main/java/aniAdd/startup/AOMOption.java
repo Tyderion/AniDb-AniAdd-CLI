@@ -9,17 +9,19 @@ import org.apache.commons.cli.Option;
  */
 class AOMOption {
     private final String mArgname;
+    private boolean mRequired;
     private String mShortOpt = null;
     private String mLongOpt = "";
     private String mDescription = "";
     private boolean mHasValue = false;
 
-    public AOMOption(@Nullable String shortOpt, @NotNull String longOpt, @NotNull String description, boolean hasValue, String argName) {
+    public AOMOption(@Nullable String shortOpt, @NotNull String longOpt, @NotNull String description, boolean hasValue, String argName, boolean required) {
         this.mShortOpt = shortOpt;
         this.mLongOpt = longOpt;
         this.mDescription = description;
         this.mHasValue = hasValue;
         mArgname = argName;
+        mRequired = required;
     }
 
     public String getName() {
@@ -37,7 +39,7 @@ class AOMOption {
         } else {
             builder = Option.builder();
         }
-        return builder.longOpt(this.mLongOpt).hasArg(mHasValue).desc(mDescription).hasArg(mArgname != null)
+        return builder.longOpt(this.mLongOpt).hasArg(mHasValue).desc(mDescription).hasArg(mArgname != null).required(mRequired)
                 .argName(mArgname).build();
     }
 }
