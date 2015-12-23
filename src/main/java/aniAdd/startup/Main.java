@@ -10,12 +10,12 @@ import aniAdd.*;
 import aniAdd.Communication.ComEvent;
 import aniAdd.config.AniConfiguration;
 import aniAdd.config.ConfigFileParser;
+import aniAdd.config.XBMCDefaultConfiguration;
 import gui.GUI;
 
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFrame;
@@ -87,7 +87,8 @@ public class Main {
         }
 
 //        AniConfiguration config = new AniConfiguration();
-        ConfigFileParser<AniConfiguration> configParser = new ConfigFileParser<AniConfiguration>("config.conf", AniConfiguration.class);
+        ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration> configParser =
+                new ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration>("config.conf", XBMCDefaultConfiguration.class);
 
         AniConfiguration config = configParser.loadFromFile("config.conf");
         try {

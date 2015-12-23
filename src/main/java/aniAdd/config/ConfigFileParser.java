@@ -9,13 +9,13 @@ import java.util.logging.Logger;
 /**
  * Created by Archie on 23.12.2015.
  */
-public class ConfigFileParser<T> {
+public class ConfigFileParser<T, U extends T> {
 
-    private final Class<T> mClazz;
+    private final Class<U> mClazz;
     private Yaml mYaml;
     private String mConfigFilePath;
 
-    public ConfigFileParser(String configFilePath, Class<T> clazz) {
+    public ConfigFileParser(String configFilePath, Class<U> clazz) {
         mConfigFilePath = configFilePath;
         mYaml = new Yaml();
         mClazz = clazz;
