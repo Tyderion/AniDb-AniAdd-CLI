@@ -97,19 +97,17 @@ public class Main {
 
         // create Options object
         CommandLineParser parser = new DefaultParser();
-        boolean printHelp = false;
-        boolean noGUi = false;
+        CommandLine basicCmd = null;
         try {
-            CommandLine cmd = parser.parse(sBasicOptions, args, true);
-            printHelp = hasCliOption(cmd, AOMOptions.help);
-            noGUi = hasCliOption(cmd, AOMOptions.noGui);
-            username = getCliOption(cmd, AOMOptions.usernameGui, null);
-            password = getCliOption(cmd, AOMOptions.passwordGui, null);
+            basicCmd = parser.parse(sBasicOptions, args, true);
+            username = getCliOption(basicCmd, AOMOptions.usernameGui, null);
+            password = getCliOption(basicCmd, AOMOptions.passwordGui, null);
         } catch (ParseException e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
+            System.exit(0);
         }
 
-        if (printHelp) {
+        if (hasCliOption(basicCmd, AOMOptions.help)) {
             // automatically generate the help statement
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp("aom", AOMOptions.sBasicHeader, sBasicOptions, AOMOptions.sBasicFooter, true);
@@ -117,7 +115,7 @@ public class Main {
             System.exit(0);
         }
 
-        if (noGUi) {
+        if (hasCliOption(basicCmd, AOMOptions.noGui)) {
             CommandLine cmd = null;
             try {
                 cmd = parser.parse(sCliOptions, args);
