@@ -32,8 +32,9 @@ import udpApi.Mod_UdpApi;
 public class Main {
 
     static String username, session, password, autopass;
-    static JFrame frm = new JFrame();
+    static JFrame frm;
     static AniAdd aniAdd;
+    private static boolean sNoGui;
 
     private static class AOMOptions {
 
@@ -106,7 +107,9 @@ public class Main {
             System.exit(0);
         }
 
-        if (hasCliOption(basicCmd, AOMOptions.noGui)) {
+        sNoGui = hasCliOption(basicCmd, AOMOptions.noGui);
+        aniAdd = new AniAdd(!sNoGui);
+        if (sNoGui) {
             CommandLine cmd = null;
             try {
                 cmd = parser.parse(sCliOptions, args);
@@ -129,15 +132,29 @@ public class Main {
                 }
             }
 
+
+            aniAdd.addComListener(new Communication.ComListener() {
+
+                public void EventHandler(ComEvent comEvent) {
+                    if (comEvent.Type() == ComEvent.eType.Information) {
+                        if ((IModule.eModState) comEvent.Params(0) == IModule.eModState.Initialized) {
+                            Initialize();
+                        }
+                    }
+                }
+            });
+
+            aniAdd.Start();
+
             Logger.getGlobal().log(Level.WARNING, "No Gui Mode is not implemented yet. Shutting down.");
             System.exit(0);
         } else {
+            frm = new JFrame();
             try {
                 UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
             } catch (Exception ex) {
             }        /*try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception ex) { }*/
 
-            aniAdd = new AniAdd();
             frm.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             frm.addWindowListener(new WindowAdapter() {
 
@@ -164,14 +181,20 @@ public class Main {
     }
 
     private static void Initialize() {
-        GUI gui = (GUI) aniAdd.GetModule("MainGUI");
+        if (!sNoGui) {
+            GUI gui = (GUI) aniAdd.GetModule("MainGUI");
+            if (username == null) {
+                username = JOptionPane.showInputDialog(frm, "User", "");
+            }
+            if (password == null) {
+                password = JOptionPane.showInputDialog(frm, "Password", "");
+            }
+            frm.setDefaultLookAndFeelDecorated(true);
+            frm.add(gui);
+            frm.pack();
+            frm.setVisible(true);
+        }
         Mod_UdpApi api = (Mod_UdpApi) aniAdd.GetModule("UdpApi");
-        if (username == null) {
-            username = JOptionPane.showInputDialog(frm, "User", "");
-        }
-        if (password == null) {
-            password = JOptionPane.showInputDialog(frm, "Password", "");
-        }
         api.setPassword(password);
         api.setAniDBSession(session);
         api.setUsername(username);
@@ -179,11 +202,5 @@ public class Main {
         if (api.authenticate()) {
         } else {
         }
-
-        frm.setDefaultLookAndFeelDecorated(true);
-
-        frm.add(gui);
-        frm.pack();
-        frm.setVisible(true);
     }
 }
