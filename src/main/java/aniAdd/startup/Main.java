@@ -42,18 +42,25 @@ public class Main {
         public static String sBasicFooter = "\nWhen using with the --no-gui flag, following options are available: \n";
 
         public static AOMOption directory = new AOMOption("d", "directory", "directory", true, "PATH", true);
+        public static AOMOption taggingSystem = new AOMOption(null, "tagging-system", "the path to a file containing the Tagging System definition", true, "PATH", false);
         public static AOMOption username = new AOMOption("u", "username", "username", true, "USERNAME", true);
         public static AOMOption password = new AOMOption("p", "password", "password", true, "PASSWORD", true);
         public static AOMOption noGui = new AOMOption(null, "no-gui", "Use cli instead of GUI.", false, null, false);
         public static AOMOption help = new AOMOption("h", "help", "print this help message", false, null, false);
         public static AOMOption config = new AOMOption("c", "config", "the path to the config file. Specified parameters will override values from the config file.", false, "FILEPATH", false);
 
+
+        public static AOMOption usernameGui = new AOMOption("u", "username", "username", true, "USERNAME", false);
+        public static AOMOption passwordGui = new AOMOption("p", "password", "password", true, "PASSWORD", false);
+
         public static Options toCliOptions() {
             Options options = new Options();
             options.addOption(AOMOptions.directory.toOption());
+            options.addOption(AOMOptions.taggingSystem.toOption());
             options.addOption(AOMOptions.username.toOption());
             options.addOption(AOMOptions.password.toOption());
             options.addOption(AOMOptions.config.toOption());
+            options.addOption(AOMOptions.noGui.toOption());
             return options;
         }
 
@@ -61,6 +68,8 @@ public class Main {
             Options options = new Options();
             options.addOption(AOMOptions.noGui.toOption());
             options.addOption(AOMOptions.help.toOption());
+            options.addOption(AOMOptions.usernameGui.toOption());
+            options.addOption(AOMOptions.passwordGui.toOption());
             return options;
         }
     }
@@ -82,9 +91,11 @@ public class Main {
         boolean printHelp = false;
         boolean noGUi = false;
         try {
-            CommandLine cmd = parser.parse(sBasicOptions, args);
+            CommandLine cmd = parser.parse(sBasicOptions, args, true);
             printHelp = cmd.hasOption(AOMOptions.help.getName());
             noGUi = cmd.hasOption(AOMOptions.noGui.getName());
+            username = cmd.getOptionValue(AOMOptions.usernameGui.getName(), null);
+            password = cmd.getOptionValue(AOMOptions.passwordGui.getName(), null);
         } catch (ParseException e) {
             e.printStackTrace();
         }
@@ -98,22 +109,28 @@ public class Main {
         }
 
         if (noGUi) {
+            CommandLine cmd = null;
             try {
-                CommandLine cmd = parser.parse(sCliOptions, args);
+                cmd = parser.parse(sCliOptions, args);
             } catch (ParseException e) {
                 Logger.getGlobal().log(Level.WARNING, e.getMessage());
+                System.exit(0);
             }
+
+            Logger.getGlobal().log(Level.WARNING, "parsed username: " + cmd.getOptionValue("u"));
             Logger.getGlobal().log(Level.WARNING, "No Gui Mode is not implemented yet. Shutting down.");
+            if (cmd.hasOption(AOMOptions.config.getName())) {
+                String path = cmd.getOptionValue(AOMOptions.config.getName());
+                ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration> configParser =
+                        new ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration>(path, XBMCDefaultConfiguration.class);
 
-            ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration> configParser =
-                    new ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration>("config.conf", XBMCDefaultConfiguration.class);
+                AniConfiguration config = configParser.loadFromFile();
+                try {
+                    configParser.saveToFile(config, "config.conf");
 
-            AniConfiguration config = configParser.loadFromFile("config.conf");
-            try {
-                configParser.saveToFile(config);
-
-            } catch (IOException e) {
-                e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
 
             System.exit(0);
@@ -147,9 +164,12 @@ public class Main {
     private static void Initialize() {
         GUI gui = (GUI) aniAdd.GetModule("MainGUI");
         Mod_UdpApi api = (Mod_UdpApi) aniAdd.GetModule("UdpApi");
-
-        username = JOptionPane.showInputDialog(frm, "User", "");
-        password = JOptionPane.showInputDialog(frm, "Password", "");
+        if (username == null) {
+            username = JOptionPane.showInputDialog(frm, "User", "");
+        }
+        if (password == null) {
+            password = JOptionPane.showInputDialog(frm, "Password", "");
+        }
         api.setPassword(password);
         api.setAniDBSession(session);
         api.setUsername(username);

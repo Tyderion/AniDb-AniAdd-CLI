@@ -21,10 +21,10 @@ public class ConfigFileParser<T, U extends T> {
         mClazz = clazz;
     }
 
-    public T loadFromFile(String path) {
+    public T loadFromFile() {
         InputStream input = null;
         try {
-            input = new FileInputStream(new File(path));
+            input = new FileInputStream(new File(mConfigFilePath));
         } catch (FileNotFoundException e) {
             Logger.getGlobal().log(Level.WARNING, "File not found");
         }
@@ -43,7 +43,11 @@ public class ConfigFileParser<T, U extends T> {
     }
 
     public void saveToFile(T configuration) throws IOException {
-        File file = new File(mConfigFilePath);
+        saveToFile(configuration, mConfigFilePath);
+    }
+
+    public void saveToFile(T configuration, String path) throws IOException {
+        File file = new File(path);
         Writer writer = new BufferedWriter(new FileWriter(file));
         Logger.getGlobal().log(Level.WARNING, "FUll file path: " + file.getAbsolutePath());
         mYaml.dump(configuration, writer);
