@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.TreeMap;
 
+import nogui.FileLoader;
+import nogui.FileProcessor;
 import processing.Mod_EpProcessing;
 import udpApi.Mod_UdpApi;
 
@@ -19,12 +21,22 @@ import udpApi.Mod_UdpApi;
  */
 public class AniAdd implements IAniAdd {
     final static int CURRENTVER = 9;
+    private final String mDirectory;
 
     TreeMap<String, IModule> modules;
     EventHandler eventHandler;
     Mod_Memory mem;
 
-    public AniAdd(boolean gui) {
+    public AniAdd() {
+        this(true, null);
+    }
+
+    public String getDirectoryPath() {
+        return mDirectory;
+    }
+
+    public AniAdd(boolean gui, String directory) {
+        this.mDirectory = directory;
         modules = new TreeMap<String, IModule>();
         eventHandler = new EventHandler();
 
@@ -43,6 +55,10 @@ public class AniAdd implements IAniAdd {
         eventHandler.AddEventHandler(mod);
         if (gui) {
             mod = new GUI();
+            modules.put(mod.ModuleName(), mod);
+            eventHandler.AddEventHandler(mod);
+        } else {
+            mod = new FileProcessor();
             modules.put(mod.ModuleName(), mod);
             eventHandler.AddEventHandler(mod);
         }

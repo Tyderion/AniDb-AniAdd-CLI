@@ -38,7 +38,7 @@ public class Applet extends JApplet {
         } catch (Exception ex) {
         }
 
-        aniAdd = new AniAdd(true);
+        aniAdd = new AniAdd();
     }
 
     @Override

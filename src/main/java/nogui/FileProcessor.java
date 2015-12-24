@@ -1,12 +1,18 @@
 package nogui;
 
+import aniAdd.AniAdd;
 import aniAdd.Communication;
 import aniAdd.IAniAdd;
 import aniAdd.Modules.IModule;
 import processing.Mod_EpProcessing;
 import udpApi.Mod_UdpApi;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Created by Archie on 23.12.2015.
@@ -16,6 +22,8 @@ public class FileProcessor implements IModule {
     private IAniAdd aniAdd;
     private Mod_EpProcessing epProc;
     private Mod_UdpApi api;
+
+    private List<File> mFiles;
 
 
     public void start() {
@@ -36,10 +44,20 @@ public class FileProcessor implements IModule {
     }
 
     public void Initialize(IAniAdd aniAdd) {
+        Logger.getGlobal().log(Level.WARNING, "INITIALIZE FileProcessor");
+
         modState = eModState.Initializing;
         this.aniAdd = aniAdd;
         epProc = (Mod_EpProcessing) aniAdd.GetModule("EpProcessing");
         api = (Mod_UdpApi) aniAdd.GetModule("UdpApi");
+
+        String path = ((AniAdd) aniAdd).getDirectoryPath();
+        File folder = new File(path);
+        File[] a = folder.listFiles();
+        if (a != null) {
+            mFiles = new ArrayList<File>(Arrays.asList(a));
+        }
+
 
         api.addComListener(new Communication.ComListener() {
             public void EventHandler(Communication.ComEvent comEvent) {
@@ -99,10 +117,5 @@ public class FileProcessor implements IModule {
         ComFire(new ComEvent(this, type, params));
     }
 
-    class AniAddEventHandler implements ComListener {
-
-        public void EventHandler(ComEvent comEvent) {
-        }
-    }
     // </editor-fold>
 }

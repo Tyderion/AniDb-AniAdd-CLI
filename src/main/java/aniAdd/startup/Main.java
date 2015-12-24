@@ -108,7 +108,6 @@ public class Main {
         }
 
         sNoGui = hasCliOption(basicCmd, AOMOptions.noGui);
-        aniAdd = new AniAdd(!sNoGui);
         if (sNoGui) {
             CommandLine cmd = null;
             try {
@@ -133,6 +132,9 @@ public class Main {
             }
 
 
+            aniAdd = new AniAdd(false, getCliOption(cmd, AOMOptions.directory, "."));
+
+
             aniAdd.addComListener(new Communication.ComListener() {
 
                 public void EventHandler(ComEvent comEvent) {
@@ -146,9 +148,10 @@ public class Main {
 
             aniAdd.Start();
 
-            Logger.getGlobal().log(Level.WARNING, "No Gui Mode is not implemented yet. Shutting down.");
-            System.exit(0);
+//            Logger.getGlobal().log(Level.WARNING, "No Gui Mode is not implemented yet. Shutting down.");
+//            System.exit(0);
         } else {
+            aniAdd = new AniAdd();
             frm = new JFrame();
             try {
                 UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
