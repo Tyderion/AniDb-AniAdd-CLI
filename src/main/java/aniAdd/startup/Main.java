@@ -125,10 +125,10 @@ public class Main {
                 AniConfiguration config = configParser.loadFromFile();
                 try {
                     configParser.saveToFile(config, "config.conf");
-
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                //TODO: Inject AniConfig into aniAdd
             }
 
 
