@@ -58,12 +58,16 @@ public class FileProcessor implements IModule {
             mFiles = new ArrayList<File>(Arrays.asList(a));
         }
 
+        epProc.addFiles(mFiles);
+        epProc.processing(Mod_EpProcessing.eProcess.Start);
+
 
         api.addComListener(new Communication.ComListener() {
             public void EventHandler(Communication.ComEvent comEvent) {
                 if (comEvent.Type() == Communication.ComEvent.eType.Error || comEvent.Type() == Communication.ComEvent.eType.Fatal) {
                     //TODO: Terminate or retry or whatever
                 }
+//                if (comEvent.Type() == ComEvent.eType.Information )
             }
         });
         //TODO: What to do on these events?

@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.TreeMap;
 
-import nogui.FileLoader;
 import nogui.FileProcessor;
 import processing.Mod_EpProcessing;
 import udpApi.Mod_UdpApi;
