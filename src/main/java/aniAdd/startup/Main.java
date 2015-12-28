@@ -16,7 +16,10 @@ import gui.GUI;
 
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFrame;
@@ -25,6 +28,7 @@ import javax.swing.UIManager;
 
 import org.apache.commons.cli.*;
 import udpApi.Mod_UdpApi;
+import util.StringHelper;
 
 /**
  * @author Arokh
@@ -119,6 +123,8 @@ public class Main {
                 System.exit(0);
             }
             AniConfiguration config;
+
+            // Load optional Configuration File
             if (hasCliOption(cmd, AOMOptions.config)) {
                 String path = getCliOption(cmd, AOMOptions.config, "");
                 ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration> configParser =
@@ -127,9 +133,28 @@ public class Main {
                 config = configParser.loadFromFile();
 
             } else {
+                Logger.getGlobal().log(Level.WARNING, "No Config file passed, options are some sane defaults.");
+                // Use default config
                 config = new XBMCDefaultConfiguration();
             }
 
+            // Load optional TagSystem File
+            if (hasCliOption(cmd, AOMOptions.taggingSystem)) {
+                String tagSystem = getCliOption(cmd, AOMOptions.taggingSystem, null);
+                if (tagSystem != null) {
+                    try {
+                        String tagSystemCode = StringHelper.readFile(tagSystem, Charset.defaultCharset());
+                        if (!Objects.equals(tagSystemCode, "")) {
+                            config.setTagSystemCode(tagSystemCode);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+            }
+
+            // Save Configuration File
             config.setDirectory(getCliOption(cmd, AOMOptions.directory, "."));
             if (hasCliOption(cmd, AOMOptions.save)) {
                 String path = getCliOption(cmd, AOMOptions.save, "");
@@ -159,8 +184,6 @@ public class Main {
 
             aniAdd.Start();
 
-//            Logger.getGlobal().log(Level.WARNING, "No Gui Mode is not implemented yet. Shutting down.");
-//            System.exit(0);
         } else {
             aniAdd = new AniAdd();
             frm = new JFrame();
