@@ -7,6 +7,7 @@ package aniAdd.misc;
 
 import aniAdd.IAniAdd;
 import aniAdd.Modules.IModule;
+import aniAdd.config.AniConfiguration;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -30,6 +31,10 @@ public class Mod_Memory implements IModule {
     public Mod_Memory() {
         mem = new TreeMap<String, Object>();
         load();
+    }
+
+    public Mod_Memory(AniConfiguration configuration) {
+        loadFromConfiguration(configuration);
     }
 
     public void put(String key, Object value) {
@@ -72,6 +77,9 @@ public class Mod_Memory implements IModule {
         } catch (IOException ex) {
             ex.printStackTrace();
         }
+    }
+
+    public void loadFromConfiguration(AniConfiguration configuration) {
     }
 
     public void load() {

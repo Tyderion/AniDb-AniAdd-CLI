@@ -3,6 +3,7 @@ package aniAdd;
 import aniAdd.Modules.IModule;
 import aniAdd.Communication.ComEvent;
 import aniAdd.Communication.ComListener;
+import aniAdd.config.AniConfiguration;
 import aniAdd.misc.Misc;
 import aniAdd.misc.Mod_Memory;
 import gui.GUI;
@@ -20,7 +21,7 @@ import udpApi.Mod_UdpApi;
  */
 public class AniAdd implements IAniAdd {
     final static int CURRENTVER = 9;
-    private final String mDirectory;
+    private final AniConfiguration mConfiguration;
 
     TreeMap<String, IModule> modules;
     EventHandler eventHandler;
@@ -31,16 +32,20 @@ public class AniAdd implements IAniAdd {
     }
 
     public String getDirectoryPath() {
-        return mDirectory;
+        return mConfiguration.getDirectory();
     }
 
-    public AniAdd(boolean gui, String directory) {
-        this.mDirectory = directory;
+    public AniAdd(boolean gui, AniConfiguration configuration) {
+        mConfiguration = configuration;
         modules = new TreeMap<String, IModule>();
         eventHandler = new EventHandler();
 
         IModule mod;
-        mod = new Mod_Memory();
+        if (mConfiguration == null) {
+            mod = new Mod_Memory();
+        } else {
+            mod = new Mod_Memory(mConfiguration);
+        }
         modules.put(mod.ModuleName(), mod);
         eventHandler.AddEventHandler(mod);
         mem = (Mod_Memory) mod;
