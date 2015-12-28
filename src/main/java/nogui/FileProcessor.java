@@ -53,13 +53,34 @@ public class FileProcessor implements IModule {
 
         String path = ((AniAdd) aniAdd).getDirectoryPath();
         File folder = new File(path);
+
+        Logger.getGlobal().log(Level.WARNING, "Folder: " + folder.getAbsolutePath());
         File[] a = folder.listFiles();
         if (a != null) {
+            Logger.getGlobal().log(Level.WARNING, "Number of found files: " + a.length);
             mFiles = new ArrayList<File>(Arrays.asList(a));
+        } else {
+            Logger.getGlobal().log(Level.WARNING, "Folder not found");
+            System.exit(0);
         }
 
         epProc.addFiles(mFiles);
         epProc.processing(Mod_EpProcessing.eProcess.Start);
+
+        epProc.addComListener(new ComListener() {
+            @Override
+            public void EventHandler(ComEvent comEvent) {
+                if (comEvent.Type() == ComEvent.eType.Information) {
+                    if (comEvent.ParamCount() == 3 &&
+                            comEvent.Params(0) == Mod_EpProcessing.eComType.FileEvent &&
+                            comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done &&
+                            comEvent.Params(2).equals(mFiles.size() - 1)) {
+                        Logger.getGlobal().log(Level.WARNING, "File moving done, shutting down");
+                        System.exit(0);
+                    }
+                }
+            }
+        });
 
 
         api.addComListener(new Communication.ComListener() {
@@ -70,6 +91,7 @@ public class FileProcessor implements IModule {
 //                if (comEvent.Type() == ComEvent.eType.Information )
             }
         });
+
         //TODO: What to do on these events?
 //        epProc.addComListener(new Communication.ComListener() {
 //            public void EventHandler(Communication.ComEvent comEvent) {
