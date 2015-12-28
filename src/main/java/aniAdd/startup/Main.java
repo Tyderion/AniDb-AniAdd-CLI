@@ -49,7 +49,8 @@ public class Main {
         public static AOMOption password = new AOMOption("p", "password", "password", true, "PASSWORD", true);
         public static AOMOption noGui = new AOMOption(null, "no-gui", "Use cli instead of GUI.", false, null, false);
         public static AOMOption help = new AOMOption("h", "help", "print this help message", false, null, false);
-        public static AOMOption config = new AOMOption("c", "config", "the path to the config file. Specified parameters will override values from the config file.", false, "FILEPATH", false);
+        public static AOMOption config = new AOMOption("c", "config", "the path to the config file. Specified parameters will override values from the config file.", true, "FILEPATH", false);
+        public static AOMOption save = new AOMOption("s", "save", "save the options to a new file", true, "FILENAME", false);
 
 
         public static AOMOption usernameGui = new AOMOption("u", "username", "username", true, "USERNAME", false);
@@ -63,6 +64,7 @@ public class Main {
             options.addOption(AOMOptions.password.toOption());
             options.addOption(AOMOptions.config.toOption());
             options.addOption(AOMOptions.noGui.toOption());
+            options.addOption(AOMOptions.save.toOption());
             return options;
         }
 
@@ -116,23 +118,32 @@ public class Main {
                 System.out.println(e.getMessage());
                 System.exit(0);
             }
-
+            AniConfiguration config;
             if (hasCliOption(cmd, AOMOptions.config)) {
                 String path = getCliOption(cmd, AOMOptions.config, "");
                 ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration> configParser =
                         new ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration>(path, XBMCDefaultConfiguration.class);
 
-                AniConfiguration config = configParser.loadFromFile();
+                config = configParser.loadFromFile();
+
+            } else {
+                config = new XBMCDefaultConfiguration();
+            }
+
+            config.setDirectory(getCliOption(cmd, AOMOptions.directory, "."));
+            if (hasCliOption(cmd, AOMOptions.save)) {
+                String path = getCliOption(cmd, AOMOptions.save, "");
                 try {
-                    configParser.saveToFile(config, "config.conf");
+                    ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration> configParser =
+                            new ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration>(path, XBMCDefaultConfiguration.class);
+
+                    configParser.saveToFile(config);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                //TODO: Inject AniConfig into aniAdd
             }
-
-
-            aniAdd = new AniAdd(false, getCliOption(cmd, AOMOptions.directory, "."));
+            //TODO: Inject AniConfig into aniAdd
+            aniAdd = new AniAdd(false, config);
 
 
             aniAdd.addComListener(new Communication.ComListener() {
