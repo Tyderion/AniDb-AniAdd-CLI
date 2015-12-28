@@ -7,22 +7,21 @@ package aniAdd.config;
 public class XBMCDefaultConfiguration extends AniConfiguration {
 
     public XBMCDefaultConfiguration() {
-        mEnableFileMove = true;
-        mEnableFileRenaming = true;
-        mMoveToFolder = "";
-        mOverwriteMLEntries = false;
-        mRecursivelyDeleteEmptyFolders = false;
-        mRenameFiles = false;
-        mRenameRelatedFiles = false;
-        mRenameTypeAniDBFileName = false;
-        mSetStorageType = StorageType.INTERNAL;
-        mFolderToLoad = "/path/to/anime";
-        mSetWatched = false;
-        mAddToMylist = false;
-        mAdvancedMode = false;
-        mTestString = "This is a test";
-        mMoveTypeUseFolder = false;
-        mTagSystemCode = "BaseTVShowPath:=\"H:\\Anime\\TV Shows\\\"                       #Set to your root folder for anime TV shows\n" +
+        setEnableFileMove(true);
+        setEnableFileRenaming(true);
+        setMoveToFolder("");
+        setOverwriteMLEntries(false);
+        setRecursivelyDeleteEmptyFolders(false);
+        setRenameFiles(false);
+        setRenameRelatedFiles(false);
+        setRenameTypeAniDBFileName(false);
+        setSetStorageType(StorageType.INTERNAL);
+        setFolderToLoad("/path/to/anime");
+        setSetWatched(false);
+        setAddToMylist(false);
+        setAdvancedMode(false);
+        setMoveTypeUseFolder(false);
+        setTagSystemCode("BaseTVShowPath:=\"H:\\Anime\\TV Shows\\\"                       #Set to your root folder for anime TV shows\n" +
                 "BaseMoviePath:=\"H:\\Anime\\Movies\\\"                          #Set to your root folder for anime movies\n" +
                 "ShowTitle:=[%ATr%, %ATe%, %ATk%]\n" +
                 "EpisodeTitle:=[%ETe%, %ETr%, %ETk%]\n" +
@@ -68,6 +67,6 @@ public class XBMCDefaultConfiguration extends AniConfiguration {
                 "TVShowFileName:=%ShowTitle% %EpNoFull% %EpisodeTitle% %FileInfo%\n" +
                 "BasePath:={%IsMovie% ? %BaseMoviePath% : %BaseTVShowPath% }\n" +
                 "FileName:={%IsMovie% ? %MovieFileName% : %TVShowFileName% }\n" +
-                "PathName:=%BasePath% %ShowTitle%";
+                "PathName:=%BasePath% %ShowTitle%");
     }
 }
