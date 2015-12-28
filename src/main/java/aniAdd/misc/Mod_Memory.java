@@ -16,6 +16,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -80,6 +81,8 @@ public class Mod_Memory implements IModule {
     }
 
     public void loadFromConfiguration(AniConfiguration configuration) {
+        load();
+        mem.putAll(configuration.ToMod_Memory());
     }
 
     public void load() {

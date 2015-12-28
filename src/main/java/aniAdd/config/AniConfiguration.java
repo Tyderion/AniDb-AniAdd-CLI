@@ -1,18 +1,28 @@
 package aniAdd.config;
 
 
-import java.util.Map;
+import java.lang.reflect.Field;
+import java.util.*;
 
 /**
  * Created by Archie on 23.12.2015.
  */
 public class AniConfiguration {
     protected enum StorageType {
-        UNKOWN, INTERNAL, EXTERNAL, DELETE
+        UNKOWN(0), INTERNAL(1), EXTERNAL(2), DELETE(3);
+
+        private final int value;
+
+        private StorageType(int i) {
+            value = i;
+        }
+
+        public int getValue() {
+            return value;
+        }
     }
 
     protected Value<Boolean> mEnableFileMove;
-
     protected Value<Boolean> mEnableFileRenaming;
     protected Value<String> mMoveToFolder;
     protected Value<Boolean> mOverwriteMLEntries;
@@ -200,8 +210,27 @@ public class AniConfiguration {
         }
     }
 
-    public Map<String, String> ToMod_Memory() {
-        // TODO: Implement
-        return null;
+    public Map<String, Object> ToMod_Memory() {
+        Map<String, Object> config = new TreeMap<>();
+
+        Field[] fields = AniConfiguration.class.getDeclaredFields();
+        for (Field f : fields) {
+            Class<?> type = f.getType();
+            if (type.equals(Value.class)) {
+                try {
+                    Value<?> theValue = (Value<?>) f.get(this);
+                    String name = theValue.mapping.toString();
+                    Object value = theValue.value;
+                    if (value instanceof StorageType) {
+                        value = ((StorageType) value).getValue();
+                    }
+                    config.put(name, value);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return config;
     }
 }
