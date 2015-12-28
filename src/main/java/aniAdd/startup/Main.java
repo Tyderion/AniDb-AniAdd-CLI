@@ -42,7 +42,7 @@ public class Main {
 
     private static class AOMOptions {
 
-        public static String sCliHeader = "Use AniAdd form the commandline.\n\n";
+        public static String sCliHeader = "Use AniAdd from the commandline.\n\n";
 
         public static String sBasicHeader = "";
         public static String sBasicFooter = "\nWhen using with the --no-gui flag, following options are available: \n";
@@ -54,7 +54,7 @@ public class Main {
         public static AOMOption noGui = new AOMOption(null, "no-gui", "Use cli instead of GUI.", false, null, false);
         public static AOMOption help = new AOMOption("h", "help", "print this help message", false, null, false);
         public static AOMOption config = new AOMOption("c", "config", "the path to the config file. Specified parameters will override values from the config file.", true, "FILEPATH", false);
-        public static AOMOption save = new AOMOption("s", "save", "save the options to a new file", true, "FILENAME", false);
+        public static AOMOption save = new AOMOption("s", "save", "save the options to a new file which then can be edited (manually) and loaded by using -c", true, "FILENAME", false);
 
 
         public static AOMOption usernameGui = new AOMOption("u", "username", "username", true, "USERNAME", false);
@@ -128,7 +128,7 @@ public class Main {
             if (hasCliOption(cmd, AOMOptions.config)) {
                 String path = getCliOption(cmd, AOMOptions.config, "");
                 ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration> configParser =
-                        new ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration>(path, XBMCDefaultConfiguration.class);
+                        new ConfigFileParser<>(path, XBMCDefaultConfiguration.class);
 
                 config = configParser.loadFromFile();
 
@@ -160,14 +160,14 @@ public class Main {
                 String path = getCliOption(cmd, AOMOptions.save, "");
                 try {
                     ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration> configParser =
-                            new ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration>(path, XBMCDefaultConfiguration.class);
-
+                            new ConfigFileParser<>(path, XBMCDefaultConfiguration.class);
                     configParser.saveToFile(config);
+                    Logger.getGlobal().log(Level.WARNING, "Finished wiritng config to file: " + path);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                System.exit(0);
             }
-            //TODO: Inject AniConfig into aniAdd
             aniAdd = new AniAdd(false, config);
 
 
