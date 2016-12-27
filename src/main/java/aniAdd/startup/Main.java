@@ -11,6 +11,7 @@ import aniAdd.Communication.ComEvent;
 import aniAdd.config.AniConfiguration;
 import aniAdd.config.ConfigFileParser;
 import aniAdd.config.XBMCDefaultConfiguration;
+import aniAdd.config.XBMCDefaultNASConfiguration;
 import com.sun.istack.internal.NotNull;
 import gui.GUI;
 
@@ -135,7 +136,7 @@ public class Main {
             } else {
                 Logger.getGlobal().log(Level.WARNING, "No Config file passed, options are some sane defaults.");
                 // Use default config
-                config = new XBMCDefaultConfiguration();
+                config = new XBMCDefaultNASConfiguration();
             }
 
             // Load optional TagSystem File
