@@ -38,6 +38,7 @@ public class Mod_UdpApi implements IModule {
     private String session;
     private String aniDBsession;
     private boolean connected, shutdown;
+    private boolean banned;
     private boolean aniDBAPIDown;
     private boolean auth, isAuthed;
     private ArrayList<Query> queries;
@@ -494,7 +495,10 @@ public class Mod_UdpApi implements IModule {
                     }
                 }
             }
-            Log(ComEvent.eType.Debug, "Send thread has shut down");
+            Log(ComEvent.eType.Debug, "Send thread has shut down" + (banned ? " because you are BANNED" : ""));
+            if (banned) {
+                Terminate();
+            }
         }
 
         private byte[] TransformCmd(Cmd cmd) {
@@ -685,15 +689,17 @@ public class Mod_UdpApi implements IModule {
                 //connected = false;//TODO
                 break;
 
+            case 555:
+                banned = true;
             case 502:
             case 505:
-            case 555:
             case 598:
                 Log(ComEvent.eType.Error, "Client Failure Code: " + reply.ReplyId());
                 break;
         }
 
     }
+
     // <editor-fold defaultstate="collapsed" desc="IModule">
     protected String modName = "UdpApi";
     protected eModState modState = eModState.New;
