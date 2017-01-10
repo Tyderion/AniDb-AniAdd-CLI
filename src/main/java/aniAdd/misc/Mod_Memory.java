@@ -30,7 +30,6 @@ public class Mod_Memory implements IModule {
     TreeMap<String, Object> mem;
 
     public Mod_Memory() {
-        mem = new TreeMap<String, Object>();
         load();
     }
 
@@ -86,6 +85,7 @@ public class Mod_Memory implements IModule {
     }
 
     public void load() {
+        mem = new TreeMap<String, Object>();
         try {
             ObjectInputStream in = null;
             Preferences prefs = Preferences.userNodeForPackage(Mod_Memory.class);

@@ -172,7 +172,7 @@ public class AniConfiguration {
     }
 
     private enum ToMod_MemoryMapper {
-        EnableFileMove("FileMove"),
+        EnableFileMove("GUI_EnableFileMove"),
         EnableFileRenaming("GUI_EnableFileRenaming"),
         MoveToFolder("GUI_MoveToFolder"),
         OverwriteMLEntries("GUI_OverwriteMLEntries"),
