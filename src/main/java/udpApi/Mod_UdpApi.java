@@ -1,9 +1,8 @@
 package udpApi;
 
-import aniAdd.Communication.ComEvent;
-import aniAdd.Communication.ComListener;
 import aniAdd.IAniAdd;
 import aniAdd.Modules.IModule;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -13,7 +12,7 @@ import java.util.ArrayList;
 import java.util.TreeMap;
 
 import aniAdd.misc.ICallBack;
-import aniAdd.misc.Misc;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Date;
@@ -194,8 +193,8 @@ public class Mod_UdpApi implements IModule {
         }
 
         if (!connected) {
-            if(com != null) com.close();
-            
+            if (com != null) com.close();
+
             if (!connect()) {
                 return false;
             }
@@ -383,12 +382,12 @@ public class Mod_UdpApi implements IModule {
                         if ((now.getTime() - idleThreadStartedOn.getTime()) > 60000 * 5 &&
                                 (lastReplyPackage == null || (now.getTime() - lastReplyPackage.getTime()) > 60000) &&
                                 (lastDelayPackageMills == null || (now.getTime() - lastDelayPackageMills.getTime()) > 60000) &&
-                                (authRetry == null && !longDelay && !cmdToSend.isEmpty())) { 
+                                (authRetry == null && !longDelay && !cmdToSend.isEmpty())) {
                             authRetry = new Date(now.getTime() + 4 * 60 * 1000);
                             longDelay = true;
                             Log(ComEvent.eType.Warning, "Reply delay has passed 1 minute. Re-authentication in 5 min.");
                         }
-                        if (longDelay && authRetry != null && (authRetry.getTime() - now.getTime() < 0) ) {
+                        if (longDelay && authRetry != null && (authRetry.getTime() - now.getTime() < 0)) {
                             idleThreadStartedOn = new Date();
                             authenticate();
                             longDelay = false;
@@ -396,7 +395,8 @@ public class Mod_UdpApi implements IModule {
                         }
                         //quickfix end
                     }
-                } catch (Exception e) { }
+                } catch (Exception e) {
+                }
 
                 //if (aniDBAPIDown && authRetry == null) {
                 //    authRetry = new Date(now.getTime() + 5 * 60 * 1000);
@@ -406,13 +406,16 @@ public class Mod_UdpApi implements IModule {
                 //    authRetry = null;
                 //    authenticate();
                 //}
-                
-                try { Thread.sleep(500); } catch (Exception exception) { }
+
+                try {
+                    Thread.sleep(500);
+                } catch (Exception exception) {
+                }
             } while (!shutdown);
-            
+
             Log(ComEvent.eType.Debug, "Idle thread has shut down");
         }
-        
+
         public void DelayedAuthentication() {
             longDelay = true;
             authRetry = new Date((new Date()).getTime() + 4 * 60 * 1000);
@@ -427,7 +430,7 @@ public class Mod_UdpApi implements IModule {
             Date now;
 
             Log(ComEvent.eType.Debug, "Send: Entering send loop");
-            while (cmdToSend.size() > 0 && connected) {
+            while (cmdToSend.size() > 0 && connected && !banned) {
                 cmdReordered = false;
                 now = new Date();
 
@@ -441,13 +444,14 @@ public class Mod_UdpApi implements IModule {
                             //Cmd doesn't need login or client is logged in and is allowed to send
                             //send cmds from top to bottom
 
-                           Log(ComEvent.eType.Debug, "Send: " + cmdToSend.get(0).Identifier() + " " + cmdToSend.get(0).Action());
+                            Log(ComEvent.eType.Debug, "Send: " + cmdToSend.get(0).Identifier() + " " + cmdToSend.get(0).Action());
                             try {
                                 cmdToSendBin = TransformCmd(cmdToSend.get(0));
-                                
+
                                 com.send(new DatagramPacket(cmdToSendBin, cmdToSendBin.length, aniDBIP, ANIDBAPIPORT));
-                                
-                                if (!NODELAY.contains(cmdToSend.get(0).Action())) lastDelayPackageMills = new Date(now.getTime());
+
+                                if (!NODELAY.contains(cmdToSend.get(0).Action()))
+                                    lastDelayPackageMills = new Date(now.getTime());
                                 replyHeadStart++;
                                 cmdToSend.remove(0);
 
@@ -528,15 +532,15 @@ public class Mod_UdpApi implements IModule {
 
     private class Receive implements Runnable {
 
-        private byte[] inflatePacket(ByteArrayInputStream stream) throws IOException{
+        private byte[] inflatePacket(ByteArrayInputStream stream) throws IOException {
             stream.skip(4);
             InflaterInputStream iis = new InflaterInputStream(stream, new Inflater(true));
             ByteArrayOutputStream baos = new ByteArrayOutputStream(2 * 1400);
 
             int readBytes;
             byte[] b = new byte[1024];
-            while((readBytes = iis.read(b))!= -1) baos.write(b, 0, readBytes);
-            
+            while ((readBytes = iis.read(b)) != -1) baos.write(b, 0, readBytes);
+
             return baos.toByteArray();
         }
 
@@ -555,7 +559,7 @@ public class Mod_UdpApi implements IModule {
                     lastReplyPackage = new Date();
 
                     packetBinary = packet.getData();
-                    if(packetBinary[0] == 0 && packetBinary[1] == 0){
+                    if (packetBinary[0] == 0 && packetBinary[1] == 0) {
                         replyBinary = inflatePacket(new ByteArrayInputStream(packetBinary));
                         length = replyBinary.length;
 
@@ -624,7 +628,7 @@ public class Mod_UdpApi implements IModule {
 
                     aniDBAPIDown = false;
 
-                    if (reply.ReplyId() == 201); //TODO Client Out of Date
+                    if (reply.ReplyId() == 201) ; //TODO Client Out of Date
                     break;
 
                 case 500:
@@ -670,7 +674,7 @@ public class Mod_UdpApi implements IModule {
                     authenticate();
                 }
                 queryCmd(queries.get(queryIndex).getCmd());
-                
+
                 break;
 
             case 600:
@@ -722,7 +726,7 @@ public class Mod_UdpApi implements IModule {
         modState = eModState.Terminating;
 
         shutdown = true;
-        
+
         if (connected) {
             logOut();
             try {
@@ -750,6 +754,7 @@ public class Mod_UdpApi implements IModule {
 
         modState = eModState.Terminated;
     }
+
     // </editor-fold>
     // <editor-fold defaultstate="collapsed" desc="Com System">
     private ArrayList<ComListener> listeners = new ArrayList<ComListener>();

@@ -5,6 +5,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
+
 import processing.FileInfo.eAction;
 import udpApi.Cmd;
 import udpApi.Query;
@@ -16,8 +17,10 @@ import aniAdd.misc.Mod_Memory;
 import aniAdd.misc.Misc;
 import aniAdd.misc.MultiKeyDict;
 import aniAdd.misc.MultiKeyDict.IKeyMapper;
+
 import java.io.FilenameFilter;
 import java.util.TreeMap;
+
 import udpApi.Mod_UdpApi;
 
 public class Mod_EpProcessing implements IModule {
@@ -114,7 +117,7 @@ public class Mod_EpProcessing implements IModule {
 
             processedBytes += procFile.FileObj().length();
             processedFileCount++;
-            
+
             Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.ParsingDone, procFile.Id(), fileParser);
 
             boolean sendML = procFile.ActionsTodo().contains(eAction.MyListCmd);
@@ -129,14 +132,14 @@ public class Mod_EpProcessing implements IModule {
             }
 
             Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.GetDBInfo, procFile.Id(), sendFile, sendML);
-            
-        } else if(procFile != null) {
+
+        } else if (procFile != null) {
             procFile.ActionsError().add(eAction.Process);
             procFile.ActionsTodo().remove(eAction.Process);
-            
+
             processedBytes += procFile.FileObj().length();
             processedFileCount++;
-            
+
             Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.ParsingError, procFile.Id(), fileParser);
         }
 
@@ -156,22 +159,22 @@ public class Mod_EpProcessing implements IModule {
         binCode.set(4); //gid
         binCode.set(5); //eid
         binCode.set(6); //aid
-        
+
         binCode.set(9); //'bit depth //new
         binCode.set(11); //'crc
-        
+
         binCode.set(17); //'video res
         binCode.set(19); //'VideoCodec
         binCode.set(21); //'AudioCodec
         binCode.set(22); //'Source
         binCode.set(23); //'Quality
-        
+
         binCode.set(24); //'anidb filename scheme
         binCode.set(27); //'air date //new
         binCode.set(29); //'length in seconds //new
         binCode.set(30); //'sub lang list
         binCode.set(31); //'dub lang list
-        
+
         binCode.set(37); //'watched state
         cmd.setArgs("fmask", Misc.toMask(binCode, 40));
 
@@ -181,19 +184,19 @@ public class Mod_EpProcessing implements IModule {
         binCode.set(5); //'year
         binCode.set(6); //'highest EpCount
         binCode.set(7); //'epCount
-        
+
         binCode.set(10); //'synonym
         binCode.set(11); //'short name
         binCode.set(12); //'other name
         binCode.set(13); //'english name
         binCode.set(14); //'kanji name
         binCode.set(15); //'romaji name
-        
+
         binCode.set(20); //'ep kanji
         binCode.set(21); //'ep romaji
         binCode.set(22); //'ep name
         binCode.set(23); //'epno
-        
+
         binCode.set(30); //'group short name
         binCode.set(31); //'group name
         cmd.setArgs("amask", Misc.toMask(binCode, 32));
@@ -443,6 +446,9 @@ public class Mod_EpProcessing implements IModule {
 
             File folderObj = null;
 
+            Log(ComEvent.eType.Debug, "Memory is ", mem);
+            System.out.println("HELP: \n" + mem.toString());
+            System.out.println("GUI_EnableFileMove" + mem.get("GUI_EnableFileMove"));
             if ((Boolean) mem.get("GUI_EnableFileMove")) {
                 if ((Boolean) mem.get("GUI_MoveTypeUseFolder")) {
                     folderObj = new File((String) mem.get("GUI_MoveToFolder"));
@@ -633,13 +639,13 @@ public class Mod_EpProcessing implements IModule {
         tags.put("EpNo", procFile.Data().get("DB_EpNo"));
         tags.put("EpHiNo", procFile.Data().get("DB_EpHiCount"));
         tags.put("EpCount", procFile.Data().get("DB_EpCount"));
-		
+
         tags.put("FId", procFile.Data().get("DB_FId"));
         tags.put("AId", procFile.Data().get("DB_AId"));
         tags.put("EId", procFile.Data().get("DB_EId"));
         tags.put("GId", procFile.Data().get("DB_GId"));
         tags.put("LId", procFile.Data().get("DB_LId"));
-        
+
         tags.put("OtherEps", procFile.Data().get("DB_OtherEps"));
 
         tags.put("Quality", procFile.Data().get("DB_Quality"));
@@ -742,7 +748,7 @@ public class Mod_EpProcessing implements IModule {
 
             index2Id.add(lastFileId++);
             files.put(fileInfo);
-            totalBytes +=fileInfo.FileObj().length();
+            totalBytes += fileInfo.FileObj().length();
         }
 
         Log(ComEvent.eType.Information, eComType.FileCountChanged);
@@ -756,10 +762,10 @@ public class Mod_EpProcessing implements IModule {
 
     public void delFiles(int[] indeces) {
         for (int i = indeces.length; i > 0; i--) {
-            FileInfo fi =  files.get("Id", index2Id.get(indeces[i - 1]));
+            FileInfo fi = files.get("Id", index2Id.get(indeces[i - 1]));
             long length = files.get("Id", index2Id.get(indeces[i - 1])).FileObj().length();
-            if(fi.ActionsDone().contains(eAction.Process)) {
-                processedBytes-=length;
+            if (fi.ActionsDone().contains(eAction.Process)) {
+                processedBytes -= length;
                 processedFileCount--;
             }
             totalBytes -= length;
@@ -823,8 +829,9 @@ public class Mod_EpProcessing implements IModule {
         return isProcessing;
     }
 
-    
+
     private int processedFileCount;
+
     public int processedFileCount() {
         return processedFileCount;
         //int count = 0;
@@ -838,6 +845,7 @@ public class Mod_EpProcessing implements IModule {
     }
 
     private long processedBytes;
+
     public long processedBytes() {
         return processedBytes;
         //long count = 0;
@@ -866,6 +874,7 @@ public class Mod_EpProcessing implements IModule {
     }
 
     private long totalBytes;
+
     public long totalBytes() {
         return totalBytes;
         //long count = 0;
@@ -875,6 +884,7 @@ public class Mod_EpProcessing implements IModule {
 
         //return count;
     }
+
     // </editor-fold>
     // <editor-fold defaultstate="collapsed" desc="IModule">
     protected String modName = "EpProcessing";
@@ -895,6 +905,10 @@ public class Mod_EpProcessing implements IModule {
         aniAdd.addComListener(new AniAddEventHandler());
         mem =
                 (Mod_Memory) aniAdd.GetModule("Memory");
+        if (mem == null) {
+            System.out.println("FAILED TO GET MOD MEMORY");
+            System.exit(1);
+        }
         api =
                 (Mod_UdpApi) aniAdd.GetModule("UdpApi");
 
@@ -931,6 +945,7 @@ public class Mod_EpProcessing implements IModule {
 
         modState = eModState.Terminated;
     }
+
     // </editor-fold>
     // <editor-fold defaultstate="collapsed" desc="Com System">
     private ArrayList<ComListener> listeners = new ArrayList<ComListener>();

@@ -136,7 +136,8 @@ public class Main {
             } else {
                 Logger.getGlobal().log(Level.WARNING, "No Config file passed, options are some sane defaults.");
                 // Use default config
-                config = new XBMCDefaultNASConfiguration();
+//                config = new XBMCDefaultNASConfiguration();
+                config = new XBMCDefaultConfiguration();
             }
 
             // Load optional TagSystem File
