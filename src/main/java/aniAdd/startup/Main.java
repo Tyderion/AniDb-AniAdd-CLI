@@ -12,7 +12,7 @@ import aniAdd.config.AniConfiguration;
 import aniAdd.config.ConfigFileParser;
 import aniAdd.config.XBMCDefaultConfiguration;
 import aniAdd.config.XBMCDefaultNASConfiguration;
-import com.sun.istack.internal.NotNull;
+import org.jetbrains.annotations.NotNull;
 import gui.GUI;
 
 import java.awt.event.WindowAdapter;
