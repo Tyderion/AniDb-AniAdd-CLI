@@ -9,7 +9,7 @@ import java.util.*;
  */
 public class AniConfiguration {
     protected enum StorageType {
-        UNKOWN(0), INTERNAL(1), EXTERNAL(2), DELETE(3);
+        UNKOWN(0), INTERNAL(1), EXTERNAL(2), DELETE(3), REMOTE(4);
 
         private final int value;
 
