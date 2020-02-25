@@ -45,34 +45,34 @@ public class FileTable_Renderer extends DefaultTableCellRenderer{
         
         public ImgCell() {
             icons = new TreeMap<Integer, Image>();
-            icons.put(eIconType.F.getPos() | eIconType.Gray.getPos(), createImageIcon("gui/icons/FGray.png"));
-            icons.put(eIconType.F.getPos() | eIconType.Yellow.getPos(), createImageIcon("gui/icons/FYellow.png"));
-            icons.put(eIconType.F.getPos() | eIconType.Red.getPos(), createImageIcon("gui/icons/FRed.png"));
-            icons.put(eIconType.F.getPos() | eIconType.Green.getPos(), createImageIcon("gui/icons/FGreen.png"));
-            icons.put(eIconType.F.getPos() | eIconType.Blue.getPos(), createImageIcon("gui/icons/FBlue.png"));
+            icons.put(eIconType.F.getPos() | eIconType.Gray.getPos(), createImageIcon("icons/FGray.png"));
+            icons.put(eIconType.F.getPos() | eIconType.Yellow.getPos(), createImageIcon("icons/FYellow.png"));
+            icons.put(eIconType.F.getPos() | eIconType.Red.getPos(), createImageIcon("icons/FRed.png"));
+            icons.put(eIconType.F.getPos() | eIconType.Green.getPos(), createImageIcon("icons/FGreen.png"));
+            icons.put(eIconType.F.getPos() | eIconType.Blue.getPos(), createImageIcon("icons/FBlue.png"));
 
-            icons.put(eIconType.M.getPos() | eIconType.Gray.getPos(), createImageIcon("gui/icons/MGray.png"));
-            icons.put(eIconType.M.getPos() | eIconType.Yellow.getPos(), createImageIcon("gui/icons/MYellow.png"));
-            icons.put(eIconType.M.getPos() | eIconType.Red.getPos(), createImageIcon("gui/icons/MRed.png"));
-            icons.put(eIconType.M.getPos() | eIconType.Green.getPos(), createImageIcon("gui/icons/MGreen.png"));
-            icons.put(eIconType.M.getPos() | eIconType.Blue.getPos(), createImageIcon("gui/icons/MBlue.png"));
+            icons.put(eIconType.M.getPos() | eIconType.Gray.getPos(), createImageIcon("icons/MGray.png"));
+            icons.put(eIconType.M.getPos() | eIconType.Yellow.getPos(), createImageIcon("icons/MYellow.png"));
+            icons.put(eIconType.M.getPos() | eIconType.Red.getPos(), createImageIcon("icons/MRed.png"));
+            icons.put(eIconType.M.getPos() | eIconType.Green.getPos(), createImageIcon("icons/MGreen.png"));
+            icons.put(eIconType.M.getPos() | eIconType.Blue.getPos(), createImageIcon("icons/MBlue.png"));
 
-            icons.put(eIconType.P.getPos() | eIconType.Gray.getPos(), createImageIcon("gui/icons/PGray.png"));
-            icons.put(eIconType.P.getPos() | eIconType.Yellow.getPos(), createImageIcon("gui/icons/PYellow.png"));
-            icons.put(eIconType.P.getPos() | eIconType.Red.getPos(), createImageIcon("gui/icons/PRed.png"));
-            icons.put(eIconType.P.getPos() | eIconType.Green.getPos(), createImageIcon("gui/icons/PGreen.png"));
-            icons.put(eIconType.P.getPos() | eIconType.Blue.getPos(), createImageIcon("gui/icons/PBlue.png"));
+            icons.put(eIconType.P.getPos() | eIconType.Gray.getPos(), createImageIcon("icons/PGray.png"));
+            icons.put(eIconType.P.getPos() | eIconType.Yellow.getPos(), createImageIcon("icons/PYellow.png"));
+            icons.put(eIconType.P.getPos() | eIconType.Red.getPos(), createImageIcon("icons/PRed.png"));
+            icons.put(eIconType.P.getPos() | eIconType.Green.getPos(), createImageIcon("icons/PGreen.png"));
+            icons.put(eIconType.P.getPos() | eIconType.Blue.getPos(), createImageIcon("icons/PBlue.png"));
 
-            icons.put(eIconType.R.getPos() | eIconType.Gray.getPos(), createImageIcon("gui/icons/RGray.png"));
-            icons.put(eIconType.R.getPos() | eIconType.Yellow.getPos(), createImageIcon("gui/icons/RYellow.png"));
-            icons.put(eIconType.R.getPos() | eIconType.Red.getPos(), createImageIcon("gui/icons/RRed.png"));
-            icons.put(eIconType.R.getPos() | eIconType.Green.getPos(), createImageIcon("gui/icons/RGreen.png"));
-            icons.put(eIconType.R.getPos() | eIconType.Blue.getPos(), createImageIcon("gui/icons/RBlue.png"));
+            icons.put(eIconType.R.getPos() | eIconType.Gray.getPos(), createImageIcon("icons/RGray.png"));
+            icons.put(eIconType.R.getPos() | eIconType.Yellow.getPos(), createImageIcon("icons/RYellow.png"));
+            icons.put(eIconType.R.getPos() | eIconType.Red.getPos(), createImageIcon("icons/RRed.png"));
+            icons.put(eIconType.R.getPos() | eIconType.Green.getPos(), createImageIcon("icons/RGreen.png"));
+            icons.put(eIconType.R.getPos() | eIconType.Blue.getPos(), createImageIcon("icons/RBlue.png"));
 
-            icons.put(eIconType.V.getPos() | eIconType.Gray.getPos(), createImageIcon("gui/icons/VGray.png"));
-            icons.put(eIconType.V.getPos() | eIconType.Yellow.getPos(), createImageIcon("gui/icons/VYellow.png"));
-            icons.put(eIconType.V.getPos() | eIconType.Red.getPos(), createImageIcon("gui/icons/VRed.png"));
-            icons.put(eIconType.V.getPos() | eIconType.Green.getPos(), createImageIcon("gui/icons/VGreen.png"));
+            icons.put(eIconType.V.getPos() | eIconType.Gray.getPos(), createImageIcon("icons/VGray.png"));
+            icons.put(eIconType.V.getPos() | eIconType.Yellow.getPos(), createImageIcon("icons/VYellow.png"));
+            icons.put(eIconType.V.getPos() | eIconType.Red.getPos(), createImageIcon("icons/VRed.png"));
+            icons.put(eIconType.V.getPos() | eIconType.Green.getPos(), createImageIcon("icons/VGreen.png"));
         }
 
         public void setFile(FileInfo fileInfo){this.fileInfo = fileInfo;}

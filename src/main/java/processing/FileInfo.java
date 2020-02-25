@@ -29,7 +29,7 @@ public class FileInfo {
     private boolean isFinal;
 
     public enum eAction { Process, FileCmd, MyListCmd, VoteCmd, Rename, }
-    public enum eMLStorageState { Unknown, Internal, External, Deleted }
+    public enum eMLStorageState { Unknown, Internal, External, Deleted, Remote }
 
     public Integer Id() { return id; }
     public File FileObj() { return fileObj; }
