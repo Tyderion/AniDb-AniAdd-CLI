@@ -13,18 +13,30 @@ if [ "$CONTINUOUS_CHECKS" = true ]; then
  fi
 
 while true; do
-  touch rename.sh
-  chmod a+x rename.sh
 
-  java -jar /app/aniadd-cli.jar --no-gui -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF -d /from
+  # check if the /from folder contains any files
+  has_files=$(find /from -type f)
+  if [ -n "${has_files}" ]; then
+      echo "Will check files in folder"
+      touch rename.sh
+      chmod a+x rename.sh
 
-  echo "will run following commands: "
-  cat rename.sh
+      java -jar /app/aniadd-cli.jar --no-gui -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF -d /from
 
-  echo "-----------------------"
-  echo "running commands"
-  ./rename.sh
-  rm rename.sh
+      echo "will run following commands: "
+      cat rename.sh
+
+      echo "-----------------------"
+      echo "running commands"
+      ./rename.sh
+      rm rename.sh
+
+      echo "Deleting all empty directories"
+      find /from -type d -empty -delete
+  else
+    echo "No files to check"
+  fi
+
   if [ "$CONTINUOUS_CHECKS" != true ]; then
     echo "Finished run."
     exit 0
