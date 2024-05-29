@@ -606,32 +606,10 @@ public class Mod_EpProcessing implements IModule {
         if (original.renameTo(targetFile)) {
             return true;
         }
-        Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", id,original, targetFile.getAbsolutePath());
+        Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", id,original, targetFile.getAbsolutePath(), "Will rename aftewards via shell script.");
         String command = "mv \"" + original.getAbsolutePath() + "\" \"" + targetFile.getAbsolutePath() + "\"";
-        try {
-
-            Log(ComEvent.eType.Information, eComType.FileEvent, "Trying to move via system command: '" + command + "'");
-            Process process = Runtime.getRuntime().exec(command);
-            try {
-                int exitCode = process.waitFor();
-                Log(ComEvent.eType.Information, eComType.FileEvent, "System file rename ended with exit code: " + exitCode);
-                if (exitCode != 0) {
-                    appendToFile(command);
-                    return false;
-                }
-            } catch (InterruptedException e) {
-                Log(ComEvent.eType.Information, eComType.FileEvent, "interrupted: " + e.getMessage());
-                appendToFile(command);
-                return false;
-            }
-            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.FileRenamed, "System Renaming Succeeded", id, original, targetFile.getAbsolutePath());
-            return true;
-        } catch (IOException e) {
-            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "System Renaming Failed", e.getMessage());
-            Log(ComEvent.eType.Information, eComType.FileEvent, "Writing move command to file");
-            appendToFile(command);
-            return false;
-        }
+        appendToFile(command);
+        return false;
     }
 
     private void appendToFile(String line) {
