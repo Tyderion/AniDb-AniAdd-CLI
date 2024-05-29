@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Created by Archie on 23.12.2015.
@@ -57,8 +58,10 @@ public class FileProcessor implements IModule {
         Logger.getGlobal().log(Level.WARNING, "Folder: " + folder.getAbsolutePath());
         File[] a = folder.listFiles();
         if (a != null) {
-            Logger.getGlobal().log(Level.WARNING, "Number of found files: " + a.length);
-            mFiles = new ArrayList<File>(Arrays.asList(a));
+            mFiles = Arrays.stream(a).filter(File::isDirectory).flatMap(dir -> Arrays.stream(dir.listFiles())).collect(Collectors.toList());
+            mFiles.addAll(Arrays.stream(a).filter(File::isFile).collect(Collectors.toList()));
+            mFiles.forEach(f -> Logger.getGlobal().log(Level.WARNING, "Found file: " + f.getAbsolutePath()));
+            Logger.getGlobal().log(Level.WARNING, "Number of found files: " + mFiles.size());
         } else {
             Logger.getGlobal().log(Level.WARNING, "Folder not found");
             System.exit(0);
