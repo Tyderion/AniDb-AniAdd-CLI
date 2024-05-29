@@ -522,6 +522,7 @@ public class Mod_EpProcessing implements IModule {
             Log(ComEvent.eType.Information, eComType.FileEvent, "canWrite", renFile.canWrite());
             if (renFile.exists() && !(renFile.getParentFile().equals(procFile.FileObj().getParentFile()))) {
                 Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "Destination filename already exists.");
+                appendToPostProcessingScript("rm \"" + procFile.FileObj().getAbsolutePath() + "\"");
                 return false;
             } else if (renFile.getAbsolutePath().equals(procFile.FileObj().getAbsolutePath())) {
                 Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingNotNeeded, procFile.Id(), procFile.FileObj());
