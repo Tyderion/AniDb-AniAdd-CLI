@@ -525,6 +525,7 @@ public class Mod_EpProcessing implements IModule {
                 if ((Boolean) mem.get("GUI_DeleteDuplicateFiles")) {
                     appendToPostProcessingScript("rm \"" + procFile.FileObj().getAbsolutePath() + "\"");
                 } else {
+                    appendToPostProcessingScript("mkdir -p \"" + "/duplicates/" + renFile.getParentFile().getName() + "\"");
                     appendToPostProcessingScript("mv \""+ procFile.FileObj().getAbsolutePath() + "\" \"" + "/duplicates/" + renFile.getParentFile().getName() + "/" + renFile.getName() + "\"" );
                 }
                 return false;
