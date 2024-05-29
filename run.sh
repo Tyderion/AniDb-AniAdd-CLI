@@ -1,24 +1,34 @@
 #!/bin/sh
-id
-echo "CHecking folders: "
-ls -al
-ls -al /shows
-ls -al /from
+echo "setting up execution"
 
-touch rename.sh
-chmod a+x rename.sh
-
-java -jar /app/aniadd-cli.jar --no-gui -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF -d /from
-
-#mv "/from/file.mkv" "/shows/NieR Automata Ver1.1a/NieR Automata Ver1.1a - 01v2 - Or Not to [B]e [Hi10][www][1920x1080][HEVC][F64B59F4].mkv"
-
-echo "will run following commands: "
-cat rename.sh
-
-echo "-----------------------"
-echo "running commands"
-./rename.sh
+if [ "$CONTINUOUS_CHECKS" = true ]; then
+   if [ -z ${CHECK_WAITTIME+x} ] || [ "$CHECK_WAITTIME" -lt 600 ]; then
+     echo "Configured wait check is smaller than 600s, setting to 600s"
+     CHECK_WAITTIME=600
+   else
+     echo "Waiting for $CHECK_WAITTIME seconds between each run"
+   fi
+ else
+   echo "Will only execute once"
+ fi
 
 while true; do
-  sleep 200
+  touch rename.sh
+  chmod a+x rename.sh
+
+  java -jar /app/aniadd-cli.jar --no-gui -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF -d /from
+
+  echo "will run following commands: "
+  cat rename.sh
+
+  echo "-----------------------"
+  echo "running commands"
+  ./rename.sh
+  rm rename.sh
+  if [ "$CONTINUOUS_CHECKS" != true ]; then
+    echo "Finished run."
+    exit 0
+  fi
+  echo "Waiting for ${CHECK_WAITTIME}s"
+  sleep $CHECK_WAITTIME
 done
