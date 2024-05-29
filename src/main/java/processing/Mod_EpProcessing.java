@@ -274,6 +274,13 @@ public class Mod_EpProcessing implements IModule {
         if (replyId == 320 || replyId == 505 || replyId == 322) {
             procFile.ActionsError().add(eAction.FileCmd);
             Log(ComEvent.eType.Information, eComType.FileEvent, replyId == 320 ? eComSubType.FileCmd_NotFound : eComSubType.FileCmd_Error, procFile.Id());
+            if (replyId == 320) {
+                // File not found in anidb
+                File currentFile = procFile.FileObj();
+                String unknownFolderPath = "unknown/" + currentFile.getParentFile().getName();
+                appendToPostProcessingScript("mkdir -p \"" + unknownFolderPath + "\"");
+                appendToPostProcessingScript("mv \"" + currentFile.getAbsolutePath() + "\" \"" + unknownFolderPath + currentFile.getName() + "\"");
+            }
         } else {
             procFile.ActionsDone().add(eAction.FileCmd);
             ArrayDeque<String> df = new ArrayDeque<String>(query.getReply().DataField());
@@ -609,13 +616,13 @@ public class Mod_EpProcessing implements IModule {
         Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", id,original, targetFile.getAbsolutePath(), "Will rename aftewards via shell script.");
         String command = "mv \"" + original.getAbsolutePath() + "\" \"" + targetFile.getAbsolutePath() + "\"";
         if (!targetFile.getParentFile().exists()) {
-            appendToFile("mkdir -p " + targetFile.getParentFile().getAbsolutePath()); // Make sure the folder exists
+            appendToPostProcessingScript("mkdir -p " + targetFile.getParentFile().getAbsolutePath()); // Make sure the folder exists
         }
-        appendToFile(command);
+        appendToPostProcessingScript(command);
         return false;
     }
 
-    private void appendToFile(String line) {
+    private void appendToPostProcessingScript(String line) {
         String path = "rename.sh";
         try {
             BufferedWriter writer = new BufferedWriter(new FileWriter(path, true));
