@@ -21,6 +21,7 @@ public class XBMCDefaultNASConfiguration extends AniConfiguration {
         setAddToMylist(false);
         setAdvancedMode(false);
         setMoveTypeUseFolder(false);
+        setDeleteDuplicateFiles(false);
         setTagSystemCode("BaseTVShowPath:=\"/volume1/Anime/TV Shows/\"                       #Set to your root folder for anime TV shows\n" +
                 "BaseMoviePath:=\"/volume1/Anime/Movies/\"                          #Set to your root folder for anime movies\n" +
                 "ShowTitle:=[%ATr%, %ATe%, %ATk%]\n" +

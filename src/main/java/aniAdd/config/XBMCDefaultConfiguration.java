@@ -21,6 +21,7 @@ public class XBMCDefaultConfiguration extends AniConfiguration {
         setAddToMylist(false);
         setAdvancedMode(false);
         setMoveTypeUseFolder(false);
+        setDeleteDuplicateFiles(false);
         setTagSystemCode("BaseTVShowPath:=\"C:\\Users\\Archie\\AniAddTesting\\TV Shows\\\"                       #Set to your root folder for anime TV shows\n" +
                 "BaseMoviePath:=\"C:\\Users\\Archie\\AniAddTesting\\Movies\\\"                          #Set to your root folder for anime movies\n" +
                 "ShowTitle:=[%ATr%, %ATe%, %ATk%]\n" +

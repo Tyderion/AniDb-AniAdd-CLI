@@ -1,6 +1,8 @@
 package aniAdd.config;
 
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
+
 import java.lang.reflect.Field;
 import java.util.*;
 
@@ -39,6 +41,7 @@ public class AniConfiguration {
     protected Value<Boolean> mAdvancedMode;
     protected Value<Boolean> mMoveTypeUseFolder;
     protected Value<String> mTagSystemCode;
+    protected Value<Boolean> mDeleteDuplicateFiles;
 
     protected String mDirectory;
 
@@ -72,6 +75,14 @@ public class AniConfiguration {
 
     public void setTagSystemCode(String tagSystemCode) {
         mTagSystemCode = new Value<String>(ToMod_MemoryMapper.TagSystemCode, tagSystemCode);
+    }
+
+    public boolean shouldDeleteDuplicateFiles() {
+        return mDeleteDuplicateFiles.value;
+    }
+
+    public void setDeleteDuplicateFiles(boolean deleteDuplicateFiles) {
+        mDeleteDuplicateFiles = new Value<Boolean>(ToMod_MemoryMapper.DeleteDuplicateFiles, deleteDuplicateFiles);
     }
 
     public boolean isMoveTypeUseFolder() {
@@ -186,7 +197,8 @@ public class AniConfiguration {
         AddToMylist("GUI_AddToMyList"),
         AdvancedMode("GUI_AdvMode"),
         MoveTypeUseFolder("GUI_MoveTypeUseFolder"),
-        TagSystemCode("GUI_TagSystemCode");
+        TagSystemCode("GUI_TagSystemCode"),
+        DeleteDuplicateFiles("GUI_DeleteDuplicateFiles");
         private final String representation;
 
         private ToMod_MemoryMapper(String s) {
