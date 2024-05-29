@@ -608,6 +608,9 @@ public class Mod_EpProcessing implements IModule {
         }
         Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", id,original, targetFile.getAbsolutePath(), "Will rename aftewards via shell script.");
         String command = "mv \"" + original.getAbsolutePath() + "\" \"" + targetFile.getAbsolutePath() + "\"";
+        if (!targetFile.getParentFile().exists()) {
+            appendToFile("mkdir -p " + targetFile.getParentFile().getAbsolutePath()); // Make sure the folder exists
+        }
         appendToFile(command);
         return false;
     }
@@ -616,6 +619,7 @@ public class Mod_EpProcessing implements IModule {
         String path = "rename.sh";
         try {
             BufferedWriter writer = new BufferedWriter(new FileWriter(path, true));
+
             writer.append(line);
             writer.append("\n");
             writer.close();
