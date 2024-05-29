@@ -547,7 +547,7 @@ public class Mod_EpProcessing implements IModule {
                             String newFn = filename.substring(0, filename.lastIndexOf("."));
                             for (File srcFile : srcFiles) {
                                 relExt = srcFile.getName().substring(oldFilenameWoExt.length());
-                                if (srcFile.renameTo(new File(folderObj, newFn + relExt))) {
+                                if (tryRenameFile(procFile.Id(), srcFile, new File(folderObj, newFn + relExt))) {
                                     accumExt += relExt + " ";
                                 } else {
                                     //Todo
@@ -561,7 +561,7 @@ public class Mod_EpProcessing implements IModule {
                         }
                         // </editor-fold>
                     }
-                    if ((Boolean) mem.get("GUI_DeleteEmptyFolder")) {
+                    if (mem.get("GUI_DeleteEmptyFolder") != null && (Boolean) mem.get("GUI_DeleteEmptyFolder")) {
                         // <editor-fold defaultstate="collapsed" desc="Delete Empty Folder">
                         File srcFolder = procFile.FileObj().getParentFile();
                         boolean recurse = (Boolean) mem.get("GUI_RecursivelyDeleteEmptyFolders");
@@ -614,13 +614,15 @@ public class Mod_EpProcessing implements IModule {
             Process process = Runtime.getRuntime().exec(command);
             try {
                 int exitCode = process.waitFor();
-                System.out.println("File rename finished with: " + exitCode);
+                Log(ComEvent.eType.Information, eComType.FileEvent, "System file rename ended with exit code: " + exitCode);
                 if (exitCode != 0) {
                     appendToFile(command);
+                    return false;
                 }
             } catch (InterruptedException e) {
-                System.out.println("interrupted: " + e.getMessage());
+                Log(ComEvent.eType.Information, eComType.FileEvent, "interrupted: " + e.getMessage());
                 appendToFile(command);
+                return false;
             }
             Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.FileRenamed, "System Renaming Succeeded", id, original, targetFile.getAbsolutePath());
             return true;
