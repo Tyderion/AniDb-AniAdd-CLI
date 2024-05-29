@@ -1,6 +1,8 @@
 package processing;
 
-import java.io.File;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -18,7 +20,6 @@ import aniAdd.misc.Misc;
 import aniAdd.misc.MultiKeyDict;
 import aniAdd.misc.MultiKeyDict.IKeyMapper;
 
-import java.io.FilenameFilter;
 import java.util.TreeMap;
 
 import udpApi.Mod_UdpApi;
@@ -511,6 +512,7 @@ public class Mod_EpProcessing implements IModule {
 
 
             File renFile = new File(folderObj, filename);
+            Log(ComEvent.eType.Information, eComType.FileEvent, "canWrite", renFile.canWrite());
             if (renFile.exists() && !(renFile.getParentFile().equals(procFile.FileObj().getParentFile()))) {
                 Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "Destination filename already exists.");
                 return false;
@@ -526,7 +528,7 @@ public class Mod_EpProcessing implements IModule {
                     procFile.FileObj(tmpFile);
                 }
 
-                if (procFile.FileObj().renameTo(renFile)) {
+                if (tryRenameFile(procFile.Id(), procFile.FileObj(), renFile)) {
                     Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.FileRenamed, procFile.Id(), renFile, truncated);
                     if ((Boolean) mem.get("GUI_RenameRelatedFiles")) {
                         // <editor-fold defaultstate="collapsed" desc="Rename Related Files">
@@ -589,7 +591,7 @@ public class Mod_EpProcessing implements IModule {
                     return true;
 
                 } else {
-                    Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), renFile.getAbsolutePath());
+                    Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", procFile.Id(), procFile.FileObj(), renFile.getAbsolutePath());
                     return false;
                 }
             }
@@ -597,6 +599,48 @@ public class Mod_EpProcessing implements IModule {
             ex.printStackTrace();
             Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), ex.getMessage());
             return false;
+        }
+    }
+
+    private boolean tryRenameFile(int id, File original, File targetFile) {
+        if (original.renameTo(targetFile)) {
+            return true;
+        }
+        Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", id,original, targetFile.getAbsolutePath());
+        String command = "mv \"" + original.getAbsolutePath() + "\" \"" + targetFile.getAbsolutePath() + "\"";
+        try {
+
+            Log(ComEvent.eType.Information, eComType.FileEvent, "Trying to move via system command: '" + command + "'");
+            Process process = Runtime.getRuntime().exec(command);
+            try {
+                int exitCode = process.waitFor();
+                System.out.println("File rename finished with: " + exitCode);
+                if (exitCode != 0) {
+                    appendToFile(command);
+                }
+            } catch (InterruptedException e) {
+                System.out.println("interrupted: " + e.getMessage());
+                appendToFile(command);
+            }
+            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.FileRenamed, "System Renaming Succeeded", id, original, targetFile.getAbsolutePath());
+            return true;
+        } catch (IOException e) {
+            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "System Renaming Failed", e.getMessage());
+            Log(ComEvent.eType.Information, eComType.FileEvent, "Writing move command to file");
+            appendToFile(command);
+            return false;
+        }
+    }
+
+    private void appendToFile(String line) {
+        String path = "rename.sh";
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(path, true));
+            writer.append(line);
+            writer.append("\n");
+            writer.close();
+        } catch (IOException e) {
+            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Could not write to move file", e.getMessage());
         }
     }
 
