@@ -279,7 +279,7 @@ public class Mod_EpProcessing implements IModule {
                 File currentFile = procFile.FileObj();
                 String unknownFolderPath = "unknown/" + currentFile.getParentFile().getName();
                 appendToPostProcessingScript("mkdir -p \"" + unknownFolderPath + "\"");
-                appendToPostProcessingScript("mv \"" + currentFile.getAbsolutePath() + "\" \"" + unknownFolderPath + currentFile.getName() + "\"");
+                appendToPostProcessingScript("mv \"" + currentFile.getAbsolutePath() + "\" \"" + unknownFolderPath + "/" + currentFile.getName() + "\"");
             }
         } else {
             procFile.ActionsDone().add(eAction.FileCmd);
