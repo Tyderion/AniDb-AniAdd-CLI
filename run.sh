@@ -32,7 +32,7 @@ while true; do
       rm rename.sh
 
       echo "Deleting all empty directories"
-      find /from -type d -empty -delete
+      find /from/* -type d -empty -delete
   else
     echo "No files to check"
   fi
