@@ -1,18 +1,13 @@
 package aniAdd;
 
 import aniAdd.Modules.IModule;
-import aniAdd.Communication.ComEvent;
-import aniAdd.Communication.ComListener;
 import aniAdd.config.AniConfiguration;
-import aniAdd.misc.Misc;
 import aniAdd.misc.Mod_Memory;
-import gui.GUI;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.TreeMap;
+import java.util.*;
 
 import nogui.FileProcessor;
+import processing.Mod_AnimeProcessing;
 import processing.Mod_EpProcessing;
 import udpApi.Mod_UdpApi;
 
@@ -23,49 +18,34 @@ public class AniAdd implements IAniAdd {
     final static int CURRENTVER = 9;
     private final AniConfiguration mConfiguration;
 
-    TreeMap<String, IModule> modules;
+    Map<Class<? extends IModule>, IModule> modules = new HashMap<>();
     EventHandler eventHandler;
     Mod_Memory mem;
 
     public AniAdd() {
-        this(true, null);
+        this(null);
     }
 
     public String getDirectoryPath() {
         return mConfiguration.getDirectory();
     }
 
-    public AniAdd(boolean gui, AniConfiguration configuration) {
+    public AniAdd(AniConfiguration configuration) {
         mConfiguration = configuration;
-        modules = new TreeMap<String, IModule>();
         eventHandler = new EventHandler();
 
-        IModule mod;
-        if (mConfiguration == null) {
-            mod = new Mod_Memory();
-        } else {
-            mod = new Mod_Memory(mConfiguration);
-        }
-        modules.put(mod.ModuleName(), mod);
-        eventHandler.AddEventHandler(mod);
-        mem = (Mod_Memory) mod;
+        mem = mConfiguration == null ? new Mod_Memory() : new Mod_Memory(mConfiguration);
+        addModule(mem);
+        addModule(new Mod_EpProcessing());
+        addModule(new Mod_AnimeProcessing());
+        addModule(new Mod_UdpApi());
 
-        mod = new Mod_EpProcessing();
-        modules.put(mod.ModuleName(), mod);
-        eventHandler.AddEventHandler(mod);
+        addModule(new FileProcessor());
+    }
 
-        mod = new Mod_UdpApi();
-        modules.put(mod.ModuleName(), mod);
+    private void addModule(IModule mod) {
+        modules.put(mod.getClass(), mod);
         eventHandler.AddEventHandler(mod);
-        if (gui) {
-            mod = new GUI();
-            modules.put(mod.ModuleName(), mod);
-            eventHandler.AddEventHandler(mod);
-        } else {
-            mod = new FileProcessor();
-            modules.put(mod.ModuleName(), mod);
-            eventHandler.AddEventHandler(mod);
-        }
     }
 
     public void Start() {
@@ -118,8 +98,8 @@ public class AniAdd implements IAniAdd {
         ComFire(new ComEvent(this, ComEvent.eType.Information, IModule.eModState.Terminated));
     }
 
-    public IModule GetModule(String modName) {
-        return modules.get(modName);
+    public <T extends IModule> T GetModule(Class<T> modName) {
+        return (T) modules.get(modName.getClass());
     }
 
     public Collection<IModule> GetModules() {

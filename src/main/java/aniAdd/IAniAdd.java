@@ -4,6 +4,6 @@ import aniAdd.Modules.IModule;
 import java.util.Collection;
 
 public interface IAniAdd extends Communication {
-    IModule GetModule(String modName);
+    <T extends IModule> T GetModule(Class<T> modName);
     Collection<IModule> GetModules();
 }

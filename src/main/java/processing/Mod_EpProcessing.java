@@ -526,7 +526,7 @@ public class Mod_EpProcessing implements IModule {
                     appendToPostProcessingScript("rm \"" + procFile.FileObj().getAbsolutePath() + "\"");
                 } else {
                     appendToPostProcessingScript("mkdir -p \"" + "/duplicates/" + renFile.getParentFile().getName() + "\"");
-                    appendToPostProcessingScript("mv \""+ procFile.FileObj().getAbsolutePath() + "\" \"" + "/duplicates/" + renFile.getParentFile().getName() + "/" + renFile.getName() + "\"" );
+                    appendToPostProcessingScript("mv \"" + procFile.FileObj().getAbsolutePath() + "\" \"" + "/duplicates/" + renFile.getParentFile().getName() + "/" + renFile.getName() + "\"");
                 }
                 return false;
             } else if (renFile.getAbsolutePath().equals(procFile.FileObj().getAbsolutePath())) {
@@ -619,7 +619,7 @@ public class Mod_EpProcessing implements IModule {
         if (original.renameTo(targetFile)) {
             return true;
         }
-        Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", id,original, targetFile.getAbsolutePath(), "Will rename aftewards via shell script.");
+        Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", id, original, targetFile.getAbsolutePath(), "Will rename aftewards via shell script.");
         String command = "mv \"" + original.getAbsolutePath() + "\" \"" + targetFile.getAbsolutePath() + "\"";
         if (!targetFile.getParentFile().exists()) {
             appendToPostProcessingScript("mkdir -p " + targetFile.getParentFile().getAbsolutePath()); // Make sure the folder exists
@@ -718,8 +718,7 @@ public class Mod_EpProcessing implements IModule {
 // </editor-fold>
 
     // <editor-fold defaultstate="collapsed" desc="Public Methods">
-    public FileInfo id2FileInfo(
-            int id) {
+    public FileInfo id2FileInfo(int id) {
         return files.get("Id", id);
     }
 
@@ -821,8 +820,7 @@ public class Mod_EpProcessing implements IModule {
             case Start:
                 //System.out.println("Processing started");
                 isProcessing = true;
-                isPaused =
-                        false;
+                isPaused = false;
                 Log(ComEvent.eType.Information, eComType.Status, eProcess.Start);
                 processEps();
 
@@ -852,8 +850,7 @@ public class Mod_EpProcessing implements IModule {
                 //System.out.println("Processing stopped");
                 //Not yet supported
                 isProcessing = false;
-                isPaused =
-                        false;
+                isPaused = false;
                 Log(ComEvent.eType.Information, eComType.Status, eProcess.Stop);
                 break;
 
@@ -944,14 +941,12 @@ public class Mod_EpProcessing implements IModule {
 
         this.aniAdd = aniAdd;
         aniAdd.addComListener(new AniAddEventHandler());
-        mem =
-                (Mod_Memory) aniAdd.GetModule("Memory");
+        mem = aniAdd.GetModule(Mod_Memory.class);
         if (mem == null) {
             System.out.println("FAILED TO GET MOD MEMORY");
             System.exit(1);
         }
-        api =
-                (Mod_UdpApi) aniAdd.GetModule("UdpApi");
+        api = aniAdd.GetModule(Mod_UdpApi.class);
 
         api.registerEvent(new ICallBack<Integer>() {
 
@@ -971,15 +966,13 @@ public class Mod_EpProcessing implements IModule {
             }
         }, "vote");
 
-        modState =
-                eModState.Initialized;
+        modState = eModState.Initialized;
     }
 
     public void Terminate() {
         modState = eModState.Terminating;
 
-        isProcessing =
-                false;
+        isProcessing = false;
         if (fileParser != null) {
             fileParser.terminate();
         }
@@ -1025,39 +1018,12 @@ public class Mod_EpProcessing implements IModule {
 
     public enum eComType {
 
-        FileSettings,
-        FileCountChanged,
-        FileEvent,
-        Status
+        FileSettings, FileCountChanged, FileEvent, Status
     }
 
     public enum eComSubType {
 
-        Processing,
-        NoWriteAccess,
-        GotFromHistory,
-        ParsingDone,
-        ParsingError,
-        GetDBInfo,
-        FileCmd_NotFound,
-        FileCmd_GotInfo,
-        FileCmd_Error,
-        MLCmd_FileAdded,
-        MLCmd_AlreadyAdded,
-        MLCmd_FileRemoved,
-        MLCmd_NotFound,
-        MLCmd_Error,
-        VoteCmd_EpVoted,
-        VoteCmd_EpVoteRevoked,
-        VoteCmd_Error,
-        RenamingFailed,
-        FileRenamed,
-        RenamingNotNeeded,
-        RelFilesRenamed,
-        RelFilesRenamingFailed,
-        DeletedEmptyFolder,
-        DeletetingEmptyFolderFailed,
-        Done
+        Processing, NoWriteAccess, GotFromHistory, ParsingDone, ParsingError, GetDBInfo, FileCmd_NotFound, FileCmd_GotInfo, FileCmd_Error, MLCmd_FileAdded, MLCmd_AlreadyAdded, MLCmd_FileRemoved, MLCmd_NotFound, MLCmd_Error, VoteCmd_EpVoted, VoteCmd_EpVoteRevoked, VoteCmd_Error, RenamingFailed, FileRenamed, RenamingNotNeeded, RelFilesRenamed, RelFilesRenamingFailed, DeletedEmptyFolder, DeletetingEmptyFolderFailed, Done
     }
 
     public static Integer GetFileVersion(int state) {

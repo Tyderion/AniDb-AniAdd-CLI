@@ -49,8 +49,8 @@ public class FileProcessor implements IModule {
 
         modState = eModState.Initializing;
         this.aniAdd = aniAdd;
-        epProc = (Mod_EpProcessing) aniAdd.GetModule("EpProcessing");
-        api = (Mod_UdpApi) aniAdd.GetModule("UdpApi");
+        epProc = aniAdd.GetModule(Mod_EpProcessing.class);
+        api = aniAdd.GetModule(Mod_UdpApi.class);
 
         String path = ((AniAdd) aniAdd).getDirectoryPath();
         File folder = new File(path);

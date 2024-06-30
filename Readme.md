@@ -10,7 +10,6 @@ The following cli options are avaialble
 ``` 
 usage: aom [-h] [--no-gui] [-p <PASSWORD>] [-u <USERNAME>]
  -h,--help                  print this help message
-    --no-gui                Use cli instead of GUI.
  -p,--password <PASSWORD>   password
  -u,--username <USERNAME>   username
 ```
@@ -26,7 +25,6 @@ Use AniAdd form the commandline.
                               parameters will override values from the
                               config file.
  -d,--directory <PATH>        directory
-    --no-gui                  Use cli instead of GUI.
  -p,--password <PASSWORD>     password
  -s,--save <FILENAME>         save the options to a new file which then
                               can be edited (manually) and loaded by using
