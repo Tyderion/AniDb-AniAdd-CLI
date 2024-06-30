@@ -1,170 +1,163 @@
 package aniAdd.config;
 
 
-import java.lang.reflect.Field;
-import java.util.*;
-
 /**
  * Created by Archie on 23.12.2015.
  */
 public class AniConfiguration {
 
-    private Value<Boolean> mEnableFileMove;
-    private Value<Boolean> mEnableFileRenaming;
-    private Value<String> mMoveToFolder;
-    private Value<Boolean> mOverwriteMLEntries;
-    private Value<Boolean> mRecursivelyDeleteEmptyFolders;
-    private Value<Boolean> mRenameFiles = new Value<>(SettingKey.RenameFiles, false);
-    private Value<Boolean> mRenameRelatedFiles;
-    private Value<Boolean> mRenameTypeAniDBFileName;
-    private Value<StorageType> mSetStorageType;
+    private boolean enableFileMove;
+    private boolean enableFileRenaming;
+    private String moveToFolder;
+    private boolean overwriteMLEntries;
+    private boolean recursivelyDeleteEmptyFolders;
+    private boolean renameFiles = false;
+    private boolean renameRelatedFiles;
+    private boolean renameTypeAniDBFileName;
+    private StorageType setStorageType;
+    private String folderToLoad;
+    private boolean setWatched;
+    private boolean addToMylist = false;
+    private boolean advancedMode;
+    private boolean moveTypeUseFolder;
+    private String tagSystemCode;
+    private boolean deleteDuplicateFiles;
+    protected String directory;
 
-    private Value<String> mFolderToLoad;
-    private Value<Boolean> mSetWatched;
-
-    private Value<Boolean> mAddToMylist = new Value<>(SettingKey.AddToMylist, false);
-    private Value<Boolean> mAdvancedMode;
-    private Value<Boolean> mMoveTypeUseFolder;
-    private Value<String> mTagSystemCode;
-    private Value<Boolean> mDeleteDuplicateFiles;
-
-    protected String mDirectory;
-
-    public String getDirectory() {
-        return mDirectory;
-    }
-
-    public void setDirectory(String directory) {
-        mDirectory = directory;
-    }
-
-    public boolean isAddToMylist() {
-        return mAddToMylist.value;
-    }
-
-    public void setAddToMylist(boolean addToMylist) {
-        mAddToMylist = new Value<>(SettingKey.AddToMylist, addToMylist);
-    }
-
-    public boolean isAdvancedMode() {
-        return mAdvancedMode.value;
-    }
-
-    public void setAdvancedMode(boolean advancedMode) {
-        mAdvancedMode = new Value<>(SettingKey.AdvancedMode, advancedMode);
-    }
-
-    public String getTagSystemCode() {
-        return mTagSystemCode.value;
-    }
-
-    public void setTagSystemCode(String tagSystemCode) {
-        mTagSystemCode = new Value<>(SettingKey.TagSystemCode, tagSystemCode);
-    }
-
-    public boolean shouldDeleteDuplicateFiles() {
-        return mDeleteDuplicateFiles.value;
-    }
-
-    public void setDeleteDuplicateFiles(boolean deleteDuplicateFiles) {
-        mDeleteDuplicateFiles = new Value<>(SettingKey.DeleteDuplicateFiles, deleteDuplicateFiles);
-    }
-
-    public boolean isMoveTypeUseFolder() {
-        return mMoveTypeUseFolder.value;
-    }
-
-
-    public boolean isEnableFileRenaming() {
-        return mEnableFileRenaming.value;
-    }
-
-    public void setEnableFileRenaming(boolean enableFileRenaming) {
-        mEnableFileRenaming = new Value<>(SettingKey.EnableFileRenaming, enableFileRenaming);
-    }
-
-    public String getMoveToFolder() {
-        return mMoveToFolder.value;
-    }
-
-    public void setMoveToFolder(String moveToFolder) {
-        mMoveToFolder = new Value<>(SettingKey.MoveToFolder, moveToFolder);
-    }
-
-    public boolean isOverwriteMLEntries() {
-        return mOverwriteMLEntries.value;
-    }
-
-    public void setOverwriteMLEntries(boolean overwriteMLEntries) {
-        mOverwriteMLEntries = new Value<>(SettingKey.OverwriteMLEntries, overwriteMLEntries);
-    }
-
-    public boolean isRecursivelyDeleteEmptyFolders() {
-        return mRecursivelyDeleteEmptyFolders.value;
-    }
-
-    public void setRecursivelyDeleteEmptyFolders(boolean recursivelyDeleteEmptyFolders) {
-        mRecursivelyDeleteEmptyFolders = new Value<>(SettingKey.RecursivelyDeleteEmptyFolders, recursivelyDeleteEmptyFolders);
-    }
-
-    public boolean isRenameFiles() {
-        return mRenameFiles.value;
-    }
-
-    public void setRenameFiles(boolean renameFiles) {
-        mRenameFiles = new Value<>(SettingKey.RenameFiles, renameFiles);
-    }
-
-    public boolean isRenameRelatedFiles() {
-        return mRenameRelatedFiles.value;
-    }
-
-    public void setRenameRelatedFiles(boolean renameRelatedFiles) {
-        mRenameRelatedFiles = new Value<>(SettingKey.RenameRelatedFiles, renameRelatedFiles);
-    }
-
-    public boolean isRenameTypeAniDBFileName() {
-        return mRenameTypeAniDBFileName.value;
-    }
-
-    public void setRenameTypeAniDBFileName(boolean renameTypeAniDBFileName) {
-        mRenameTypeAniDBFileName = new Value<>(SettingKey.RenameTypeAniDBFileName, renameTypeAniDBFileName);
-    }
-
-    public StorageType getSetStorageType() {
-        return mSetStorageType.value;
-    }
-
-    public void setSetStorageType(StorageType setStorageType) {
-        mSetStorageType = new Value<>(SettingKey.SetStorageType, setStorageType == null ? StorageType.INTERNAL : setStorageType);
-    }
-
-    public void setMoveTypeUseFolder(boolean moveTypeUseFolder) {
-        mMoveTypeUseFolder = new Value<Boolean>(SettingKey.MoveTypeUseFolder, moveTypeUseFolder);
-    }
-
-    public boolean isEnableFileMove() {
-        return mEnableFileMove.value;
+    public boolean enableFileMove() {
+        return enableFileMove;
     }
 
     public void setEnableFileMove(boolean enableFileMove) {
-        mEnableFileMove = new Value<Boolean>(SettingKey.EnableFileMove, enableFileMove);
+        this.enableFileMove = enableFileMove;
     }
 
-    public String getFolderToLoad() {
-        return mFolderToLoad.value;
+    public boolean enableFileRenaming() {
+        return enableFileRenaming;
+    }
+
+    public void setEnableFileRenaming(boolean enableFileRenaming) {
+        this.enableFileRenaming = enableFileRenaming;
+    }
+
+    public String moveToFolder() {
+        return moveToFolder;
+    }
+
+    public void setMoveToFolder(String moveToFolder) {
+        this.moveToFolder = moveToFolder;
+    }
+
+    public boolean overwriteMLEntries() {
+        return overwriteMLEntries;
+    }
+
+    public void setOverwriteMLEntries(boolean overwriteMLEntries) {
+        this.overwriteMLEntries = overwriteMLEntries;
+    }
+
+    public boolean recursivelyDeleteEmptyFolders() {
+        return recursivelyDeleteEmptyFolders;
+    }
+
+    public void setRecursivelyDeleteEmptyFolders(boolean recursivelyDeleteEmptyFolders) {
+        this.recursivelyDeleteEmptyFolders = recursivelyDeleteEmptyFolders;
+    }
+
+    public boolean renameFiles() {
+        return renameFiles;
+    }
+
+    public void setRenameFiles(boolean renameFiles) {
+        this.renameFiles = renameFiles;
+    }
+
+    public boolean renameRelatedFiles() {
+        return renameRelatedFiles;
+    }
+
+    public void setRenameRelatedFiles(boolean renameRelatedFiles) {
+        this.renameRelatedFiles = renameRelatedFiles;
+    }
+
+    public boolean renameTypeAniDBFileName() {
+        return renameTypeAniDBFileName;
+    }
+
+    public void setRenameTypeAniDBFileName(boolean renameTypeAniDBFileName) {
+        this.renameTypeAniDBFileName = renameTypeAniDBFileName;
+    }
+
+    public StorageType storageType() {
+        return setStorageType;
+    }
+
+    public void setSetStorageType(StorageType setStorageType) {
+        this.setStorageType = setStorageType;
+    }
+
+    public String folderToLoad() {
+        return folderToLoad;
     }
 
     public void setFolderToLoad(String folderToLoad) {
-        mFolderToLoad = new Value<String>(SettingKey.FolderToLoad, folderToLoad);
+        this.folderToLoad = folderToLoad;
     }
 
-    public boolean isSetWatched() {
-        return mSetWatched.value;
+    public boolean setWatched() {
+        return setWatched;
     }
 
     public void setSetWatched(boolean setWatched) {
-        mSetWatched = new Value<Boolean>(SettingKey.SetWatched, setWatched);
+        this.setWatched = setWatched;
+    }
+
+    public boolean addToMylist() {
+        return addToMylist;
+    }
+
+    public void setAddToMylist(boolean addToMylist) {
+        this.addToMylist = addToMylist;
+    }
+
+    public boolean advancedMode() {
+        return advancedMode;
+    }
+
+    public void setAdvancedMode(boolean advancedMode) {
+        this.advancedMode = advancedMode;
+    }
+
+    public boolean moveTypeUseFolder() {
+        return moveTypeUseFolder;
+    }
+
+    public void setMoveTypeUseFolder(boolean moveTypeUseFolder) {
+        this.moveTypeUseFolder = moveTypeUseFolder;
+    }
+
+    public String tagSystemCode() {
+        return tagSystemCode;
+    }
+
+    public void setTagSystemCode(String tagSystemCode) {
+        this.tagSystemCode = tagSystemCode;
+    }
+
+    public boolean deleteDuplicateFiles() {
+        return deleteDuplicateFiles;
+    }
+
+    public void setDeleteDuplicateFiles(boolean deleteDuplicateFiles) {
+        this.deleteDuplicateFiles = deleteDuplicateFiles;
+    }
+
+    public String directory() {
+        return directory;
+    }
+
+    public void setDirectory(String directory) {
+        this.directory = directory;
     }
 
     public enum StorageType {
@@ -180,39 +173,5 @@ public class AniConfiguration {
             return value;
         }
     }
-
-
-    private static class Value<T> {
-        public final SettingKey mapping;
-        public final T value;
-
-        private Value(SettingKey mapping, T value) {
-            this.mapping = mapping;
-            this.value = value;
-        }
-    }
-
-    public Map<String, Object> ToMod_Memory() {
-        Map<String, Object> config = new TreeMap<>();
-
-        Field[] fields = AniConfiguration.class.getDeclaredFields();
-        for (Field f : fields) {
-            Class<?> type = f.getType();
-            if (type.equals(Value.class)) {
-                try {
-                    Value<?> theValue = (Value<?>) f.get(this);
-                    String name = theValue.mapping.toString();
-                    Object value = theValue.value;
-                    if (value instanceof StorageType) {
-                        value = ((StorageType) value).getValue();
-                    }
-                    config.put(name, value);
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        return config;
-    }
+    
 }

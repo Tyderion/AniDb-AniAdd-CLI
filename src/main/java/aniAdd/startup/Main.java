@@ -4,7 +4,6 @@ import aniAdd.Modules.IModule;
 import aniAdd.*;
 import aniAdd.config.AniConfiguration;
 import aniAdd.config.ConfigFileParser;
-import aniAdd.config.XBMCDefaultConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -102,20 +101,22 @@ public class Main {
             System.out.println(e.getMessage());
             System.exit(0);
         }
-        AniConfiguration config;
+        AniConfiguration config = null;
 
         // Load optional Configuration File
         if (hasCliOption(cmd, AOMOptions.config)) {
             String path = getCliOption(cmd, AOMOptions.config, "");
-            ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration> configParser =
-                    new ConfigFileParser<>(path, XBMCDefaultConfiguration.class);
+            ConfigFileParser<AniConfiguration, AniConfiguration> configParser =
+                    new ConfigFileParser<>(path, AniConfiguration.class);
 
             config = configParser.loadFromFile();
 
         } else {
-            Logger.getGlobal().log(Level.WARNING, "No Config file passed, options are some sane defaults.");
-            config = new XBMCDefaultConfiguration();
+            Logger.getGlobal().log(Level.WARNING, "No Config file passed");
+            System.exit(0);
         }
+
+        assert(config != null);
 
         // Load optional TagSystem File
         if (hasCliOption(cmd, AOMOptions.taggingSystem)) {
@@ -138,8 +139,8 @@ public class Main {
         if (hasCliOption(cmd, AOMOptions.save)) {
             String path = getCliOption(cmd, AOMOptions.save, "");
             try {
-                ConfigFileParser<AniConfiguration, XBMCDefaultConfiguration> configParser =
-                        new ConfigFileParser<>(path, XBMCDefaultConfiguration.class);
+                ConfigFileParser<AniConfiguration, AniConfiguration> configParser =
+                        new ConfigFileParser<>(path, AniConfiguration.class);
                 configParser.saveToFile(config);
                 Logger.getGlobal().log(Level.WARNING, "Finished wiritng config to file: " + path);
             } catch (IOException e) {

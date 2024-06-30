@@ -1,8 +1,10 @@
 package nogui;
 
 import aniAdd.AniAdd;
+import aniAdd.Communication;
 import aniAdd.IAniAdd;
 import aniAdd.Modules.BaseModule;
+import aniAdd.Modules.IModule;
 import processing.Mod_EpProcessing;
 
 import java.io.File;
@@ -18,9 +20,7 @@ import java.util.stream.Collectors;
 public class FileProcessor extends BaseModule {
 
     private Mod_EpProcessing epProc;
-
     private List<File> mFiles;
-
 
     public void start() {
         epProc.processing(Mod_EpProcessing.eProcess.Start);
@@ -59,7 +59,14 @@ public class FileProcessor extends BaseModule {
         }
 
         epProc.addFiles(mFiles);
-        epProc.processing(Mod_EpProcessing.eProcess.Start);
+
+        aniAdd.addComListener(communicationEvent -> {
+            if (communicationEvent.EventType() == CommunicationEvent.EventType.Information
+                    && communicationEvent.ParamCount() == 1
+                    && communicationEvent.Params(0) == eModState.Initialized) {
+                start();
+            }
+        });
 
         epProc.addComListener(comEvent -> {
             if (comEvent.EventType() == CommunicationEvent.EventType.Information) {

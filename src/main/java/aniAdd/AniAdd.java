@@ -21,7 +21,7 @@ public class AniAdd implements IAniAdd {
     EventHandler eventHandler;
 
     public String getDirectoryPath() {
-        return mConfiguration.getDirectory();
+        return mConfiguration.directory();
     }
 
     public AniAdd(AniConfiguration configuration) {
