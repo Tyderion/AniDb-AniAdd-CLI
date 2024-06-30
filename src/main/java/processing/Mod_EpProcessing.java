@@ -6,6 +6,8 @@ import java.util.BitSet;
 import java.util.Collection;
 
 import aniAdd.Modules.BaseModule;
+import aniAdd.config.AniConfiguration;
+import aniAdd.config.SettingKey;
 import processing.FileInfo.eAction;
 import udpApi.Cmd;
 import udpApi.Query;
@@ -188,32 +190,6 @@ public class Mod_EpProcessing extends BaseModule {
             cmd.setArgs("viewed", procFile.Watched() ? "1" : "0");
         }
 
-        String content = "";
-        if (procFile.Data().containsKey(("EditOther"))) {
-            content = (String) procFile.Data().get("EditOther");
-            if (content != null && !content.isEmpty()) {
-                content = content.replaceAll("\n", "<br />");
-                content = content.replaceAll("[&|=]", "");
-                cmd.setArgs("other", content);
-            }
-        }
-        if (procFile.Data().containsKey(("EditSource"))) {
-            content = (String) procFile.Data().get("EditSource");
-            if (content != null && !content.isEmpty()) {
-                content = content.replaceAll("\n", "");
-                content = content.replaceAll("[&|=]", "");
-                cmd.setArgs("source", content);
-            }
-        }
-        if (procFile.Data().containsKey(("EditStorage"))) {
-            content = (String) procFile.Data().get("EditStorage");
-            if (content != null && !content.isEmpty()) {
-                content = content.replaceAll("\n", "");
-                content = content.replaceAll("[&|=]", "");
-                cmd.setArgs("storage", content);
-            }
-        }
-
         api.queryCmd(cmd);
         //System.out.println("Sending ML Cmd");
     }
@@ -316,7 +292,7 @@ public class Mod_EpProcessing extends BaseModule {
         } else if (replyId == 310) {
             //File Already Added
 
-            if ((Boolean) mem.get("GUI_OverwriteMLEntries")) {
+            if ((Boolean) mem.get(SettingKey.OverwriteMLEntries)) {
                 procFile.ActionsTodo().add(eAction.MyListCmd);
                 Cmd cmd = new Cmd(query.getCmd(), true);
                 cmd.setArgs("edit", "1");
@@ -412,16 +388,10 @@ public class Mod_EpProcessing extends BaseModule {
 
             Log(CommunicationEvent.EventType.Debug, "Memory is ", mem);
             System.out.println("HELP: \n" + mem.toString());
-            System.out.println("GUI_EnableFileMove" + mem.get("GUI_EnableFileMove"));
-            if ((Boolean) mem.get("GUI_EnableFileMove")) {
-                if ((Boolean) mem.get("GUI_MoveTypeUseFolder")) {
-                    folderObj = new File((String) mem.get("GUI_MoveToFolder"));
-                    if ((Boolean) mem.get("GUI_AppendAnimeTitle")) {
-                        int titleType = (Integer) mem.get("GUI_AppendAnimeTitleType");
-                        String title = titleType == 0 ? procFile.Data().get("DB_SN_English") : (titleType == 1 ? procFile.Data().get("DB_SN_Romaji") : procFile.Data().get("DB_SN_Kanji"));
-                        folderObj = new File(folderObj, title.replaceAll("[\":/*|<>?]", ""));
-                    }
-
+            System.out.println("GUI_EnableFileMove" + mem.get(SettingKey.EnableFileMove));
+            if ((Boolean) mem.get(SettingKey.EnableFileMove)) {
+                if ((Boolean) mem.get(SettingKey.MoveTypeUseFolder)) {
+                    folderObj = new File((String) mem.get(SettingKey.MoveToFolder));
                 } else {
                     ts = getPathFromTagSystem(procFile);
                     if (ts == null) {
@@ -451,9 +421,9 @@ public class Mod_EpProcessing extends BaseModule {
             }
 
             String ext = procFile.FileObj().getName().substring(procFile.FileObj().getName().lastIndexOf("."));
-            if (!(Boolean) mem.get("GUI_EnableFileRenaming")) {
+            if (!(Boolean) mem.get(SettingKey.EnableFileRenaming)) {
                 filename = procFile.FileObj().getName();
-            } else if ((Boolean) mem.get("GUI_RenameTypeAniDBFileName")) {
+            } else if ((Boolean) mem.get(SettingKey.RenameTypeAniDBFileName)) {
                 filename = procFile.Data().get("DB_FileName");
             } else {
                 if (ts == null) {
@@ -478,7 +448,7 @@ public class Mod_EpProcessing extends BaseModule {
             Log(CommunicationEvent.EventType.Information, eComType.FileEvent, "canWrite", renFile.canWrite());
             if (renFile.exists() && !(renFile.getParentFile().equals(procFile.FileObj().getParentFile()))) {
                 Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "Destination filename already exists.");
-                if ((Boolean) mem.get("GUI_DeleteDuplicateFiles")) {
+                if ((Boolean) mem.get(SettingKey.DeleteDuplicateFiles)) {
                     appendToPostProcessingScript("rm \"" + procFile.FileObj().getAbsolutePath() + "\"");
                 } else {
                     appendToPostProcessingScript("mkdir -p \"" + "/duplicates/" + renFile.getParentFile().getName() + "\"");
@@ -499,7 +469,7 @@ public class Mod_EpProcessing extends BaseModule {
 
                 if (tryRenameFile(procFile.Id(), procFile.FileObj(), renFile)) {
                     Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.FileRenamed, procFile.Id(), renFile, truncated);
-                    if ((Boolean) mem.get("GUI_RenameRelatedFiles")) {
+                    if ((Boolean) mem.get(SettingKey.RenameRelatedFiles)) {
                         // <editor-fold defaultstate="collapsed" desc="Rename Related Files">
                         try {
 
@@ -527,31 +497,6 @@ public class Mod_EpProcessing extends BaseModule {
                             }
                         } catch (Exception e) {
                             Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RelFilesRenamingFailed, procFile.Id(), e.getMessage());
-                        }
-                        // </editor-fold>
-                    }
-                    if (mem.get("GUI_DeleteEmptyFolder") != null && (Boolean) mem.get("GUI_DeleteEmptyFolder")) {
-                        // <editor-fold defaultstate="collapsed" desc="Delete Empty Folder">
-                        File srcFolder = procFile.FileObj().getParentFile();
-                        boolean recurse = (Boolean) mem.get("GUI_RecursivelyDeleteEmptyFolders");
-                        try {
-                            while (srcFolder.list().length == 0) {
-                                if (srcFolder.delete()) {
-                                    Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.DeletedEmptyFolder, procFile.Id(), srcFolder);
-                                } else {
-                                    Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.DeletetingEmptyFolderFailed, procFile.Id(), srcFolder);
-                                    break;
-                                }
-                                if (!recurse) {
-                                    break;
-                                }
-
-                                Thread.sleep(200);
-                                srcFolder = srcFolder.getParentFile();
-                                System.out.println(srcFolder.list().length);
-                            }
-                        } catch (Exception e) {
-                            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.DeletetingEmptyFolderFailed, procFile.Id(), srcFolder, e.getMessage());
                         }
                         // </editor-fold>
                     }
@@ -662,7 +607,7 @@ public class Mod_EpProcessing extends BaseModule {
         tags.put("UnCen", ((Integer.valueOf(procFile.Data().get("DB_State")) & 1 << 6) != 0 ? "1" : ""));
         tags.put("Ver", GetFileVersion(Integer.valueOf(procFile.Data().get("DB_State"))).toString());
 
-        String codeStr = (String) mem.get("GUI_TagSystemCode");
+        String codeStr = (String) mem.get(SettingKey.TagSystemCode);
         if (codeStr == null || codeStr.isEmpty()) {
             return null;
         }
@@ -673,23 +618,11 @@ public class Mod_EpProcessing extends BaseModule {
     }
 
     public void addFiles(Collection<File> newFiles) {
-        Boolean watched;
-        if ((Boolean) mem.get("GUI_ShowSetWatchedStateBox", false)) {
-            watched = (Boolean) mem.get("GUI_SetWatchedState", false) ? (Boolean) mem.get("GUI_SetWatched", false) : null;
-        } else {
-            watched = (Boolean) mem.get("GUI_SetWatched", false) ? true : null;
-        }
+        Boolean watched = (Boolean) mem.get(SettingKey.SetWatched, false) ? true : null;
 
-        Integer storage = (Integer) mem.get("GUI_SetStorageType", 1);
-        boolean rename = (Boolean) mem.get("GUI_RenameFiles", false);
-        boolean addToMyList = (Boolean) mem.get("GUI_AddToMyList", false);
-        String otherStr = "", sourceStr = "", storageStr = "";
-
-        if ((Boolean) mem.get("GUI_ShowSrcStrOtEditBoxes", false)) {
-            otherStr = (String) mem.get("GUI_OtherText", "");
-            sourceStr = (String) mem.get("GUI_SourceText", "");
-            storageStr = (String) mem.get("GUI_StorageText", "");
-        }
+        Integer storage = (Integer) mem.get(SettingKey.SetStorageType, 1);
+        boolean rename = (Boolean) mem.get(SettingKey.RenameFiles, false);
+        boolean addToMyList = (Boolean) mem.get(SettingKey.AddToMylist, false);
 
         for (File cf : newFiles) {
             if (files.contains("Path", cf.getAbsolutePath())) {
@@ -710,15 +643,6 @@ public class Mod_EpProcessing extends BaseModule {
 
             fileInfo.Watched(watched);
 
-            if (!otherStr.isEmpty()) {
-                fileInfo.Data().put("EditOther", otherStr);
-            }
-            if (!sourceStr.isEmpty()) {
-                fileInfo.Data().put("EditSource", sourceStr);
-            }
-            if (!storageStr.isEmpty()) {
-                fileInfo.Data().put("EditStorage", storageStr);
-            }
             files.put(fileInfo);
             lastFileId++;
         }

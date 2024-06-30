@@ -8,6 +8,7 @@ package aniAdd.misc;
 import aniAdd.IAniAdd;
 import aniAdd.Modules.BaseModule;
 import aniAdd.config.AniConfiguration;
+import aniAdd.config.SettingKey;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -40,15 +41,15 @@ public class Mod_Memory extends BaseModule {
         mem.put(key, value);
     }
 
-    public Object get(String key) {
-        return mem.get(key);
+    public Object get(SettingKey key) {
+        return mem.get(key.toString());
     }
 
-    public Object get(String key, Object defVal) {
-        if (mem.containsKey(key)) {
-            return mem.get(key);
+    public Object get(SettingKey key, Object defVal) {
+        if (mem.containsKey(key.toString())) {
+            return mem.get(key.toString());
         } else {
-            mem.put(key, defVal);
+            mem.put(key.toString(), defVal);
             return defVal;
         }
     }

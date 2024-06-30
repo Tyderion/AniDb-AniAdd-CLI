@@ -8,38 +8,25 @@ import java.util.*;
  * Created by Archie on 23.12.2015.
  */
 public class AniConfiguration {
-    protected enum StorageType {
-        UNKOWN(0), INTERNAL(1), EXTERNAL(2), DELETE(3), REMOTE(4);
 
-        private final int value;
+    private Value<Boolean> mEnableFileMove;
+    private Value<Boolean> mEnableFileRenaming;
+    private Value<String> mMoveToFolder;
+    private Value<Boolean> mOverwriteMLEntries;
+    private Value<Boolean> mRecursivelyDeleteEmptyFolders;
+    private Value<Boolean> mRenameFiles;
+    private Value<Boolean> mRenameRelatedFiles;
+    private Value<Boolean> mRenameTypeAniDBFileName;
+    private Value<StorageType> mSetStorageType;
 
-        private StorageType(int i) {
-            value = i;
-        }
+    private Value<String> mFolderToLoad;
+    private Value<Boolean> mSetWatched;
 
-        public int getValue() {
-            return value;
-        }
-    }
-
-    protected Value<Boolean> mEnableFileMove;
-    protected Value<Boolean> mEnableFileRenaming;
-    protected Value<String> mMoveToFolder;
-    protected Value<Boolean> mOverwriteMLEntries;
-    protected Value<Boolean> mRecursivelyDeleteEmptyFolders;
-    protected Value<Boolean> mRenameFiles;
-    protected Value<Boolean> mRenameRelatedFiles;
-    protected Value<Boolean> mRenameTypeAniDBFileName;
-    protected Value<StorageType> mSetStorageType;
-
-    protected Value<String> mFolderToLoad;
-    protected Value<Boolean> mSetWatched;
-
-    protected Value<Boolean> mAddToMylist;
-    protected Value<Boolean> mAdvancedMode;
-    protected Value<Boolean> mMoveTypeUseFolder;
-    protected Value<String> mTagSystemCode;
-    protected Value<Boolean> mDeleteDuplicateFiles;
+    private Value<Boolean> mAddToMylist;
+    private Value<Boolean> mAdvancedMode;
+    private Value<Boolean> mMoveTypeUseFolder;
+    private Value<String> mTagSystemCode;
+    private Value<Boolean> mDeleteDuplicateFiles;
 
     protected String mDirectory;
 
@@ -56,7 +43,7 @@ public class AniConfiguration {
     }
 
     public void setAddToMylist(boolean addToMylist) {
-        mAddToMylist = new Value<Boolean>(ToMod_MemoryMapper.AddToMylist, addToMylist);
+        mAddToMylist = new Value<>(SettingKey.AddToMylist, addToMylist);
     }
 
     public boolean isAdvancedMode() {
@@ -64,7 +51,7 @@ public class AniConfiguration {
     }
 
     public void setAdvancedMode(boolean advancedMode) {
-        mAdvancedMode = new Value<Boolean>(ToMod_MemoryMapper.AdvancedMode, advancedMode);
+        mAdvancedMode = new Value<>(SettingKey.AdvancedMode, advancedMode);
     }
 
     public String getTagSystemCode() {
@@ -72,7 +59,7 @@ public class AniConfiguration {
     }
 
     public void setTagSystemCode(String tagSystemCode) {
-        mTagSystemCode = new Value<String>(ToMod_MemoryMapper.TagSystemCode, tagSystemCode);
+        mTagSystemCode = new Value<>(SettingKey.TagSystemCode, tagSystemCode);
     }
 
     public boolean shouldDeleteDuplicateFiles() {
@@ -80,7 +67,7 @@ public class AniConfiguration {
     }
 
     public void setDeleteDuplicateFiles(boolean deleteDuplicateFiles) {
-        mDeleteDuplicateFiles = new Value<Boolean>(ToMod_MemoryMapper.DeleteDuplicateFiles, deleteDuplicateFiles);
+        mDeleteDuplicateFiles = new Value<>(SettingKey.DeleteDuplicateFiles, deleteDuplicateFiles);
     }
 
     public boolean isMoveTypeUseFolder() {
@@ -93,7 +80,7 @@ public class AniConfiguration {
     }
 
     public void setEnableFileRenaming(boolean enableFileRenaming) {
-        mEnableFileRenaming = new Value<Boolean>(ToMod_MemoryMapper.EnableFileRenaming, enableFileRenaming);
+        mEnableFileRenaming = new Value<>(SettingKey.EnableFileRenaming, enableFileRenaming);
     }
 
     public String getMoveToFolder() {
@@ -101,7 +88,7 @@ public class AniConfiguration {
     }
 
     public void setMoveToFolder(String moveToFolder) {
-        mMoveToFolder = new Value<String>(ToMod_MemoryMapper.MoveToFolder, moveToFolder);
+        mMoveToFolder = new Value<>(SettingKey.MoveToFolder, moveToFolder);
     }
 
     public boolean isOverwriteMLEntries() {
@@ -109,7 +96,7 @@ public class AniConfiguration {
     }
 
     public void setOverwriteMLEntries(boolean overwriteMLEntries) {
-        mOverwriteMLEntries = new Value<Boolean>(ToMod_MemoryMapper.OverwriteMLEntries, overwriteMLEntries);
+        mOverwriteMLEntries = new Value<>(SettingKey.OverwriteMLEntries, overwriteMLEntries);
     }
 
     public boolean isRecursivelyDeleteEmptyFolders() {
@@ -117,7 +104,7 @@ public class AniConfiguration {
     }
 
     public void setRecursivelyDeleteEmptyFolders(boolean recursivelyDeleteEmptyFolders) {
-        mRecursivelyDeleteEmptyFolders = new Value<Boolean>(ToMod_MemoryMapper.RecursivelyDeleteEmptyFolders, recursivelyDeleteEmptyFolders);
+        mRecursivelyDeleteEmptyFolders = new Value<>(SettingKey.RecursivelyDeleteEmptyFolders, recursivelyDeleteEmptyFolders);
     }
 
     public boolean isRenameFiles() {
@@ -125,7 +112,7 @@ public class AniConfiguration {
     }
 
     public void setRenameFiles(boolean renameFiles) {
-        mRenameFiles = new Value<Boolean>(ToMod_MemoryMapper.RenameFiles, renameFiles);
+        mRenameFiles = new Value<>(SettingKey.RenameFiles, renameFiles);
     }
 
     public boolean isRenameRelatedFiles() {
@@ -133,7 +120,7 @@ public class AniConfiguration {
     }
 
     public void setRenameRelatedFiles(boolean renameRelatedFiles) {
-        mRenameRelatedFiles = new Value<Boolean>(ToMod_MemoryMapper.RenameRelatedFiles, renameRelatedFiles);
+        mRenameRelatedFiles = new Value<>(SettingKey.RenameRelatedFiles, renameRelatedFiles);
     }
 
     public boolean isRenameTypeAniDBFileName() {
@@ -141,7 +128,7 @@ public class AniConfiguration {
     }
 
     public void setRenameTypeAniDBFileName(boolean renameTypeAniDBFileName) {
-        mRenameTypeAniDBFileName = new Value<Boolean>(ToMod_MemoryMapper.RenameTypeAniDBFileName, renameTypeAniDBFileName);
+        mRenameTypeAniDBFileName = new Value<>(SettingKey.RenameTypeAniDBFileName, renameTypeAniDBFileName);
     }
 
     public StorageType getSetStorageType() {
@@ -149,11 +136,11 @@ public class AniConfiguration {
     }
 
     public void setSetStorageType(StorageType setStorageType) {
-        mSetStorageType = new Value<StorageType>(ToMod_MemoryMapper.SetStorageType, setStorageType);
+        mSetStorageType = new Value<>(SettingKey.SetStorageType, setStorageType);
     }
 
     public void setMoveTypeUseFolder(boolean moveTypeUseFolder) {
-        mMoveTypeUseFolder = new Value<Boolean>(ToMod_MemoryMapper.MoveTypeUseFolder, moveTypeUseFolder);
+        mMoveTypeUseFolder = new Value<Boolean>(SettingKey.MoveTypeUseFolder, moveTypeUseFolder);
     }
 
     public boolean isEnableFileMove() {
@@ -161,7 +148,7 @@ public class AniConfiguration {
     }
 
     public void setEnableFileMove(boolean enableFileMove) {
-        mEnableFileMove = new Value<Boolean>(ToMod_MemoryMapper.EnableFileMove, enableFileMove);
+        mEnableFileMove = new Value<Boolean>(SettingKey.EnableFileMove, enableFileMove);
     }
 
     public String getFolderToLoad() {
@@ -169,7 +156,7 @@ public class AniConfiguration {
     }
 
     public void setFolderToLoad(String folderToLoad) {
-        mFolderToLoad = new Value<String>(ToMod_MemoryMapper.FolderToLoad, folderToLoad);
+        mFolderToLoad = new Value<String>(SettingKey.FolderToLoad, folderToLoad);
     }
 
     public boolean isSetWatched() {
@@ -177,43 +164,29 @@ public class AniConfiguration {
     }
 
     public void setSetWatched(boolean setWatched) {
-        mSetWatched = new Value<Boolean>(ToMod_MemoryMapper.SetWatched, setWatched);
+        mSetWatched = new Value<Boolean>(SettingKey.SetWatched, setWatched);
     }
 
-    private enum ToMod_MemoryMapper {
-        EnableFileMove("GUI_EnableFileMove"),
-        EnableFileRenaming("GUI_EnableFileRenaming"),
-        MoveToFolder("GUI_MoveToFolder"),
-        OverwriteMLEntries("GUI_OverwriteMLEntries"),
-        RecursivelyDeleteEmptyFolders("GUI_RecursivelyDeleteEmptyFolders"),
-        RenameFiles("GUI_RenameFiles"),
-        RenameRelatedFiles("GUI_RenameRelatedFiles"),
-        RenameTypeAniDBFileName("GUI_RenameTypeAniDBFileName"),
-        SetStorageType("GUI_SetStorageType"),
-        FolderToLoad("GUI_FolderToAddOnLoad"),
-        SetWatched("GUI_SetWatched"),
-        AddToMylist("GUI_AddToMyList"),
-        AdvancedMode("GUI_AdvMode"),
-        MoveTypeUseFolder("GUI_MoveTypeUseFolder"),
-        TagSystemCode("GUI_TagSystemCode"),
-        DeleteDuplicateFiles("GUI_DeleteDuplicateFiles");
-        private final String representation;
+    public enum StorageType {
+        UNKOWN(0), INTERNAL(1), EXTERNAL(2), DELETE(3), REMOTE(4);
 
-        private ToMod_MemoryMapper(String s) {
-            representation = s;
+        private final int value;
+
+        private StorageType(int i) {
+            value = i;
         }
 
-        @Override
-        public String toString() {
-            return this.representation;
+        public int getValue() {
+            return value;
         }
     }
 
-    private class Value<T> {
-        public final ToMod_MemoryMapper mapping;
+
+    private static class Value<T> {
+        public final SettingKey mapping;
         public final T value;
 
-        private Value(ToMod_MemoryMapper mapping, T value) {
+        private Value(SettingKey mapping, T value) {
             this.mapping = mapping;
             this.value = value;
         }
