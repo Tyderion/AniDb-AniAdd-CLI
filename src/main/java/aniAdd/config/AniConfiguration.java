@@ -14,7 +14,7 @@ public class AniConfiguration {
     private Value<String> mMoveToFolder;
     private Value<Boolean> mOverwriteMLEntries;
     private Value<Boolean> mRecursivelyDeleteEmptyFolders;
-    private Value<Boolean> mRenameFiles;
+    private Value<Boolean> mRenameFiles = new Value<>(SettingKey.RenameFiles, false);
     private Value<Boolean> mRenameRelatedFiles;
     private Value<Boolean> mRenameTypeAniDBFileName;
     private Value<StorageType> mSetStorageType;
@@ -22,7 +22,7 @@ public class AniConfiguration {
     private Value<String> mFolderToLoad;
     private Value<Boolean> mSetWatched;
 
-    private Value<Boolean> mAddToMylist;
+    private Value<Boolean> mAddToMylist = new Value<>(SettingKey.AddToMylist, false);
     private Value<Boolean> mAdvancedMode;
     private Value<Boolean> mMoveTypeUseFolder;
     private Value<String> mTagSystemCode;
@@ -136,7 +136,7 @@ public class AniConfiguration {
     }
 
     public void setSetStorageType(StorageType setStorageType) {
-        mSetStorageType = new Value<>(SettingKey.SetStorageType, setStorageType);
+        mSetStorageType = new Value<>(SettingKey.SetStorageType, setStorageType == null ? StorageType.INTERNAL : setStorageType);
     }
 
     public void setMoveTypeUseFolder(boolean moveTypeUseFolder) {

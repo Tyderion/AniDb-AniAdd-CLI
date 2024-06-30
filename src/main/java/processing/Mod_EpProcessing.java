@@ -7,14 +7,12 @@ import java.util.Collection;
 
 import aniAdd.Modules.BaseModule;
 import aniAdd.config.AniConfiguration;
-import aniAdd.config.SettingKey;
 import processing.FileInfo.eAction;
 import udpApi.Cmd;
 import udpApi.Query;
 
 import aniAdd.IAniAdd;
 import aniAdd.misc.ICallBack;
-import aniAdd.misc.Mod_Memory;
 import aniAdd.misc.Misc;
 import aniAdd.misc.MultiKeyDict;
 import aniAdd.misc.MultiKeyDict.IKeyMapper;
@@ -27,12 +25,12 @@ public class Mod_EpProcessing extends BaseModule {
 
     public static String[] supportedFiles = {"avi", "ac3", "mpg", "mpeg", "rm", "rmvb", "asf", "wmv", "mov", "ogm", "mp4", "mkv", "rar", "zip", "ace", "srt", "sub", "ssa", "smi", "idx", "ass", "txt", "swf", "flv"};
     private Mod_UdpApi api;
-    private Mod_Memory mem;
     private FileParser fileParser;
     private boolean isProcessing;
     private boolean isPaused;
     private int lastFileId = 0;
     private int filesBeingMoved;
+    private final AniConfiguration configuration;
 
     private final MultiKeyDict<String, Object, FileInfo> files = new MultiKeyDict<>(new IKeyMapper<String, Object, FileInfo>() {
 
@@ -48,6 +46,10 @@ public class Mod_EpProcessing extends BaseModule {
             return index == 0 ? fileInfo.Id() : (index == 1 ? fileInfo.FileObj().getAbsolutePath() : null);
         }
     });
+
+    public Mod_EpProcessing(AniConfiguration configuration) {
+        this.configuration = configuration;
+    }
 
     private void processEps() {
         while (isPaused) {
@@ -292,7 +294,7 @@ public class Mod_EpProcessing extends BaseModule {
         } else if (replyId == 310) {
             //File Already Added
 
-            if ((Boolean) mem.get(SettingKey.OverwriteMLEntries)) {
+            if (configuration.isOverwriteMLEntries()) {
                 procFile.ActionsTodo().add(eAction.MyListCmd);
                 Cmd cmd = new Cmd(query.getCmd(), true);
                 cmd.setArgs("edit", "1");
@@ -386,12 +388,10 @@ public class Mod_EpProcessing extends BaseModule {
 
             File folderObj = null;
 
-            Log(CommunicationEvent.EventType.Debug, "Memory is ", mem);
-            System.out.println("HELP: \n" + mem.toString());
-            System.out.println("GUI_EnableFileMove" + mem.get(SettingKey.EnableFileMove));
-            if ((Boolean) mem.get(SettingKey.EnableFileMove)) {
-                if ((Boolean) mem.get(SettingKey.MoveTypeUseFolder)) {
-                    folderObj = new File((String) mem.get(SettingKey.MoveToFolder));
+            System.out.println("GUI_EnableFileMove" + configuration.isEnableFileMove());
+            if (configuration.isEnableFileMove()) {
+                if (configuration.isMoveTypeUseFolder()) {
+                    folderObj = new File(configuration.getMoveToFolder());
                 } else {
                     ts = getPathFromTagSystem(procFile);
                     if (ts == null) {
@@ -421,9 +421,9 @@ public class Mod_EpProcessing extends BaseModule {
             }
 
             String ext = procFile.FileObj().getName().substring(procFile.FileObj().getName().lastIndexOf("."));
-            if (!(Boolean) mem.get(SettingKey.EnableFileRenaming)) {
+            if (!configuration.isEnableFileRenaming()) {
                 filename = procFile.FileObj().getName();
-            } else if ((Boolean) mem.get(SettingKey.RenameTypeAniDBFileName)) {
+            } else if (configuration.isRenameTypeAniDBFileName()) {
                 filename = procFile.Data().get("DB_FileName");
             } else {
                 if (ts == null) {
@@ -448,7 +448,7 @@ public class Mod_EpProcessing extends BaseModule {
             Log(CommunicationEvent.EventType.Information, eComType.FileEvent, "canWrite", renFile.canWrite());
             if (renFile.exists() && !(renFile.getParentFile().equals(procFile.FileObj().getParentFile()))) {
                 Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "Destination filename already exists.");
-                if ((Boolean) mem.get(SettingKey.DeleteDuplicateFiles)) {
+                if (configuration.shouldDeleteDuplicateFiles()) {
                     appendToPostProcessingScript("rm \"" + procFile.FileObj().getAbsolutePath() + "\"");
                 } else {
                     appendToPostProcessingScript("mkdir -p \"" + "/duplicates/" + renFile.getParentFile().getName() + "\"");
@@ -469,7 +469,7 @@ public class Mod_EpProcessing extends BaseModule {
 
                 if (tryRenameFile(procFile.Id(), procFile.FileObj(), renFile)) {
                     Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.FileRenamed, procFile.Id(), renFile, truncated);
-                    if ((Boolean) mem.get(SettingKey.RenameRelatedFiles)) {
+                    if (configuration.isRenameRelatedFiles()) {
                         // <editor-fold defaultstate="collapsed" desc="Rename Related Files">
                         try {
 
@@ -607,7 +607,7 @@ public class Mod_EpProcessing extends BaseModule {
         tags.put("UnCen", ((Integer.valueOf(procFile.Data().get("DB_State")) & 1 << 6) != 0 ? "1" : ""));
         tags.put("Ver", GetFileVersion(Integer.valueOf(procFile.Data().get("DB_State"))).toString());
 
-        String codeStr = (String) mem.get(SettingKey.TagSystemCode);
+        String codeStr = configuration.getTagSystemCode();
         if (codeStr == null || codeStr.isEmpty()) {
             return null;
         }
@@ -618,11 +618,11 @@ public class Mod_EpProcessing extends BaseModule {
     }
 
     public void addFiles(Collection<File> newFiles) {
-        Boolean watched = (Boolean) mem.get(SettingKey.SetWatched, false) ? true : null;
+        Boolean watched = configuration.isSetWatched() ? true : null;
 
-        Integer storage = (Integer) mem.get(SettingKey.SetStorageType, 1);
-        boolean rename = (Boolean) mem.get(SettingKey.RenameFiles, false);
-        boolean addToMyList = (Boolean) mem.get(SettingKey.AddToMylist, false);
+        int storage = configuration.getSetStorageType().getValue();
+        boolean rename = configuration.isRenameFiles();
+        boolean addToMyList = configuration.isAddToMylist();
 
         for (File cf : newFiles) {
             if (files.contains("Path", cf.getAbsolutePath())) {
@@ -707,11 +707,6 @@ public class Mod_EpProcessing extends BaseModule {
 
     public void Initialize(IAniAdd aniAdd) {
         modState = eModState.Initializing;
-        mem = aniAdd.GetModule(Mod_Memory.class);
-        if (mem == null) {
-            System.out.println("FAILED TO GET MOD MEMORY");
-            System.exit(1);
-        }
         api = aniAdd.GetModule(Mod_UdpApi.class);
 
         api.registerEvent(this::aniDBInfoReply, "file");

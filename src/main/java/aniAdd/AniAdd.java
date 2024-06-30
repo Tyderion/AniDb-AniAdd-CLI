@@ -2,7 +2,6 @@ package aniAdd;
 
 import aniAdd.Modules.IModule;
 import aniAdd.config.AniConfiguration;
-import aniAdd.misc.Mod_Memory;
 
 import java.util.*;
 
@@ -20,11 +19,6 @@ public class AniAdd implements IAniAdd {
 
     Map<Class<? extends IModule>, IModule> modules = new HashMap<>();
     EventHandler eventHandler;
-    Mod_Memory mem;
-
-    public AniAdd() {
-        this(null);
-    }
 
     public String getDirectoryPath() {
         return mConfiguration.getDirectory();
@@ -33,10 +27,7 @@ public class AniAdd implements IAniAdd {
     public AniAdd(AniConfiguration configuration) {
         mConfiguration = configuration;
         eventHandler = new EventHandler();
-
-        mem = mConfiguration == null ? new Mod_Memory() : new Mod_Memory(mConfiguration);
-        addModule(mem);
-        addModule(new Mod_EpProcessing());
+        addModule(new Mod_EpProcessing(mConfiguration));
         addModule(new Mod_AnimeProcessing());
         addModule(new Mod_UdpApi());
 
@@ -68,8 +59,6 @@ public class AniAdd implements IAniAdd {
                 allModsInitialized &= module.ModState() == IModule.eModState.Initialized;
             }
         }
-
-        mem.put("FirstStart", CURRENTVER);
         ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Initialized));
     }
 

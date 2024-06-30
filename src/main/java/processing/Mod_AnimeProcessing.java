@@ -4,7 +4,6 @@ import aniAdd.IAniAdd;
 import aniAdd.Modules.BaseModule;
 import aniAdd.Modules.IModule;
 import aniAdd.misc.Misc;
-import aniAdd.misc.Mod_Memory;
 import aniAdd.misc.MultiKeyDict;
 import udpApi.Cmd;
 import udpApi.Mod_UdpApi;
@@ -16,7 +15,6 @@ import java.util.BitSet;
 public class Mod_AnimeProcessing extends BaseModule {
     private IAniAdd aniAdd;
     private Mod_UdpApi api;
-    private Mod_Memory mem;
     private MultiKeyDict<String, Object, AnimeInfo> anime;
 
 
@@ -170,12 +168,6 @@ public class Mod_AnimeProcessing extends BaseModule {
         modState = IModule.eModState.Initializing;
 
         this.aniAdd = aniAdd;
-        aniAdd.addComListener(comEvent ->{});
-        mem = aniAdd.GetModule(Mod_Memory.class);
-        if (mem == null) {
-            System.out.println("FAILED TO GET MOD MEMORY");
-            System.exit(1);
-        }
         api = aniAdd.GetModule(Mod_UdpApi.class);
 
         api.registerEvent(this::aniDBAnimeReply, "anime");
