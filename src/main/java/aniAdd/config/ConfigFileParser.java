@@ -9,15 +9,14 @@ import java.util.logging.Logger;
 /**
  * Created by Archie on 23.12.2015.
  */
-public class ConfigFileParser<T, U extends T> {
+public class ConfigFileParser<T> {
 
-    private final Class<U> mClazz;
-    private Yaml mYaml;
-    private String mConfigFilePath;
+    private final Class<T> mClazz;
+    private final Yaml mYaml = new Yaml();
+    private final String mConfigFilePath;
 
-    public ConfigFileParser(String configFilePath, Class<U> clazz) {
+    public ConfigFileParser(String configFilePath, Class<T> clazz) {
         mConfigFilePath = configFilePath;
-        mYaml = new Yaml();
         mClazz = clazz;
     }
 
@@ -29,7 +28,7 @@ public class ConfigFileParser<T, U extends T> {
             Logger.getGlobal().log(Level.WARNING, "File not found");
         }
         if (input != null) {
-            return (T) mYaml.load(input);
+            return mYaml.loadAs(input, mClazz);
         } else {
             try {
                 return mClazz.newInstance();

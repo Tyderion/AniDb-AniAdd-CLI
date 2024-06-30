@@ -106,7 +106,7 @@ public class Main {
         // Load optional Configuration File
         if (hasCliOption(cmd, AOMOptions.config)) {
             String path = getCliOption(cmd, AOMOptions.config, "");
-            ConfigFileParser<AniConfiguration, AniConfiguration> configParser =
+            ConfigFileParser<AniConfiguration> configParser =
                     new ConfigFileParser<>(path, AniConfiguration.class);
 
             config = configParser.loadFromFile();
@@ -139,7 +139,7 @@ public class Main {
         if (hasCliOption(cmd, AOMOptions.save)) {
             String path = getCliOption(cmd, AOMOptions.save, "");
             try {
-                ConfigFileParser<AniConfiguration, AniConfiguration> configParser =
+                ConfigFileParser<AniConfiguration> configParser =
                         new ConfigFileParser<>(path, AniConfiguration.class);
                 configParser.saveToFile(config);
                 Logger.getGlobal().log(Level.WARNING, "Finished wiritng config to file: " + path);
