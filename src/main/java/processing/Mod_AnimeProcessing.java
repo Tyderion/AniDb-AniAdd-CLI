@@ -2,6 +2,7 @@ package processing;
 
 import aniAdd.Communication;
 import aniAdd.IAniAdd;
+import aniAdd.Modules.BaseModule;
 import aniAdd.Modules.IModule;
 import aniAdd.misc.ICallBack;
 import aniAdd.misc.Misc;
@@ -16,12 +17,11 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 
-public class Mod_AnimeProcessing implements IModule {
+public class Mod_AnimeProcessing extends BaseModule {
     private IAniAdd aniAdd;
     private Mod_UdpApi api;
     private Mod_Memory mem;
     private MultiKeyDict<String, Object, AnimeInfo> anime;
-
 
 
     private void requestDBAnimeInfo(int animeId) {
@@ -148,7 +148,7 @@ public class Mod_AnimeProcessing implements IModule {
             Log(Communication.ComEvent.eType.Information, Mod_AnimeProcessing.eComType.FileEvent, Mod_AnimeProcessing.eComSubType.FileCmd_GotInfo, animeInfo.Id());
         }
 
-        if (!animeInfo.IsFinal() && !(animeInfo.ActionsTodo().contains(AnimeInfo.eAction.AnimeCmd) )) {
+        if (!animeInfo.IsFinal() && !(animeInfo.ActionsTodo().contains(AnimeInfo.eAction.AnimeCmd))) {
             finalProcessing(animeInfo);
         }
     }
@@ -174,7 +174,7 @@ public class Mod_AnimeProcessing implements IModule {
         modState = IModule.eModState.Initializing;
 
         this.aniAdd = aniAdd;
-        aniAdd.addComListener(new AniAddEventHandler());
+        aniAdd.addComListener(comEvent ->{});
         mem = aniAdd.GetModule(Mod_Memory.class);
         if (mem == null) {
             System.out.println("FAILED TO GET MOD MEMORY");
@@ -195,35 +195,6 @@ public class Mod_AnimeProcessing implements IModule {
     }
 
     // </editor-fold>
-    // <editor-fold defaultstate="collapsed" desc="Com System">
-    private ArrayList<Communication.ComListener> listeners = new ArrayList<Communication.ComListener>();
-
-    protected void ComFire(Communication.ComEvent comEvent) {
-        for (Communication.ComListener listener : listeners) {
-            listener.EventHandler(comEvent);
-        }
-
-    }
-
-    public void addComListener(Communication.ComListener comListener) {
-        listeners.add(comListener);
-    }
-
-    public void RemoveComListener(Communication.ComListener comListener) {
-        listeners.remove(comListener);
-    }
-
-    class AniAddEventHandler implements Communication.ComListener {
-
-        public void EventHandler(Communication.ComEvent comEvent) {
-        }
-    }
-    // </editor-fold>
-
-    // <editor-fold defaultstate="collapsed" desc="Misc">
-    protected void Log(Communication.ComEvent.eType type, Object... params) {
-        ComFire(new Communication.ComEvent(this, type, params));
-    }
 
     public enum eProcess {
 

@@ -60,7 +60,7 @@ public class AniAdd implements IAniAdd {
         while (!allModsInitialized) {
             try {
                 Thread.sleep(100);
-            } catch (InterruptedException ex) {
+            } catch (InterruptedException ignored) {
             }
 
             allModsInitialized = true;
@@ -106,7 +106,7 @@ public class AniAdd implements IAniAdd {
         return modules.values();
     }
 
-    class EventHandler implements ComListener {
+    static class EventHandler implements ComListener {
         public void AddEventHandler(IModule mod) {
             mod.addComListener(this);
         }

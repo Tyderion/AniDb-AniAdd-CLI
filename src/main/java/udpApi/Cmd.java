@@ -54,15 +54,15 @@ public class Cmd {
 		}
 	}
 	public String toString(String session) {
-        String cmdStr;
-        cmdStr = action + " tag=" + identifier + (tag==null?"":":"+tag) + "-" + queryId;
+        StringBuilder cmdStr;
+        cmdStr = new StringBuilder(action + " tag=" + identifier + (tag == null ? "" : ":" + tag) + "-" + queryId);
 
-        if(session != null) cmdStr += "&s=" + session;
+        if(session != null) cmdStr.append("&s=").append(session);
 
         for (Entry<String, String> arg : params.entrySet()) {
-			cmdStr += "&" + arg.getKey() + "=" + arg.getValue();
+			cmdStr.append("&").append(arg.getKey()).append("=").append(arg.getValue());
 		}
 
-        return cmdStr;
+        return cmdStr.toString();
 	}
 }

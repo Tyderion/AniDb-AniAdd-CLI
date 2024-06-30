@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 
+import aniAdd.Modules.BaseModule;
 import processing.FileInfo.eAction;
 import udpApi.Cmd;
 import udpApi.Query;
@@ -24,49 +25,32 @@ import java.util.TreeMap;
 
 import udpApi.Mod_UdpApi;
 
-public class Mod_EpProcessing implements IModule {
+public class Mod_EpProcessing extends BaseModule {
 
     public static String[] supportedFiles = {"avi", "ac3", "mpg", "mpeg", "rm", "rmvb", "asf", "wmv", "mov", "ogm", "mp4", "mkv", "rar", "zip", "ace", "srt", "sub", "ssa", "smi", "idx", "ass", "txt", "swf", "flv"};
-    private IAniAdd aniAdd;
     private Mod_UdpApi api;
     private Mod_Memory mem;
-    private MultiKeyDict<String, Object, FileInfo> files;
-    private ArrayList<Integer> index2Id;
     private FileParser fileParser;
     private boolean isProcessing;
     private boolean isPaused;
-    private int lastFileId;
+    private int lastFileId = 0;
     private int filesBeingMoved;
 
-    public Mod_EpProcessing() {
-        lastFileId = 0;
-        files = new MultiKeyDict<String, Object, FileInfo>(new IKeyMapper<String, Object, FileInfo>() {
+    private final MultiKeyDict<String, Object, FileInfo> files = new MultiKeyDict<>(new IKeyMapper<String, Object, FileInfo>() {
 
-            public int count() {
-                return 2;
-            }
+        public int count() {
+            return 2;
+        }
 
-            public int getCatIndex(String category) {
-                return category.equals("Id") ? 0 : (category.equals("Path") ? 1 : -1);
-            }
+        public int getCatIndex(String category) {
+            return category.equals("Id") ? 0 : (category.equals("Path") ? 1 : -1);
+        }
 
-            public Object getKey(int index, FileInfo fileInfo) {
-                return index == 0 ? fileInfo.Id() : (index == 1 ? fileInfo.FileObj().getAbsolutePath() : null);
-            }
-        });
-        index2Id = new ArrayList<Integer>();
-    }
+        public Object getKey(int index, FileInfo fileInfo) {
+            return index == 0 ? fileInfo.Id() : (index == 1 ? fileInfo.FileObj().getAbsolutePath() : null);
+        }
+    });
 
-    public void ClearFiles() {
-        index2Id.clear();
-        files.clear();
-        totalBytes = 0;
-        processedBytes = 0;
-        processedFileCount = 0;
-        Log(ComEvent.eType.Information, eComType.FileCountChanged);
-    }
-
-    // <editor-fold defaultstate="collapsed" desc="Processing"> 
     private void processEps() {
         while (isPaused) {
             try {
@@ -78,7 +62,6 @@ public class Mod_EpProcessing implements IModule {
         for (FileInfo procFile : files.values()) {
             if (!procFile.Served()) {
                 procFile.Served(true);
-                //System.out.println("Processing: " + procFile.FileObj().getAbsolutePath());
                 Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.Processing, procFile.Id());
 
                 while (filesBeingMoved > 0) {
@@ -100,7 +83,6 @@ public class Mod_EpProcessing implements IModule {
         }
         isProcessing = false;
         Log(ComEvent.eType.Information, eComType.Status, eComSubType.Done);
-        //System.out.println("Processing done");
     }
 
     private void continueProcessing(FileParser fileParser) {
@@ -110,14 +92,9 @@ public class Mod_EpProcessing implements IModule {
 
 
         if (procFile != null && fileParser.Hash() != null) {
-            //System.out.println("Cont Processing: " + id);
-
             procFile.Data().put("Ed2k", fileParser.Hash());
             procFile.ActionsDone().add(eAction.Process);
             procFile.ActionsTodo().remove(eAction.Process);
-
-            processedBytes += procFile.FileObj().length();
-            processedFileCount++;
 
             Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.ParsingDone, procFile.Id(), fileParser);
 
@@ -137,9 +114,6 @@ public class Mod_EpProcessing implements IModule {
         } else if (procFile != null) {
             procFile.ActionsError().add(eAction.Process);
             procFile.ActionsTodo().remove(eAction.Process);
-
-            processedBytes += procFile.FileObj().length();
-            processedFileCount++;
 
             Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.ParsingError, procFile.Id(), fileParser);
         }
@@ -246,16 +220,6 @@ public class Mod_EpProcessing implements IModule {
 
         api.queryCmd(cmd);
         //System.out.println("Sending ML Cmd");
-    }
-
-    private void requestDBVote(FileInfo procFile) {
-        Cmd cmd = new Cmd("VOTE", "vote", procFile.Id().toString(), true);
-        cmd.setArgs("id", (String) procFile.Data().get("AId"));
-        cmd.setArgs("type", true ? "1" : "2"); //decision missing (Perm/Temp Vote)
-        cmd.setArgs("value", (String) procFile.Data().get("Vote"));
-        cmd.setArgs("epno", (String) procFile.Data().get("EpNo"));
-
-        api.queryCmd(cmd);
     }
 
     private void aniDBInfoReply(int queryId) {
@@ -409,9 +373,6 @@ public class Mod_EpProcessing implements IModule {
     private void finalProcessing(FileInfo procFile) {
         //System.out.println("Final processing");
         procFile.IsFinal(true);
-        if (procFile.Data().get("Vote") != null) {
-            requestDBVote(procFile);
-        }
 
         if (procFile.ActionsTodo().contains(eAction.Rename) && procFile.ActionsDone().contains(eAction.FileCmd)) {
             procFile.ActionsTodo().remove(eAction.Rename);
@@ -447,7 +408,6 @@ public class Mod_EpProcessing implements IModule {
     }
 
     private boolean renameFile(FileInfo procFile) { //Todo: refractor into smaller Methods
-        //String folder="";
         String filename = "";
         try {
             TreeMap<String, String> ts = null;
@@ -715,28 +675,6 @@ public class Mod_EpProcessing implements IModule {
 
         return tags;
     }
-// </editor-fold>
-
-    // <editor-fold defaultstate="collapsed" desc="Public Methods">
-    public FileInfo id2FileInfo(int id) {
-        return files.get("Id", id);
-    }
-
-    public FileInfo index2FileInfo(int index) {
-        return files.get("Id", index2Id.get(index));
-    }
-
-    public int Index2Id(int index) {
-        return index2Id.get(index);
-    }
-
-    public int Id2Index(int id) {
-        return Misc.binarySearch(index2Id, id);
-    }
-
-    public int FileCount() {
-        return files.size();
-    }
 
     public void addFiles(Collection<File> newFiles) {
         Boolean watched;
@@ -785,33 +723,10 @@ public class Mod_EpProcessing implements IModule {
             if (!storageStr.isEmpty()) {
                 fileInfo.Data().put("EditStorage", storageStr);
             }
-
-            index2Id.add(lastFileId++);
             files.put(fileInfo);
-            totalBytes += fileInfo.FileObj().length();
+            lastFileId++;
         }
 
-        Log(ComEvent.eType.Information, eComType.FileCountChanged);
-    }
-
-    public void addFile(File cf) {
-        ArrayList<File> lst = new ArrayList<File>();
-        lst.add(cf);
-        addFiles(lst);
-    }
-
-    public void delFiles(int[] indeces) {
-        for (int i = indeces.length; i > 0; i--) {
-            FileInfo fi = files.get("Id", index2Id.get(indeces[i - 1]));
-            long length = files.get("Id", index2Id.get(indeces[i - 1])).FileObj().length();
-            if (fi.ActionsDone().contains(eAction.Process)) {
-                processedBytes -= length;
-                processedFileCount--;
-            }
-            totalBytes -= length;
-            files.remove("Id", index2Id.get(indeces[i - 1]));
-            index2Id.remove(indeces[i - 1]);
-        }
         Log(ComEvent.eType.Information, eComType.FileCountChanged);
     }
 
@@ -859,72 +774,6 @@ public class Mod_EpProcessing implements IModule {
 
     }
 
-    public boolean isPaused() {
-        return isPaused;
-    }
-
-    public boolean isProcessing() {
-        return isProcessing;
-    }
-
-
-    private int processedFileCount;
-
-    public int processedFileCount() {
-        return processedFileCount;
-        //int count = 0;
-        //for (FileInfo fi : files.values()) {
-        //    if (fi.ActionsDone().contains(eAction.Process)) {
-        //        count++;
-        //    }
-
-        //}
-        //return count;
-    }
-
-    private long processedBytes;
-
-    public long processedBytes() {
-        return processedBytes;
-        //long count = 0;
-        //for (FileInfo fi : files.values()) {
-        //    if (fi.ActionsDone().contains(eAction.Process)) {
-        //        count += fi.FileObj().length();
-        //    }
-
-        //}
-        //if(fileParser!=null) count += fileParser.getBytesRead();
-
-        //return count;
-    }
-
-    public long processedBytesCurrentFile() {
-        long count = 0;
-        if (fileParser != null) {
-            count += fileParser.getBytesRead();
-        }
-
-        return count;
-    }
-
-    public long totalBytesCurrentFile() {
-        return fileParser != null ? fileParser.getByteCount() : 0;
-    }
-
-    private long totalBytes;
-
-    public long totalBytes() {
-        return totalBytes;
-        //long count = 0;
-        //for (FileInfo fi : files.values()) {
-        //    count += fi.FileObj().length();
-        //}
-
-        //return count;
-    }
-
-    // </editor-fold>
-    // <editor-fold defaultstate="collapsed" desc="IModule">
     protected String modName = "EpProcessing";
     protected eModState modState = eModState.New;
 
@@ -938,9 +787,6 @@ public class Mod_EpProcessing implements IModule {
 
     public void Initialize(IAniAdd aniAdd) {
         modState = eModState.Initializing;
-
-        this.aniAdd = aniAdd;
-        aniAdd.addComListener(new AniAddEventHandler());
         mem = aniAdd.GetModule(Mod_Memory.class);
         if (mem == null) {
             System.out.println("FAILED TO GET MOD MEMORY");
@@ -948,23 +794,9 @@ public class Mod_EpProcessing implements IModule {
         }
         api = aniAdd.GetModule(Mod_UdpApi.class);
 
-        api.registerEvent(new ICallBack<Integer>() {
-
-            public void invoke(Integer queryIndex) {
-                aniDBInfoReply(queryIndex);
-            }
-        }, "file");
-        api.registerEvent(new ICallBack<Integer>() {
-
-            public void invoke(Integer queryIndex) {
-                aniDBMyListReply(queryIndex);
-            }
-        }, "mladd", "mldel");
-        api.registerEvent(new ICallBack<Integer>() {
-
-            public void invoke(Integer queryIndex) {
-            }
-        }, "vote");
+        api.registerEvent(this::aniDBInfoReply, "file");
+        api.registerEvent(this::aniDBMyListReply, "mladd", "mldel");
+        api.registerEvent(this::aniDBVoteReply, "vote");
 
         modState = eModState.Initialized;
     }
@@ -978,37 +810,6 @@ public class Mod_EpProcessing implements IModule {
         }
 
         modState = eModState.Terminated;
-    }
-
-    // </editor-fold>
-    // <editor-fold defaultstate="collapsed" desc="Com System">
-    private ArrayList<ComListener> listeners = new ArrayList<ComListener>();
-
-    protected void ComFire(ComEvent comEvent) {
-        for (ComListener listener : listeners) {
-            listener.EventHandler(comEvent);
-        }
-
-    }
-
-    public void addComListener(ComListener comListener) {
-        listeners.add(comListener);
-    }
-
-    public void RemoveComListener(ComListener comListener) {
-        listeners.remove(comListener);
-    }
-
-    class AniAddEventHandler implements ComListener {
-
-        public void EventHandler(ComEvent comEvent) {
-        }
-    }
-    // </editor-fold>
-
-    // <editor-fold defaultstate="collapsed" desc="Misc">
-    protected void Log(ComEvent.eType type, Object... params) {
-        ComFire(new ComEvent(this, type, params));
     }
 
     public enum eProcess {
@@ -1037,5 +838,4 @@ public class Mod_EpProcessing implements IModule {
 
         return version;
     }
-    // </editor-fold>
 }

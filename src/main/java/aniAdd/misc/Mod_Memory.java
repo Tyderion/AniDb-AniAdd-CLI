@@ -6,6 +6,7 @@
 package aniAdd.misc;
 
 import aniAdd.IAniAdd;
+import aniAdd.Modules.BaseModule;
 import aniAdd.Modules.IModule;
 import aniAdd.config.AniConfiguration;
 
@@ -26,7 +27,7 @@ import java.util.prefs.Preferences;
 /**
  * @author Arokh
  */
-public class Mod_Memory implements IModule {
+public class Mod_Memory extends BaseModule {
     TreeMap<String, Object> mem;
 
     public Mod_Memory() {
@@ -139,7 +140,7 @@ public class Mod_Memory implements IModule {
 
     public void Initialize(IAniAdd aniAdd) {
         modState = eModState.Initializing;
-        aniAdd.addComListener(new AniAddEventHandler());
+        aniAdd.addComListener(comEvent -> {});
         modState = eModState.Initialized;
     }
 
@@ -147,32 +148,6 @@ public class Mod_Memory implements IModule {
         modState = eModState.Terminating;
         save();
         modState = eModState.Terminated;
-    }
-    // </editor-fold>
-
-    // <editor-fold defaultstate="collapsed" desc="Com System">
-    private ArrayList<ComListener> listeners = new ArrayList<ComListener>();
-
-    protected void ComFire(ComEvent comEvent) {
-        ArrayList<ComListener> listeners = (ArrayList<ComListener>) this.listeners.clone();
-
-        for (ComListener listener : listeners) {
-            listener.EventHandler(comEvent);
-        }
-    }
-
-    public void addComListener(ComListener comListener) {
-        listeners.add(comListener);
-    }
-
-    public void RemoveComListener(ComListener comListener) {
-        listeners.remove(comListener);
-    }
-
-    class AniAddEventHandler implements ComListener {
-        public void EventHandler(ComEvent comEvent) {
-
-        }
     }
     // </editor-fold>
 }

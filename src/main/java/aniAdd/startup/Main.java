@@ -1,14 +1,7 @@
 package aniAdd.startup;
 
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 import aniAdd.Modules.IModule;
 import aniAdd.*;
-import aniAdd.communication.Communication;
-import aniAdd.communication.Communication.ComEvent;
 import aniAdd.config.AniConfiguration;
 import aniAdd.config.ConfigFileParser;
 import aniAdd.config.XBMCDefaultConfiguration;
@@ -19,7 +12,6 @@ import java.nio.charset.Charset;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JFrame;
 
 import org.apache.commons.cli.*;
 import udpApi.Mod_UdpApi;
@@ -31,9 +23,7 @@ import util.StringHelper;
 public class Main {
 
     static String username, session, password, autopass;
-    static JFrame frm;
     static AniAdd aniAdd;
-    private static boolean sNoGui;
 
     private static class AOMOptions {
 
@@ -74,8 +64,8 @@ public class Main {
         }
     }
 
-    private static Options sCliOptions = AOMOptions.toCliOptions();
-    private static Options sBasicOptions = AOMOptions.toBasicOptions();
+    private static final Options sCliOptions = AOMOptions.toCliOptions();
+    private static final Options sBasicOptions = AOMOptions.toBasicOptions();
 
     private static String getCliOption(@NotNull CommandLine cmd, AOMOption option, String defaultValue) {
         return cmd.getOptionValue(option.getName(), defaultValue);
@@ -124,8 +114,6 @@ public class Main {
 
         } else {
             Logger.getGlobal().log(Level.WARNING, "No Config file passed, options are some sane defaults.");
-            // Use default config
-//                config = new XBMCDefaultNASConfiguration();
             config = new XBMCDefaultConfiguration();
         }
 
@@ -162,13 +150,10 @@ public class Main {
         aniAdd = new AniAdd(config);
 
 
-        aniAdd.addComListener(new Communication.ComListener() {
-
-            public void EventHandler(ComEvent comEvent) {
-                if (comEvent.Type() == ComEvent.eType.Information) {
-                    if ((IModule.eModState) comEvent.Params(0) == IModule.eModState.Initialized) {
-                        Initialize();
-                    }
+        aniAdd.addComListener(comEvent -> {
+            if (comEvent.Type() == Communication.ComEvent.eType.Information) {
+                if (comEvent.Params(0) == IModule.eModState.Initialized) {
+                    Initialize();
                 }
             }
         });

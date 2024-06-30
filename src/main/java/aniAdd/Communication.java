@@ -18,15 +18,6 @@ import java.util.EventObject;
  * @author Arokh
  */
 public interface Communication {
-	//private ArrayList<ComListener> listeners;
-
-	/*protected void ComFire(ComEvent comEvent){
-	for (ComListener listener : listeners) {
-	listener.EventHandler(comEvent);
-	}
-	}*/
-	//public void AddComListener(ComListener comListener){ listeners.add(comListener); }
-	//public void RemoveComListener(ComListener comListener){ listeners.remove(comListener); }
 	void addComListener(ComListener comListener);
 
 	void RemoveComListener(ComListener comListener);
