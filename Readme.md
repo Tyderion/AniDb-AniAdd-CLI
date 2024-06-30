@@ -41,6 +41,10 @@ This version is meant to be used on headless system (like your NAS) and still ha
 
 I suggest using a cron-job or something similar to periodically scan your download folder for new anime and automatically add them to your mylist and store them in the correct folder.
 
+# Docker
+
+There is a docker image available for now: https://hub.docker.com/repository/docker/tyderion/aniadd-cli/general
+
 # Tutorial
 
 1. Generate default config file (`java -jar AniAdd.jar --no-gui  -u username -p password -d /path/to/anime -save config.conf`)
