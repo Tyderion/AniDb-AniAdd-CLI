@@ -1,6 +1,8 @@
 package processing;
 
-import java.io.File;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -18,7 +20,6 @@ import aniAdd.misc.Misc;
 import aniAdd.misc.MultiKeyDict;
 import aniAdd.misc.MultiKeyDict.IKeyMapper;
 
-import java.io.FilenameFilter;
 import java.util.TreeMap;
 
 import udpApi.Mod_UdpApi;
@@ -273,6 +274,13 @@ public class Mod_EpProcessing implements IModule {
         if (replyId == 320 || replyId == 505 || replyId == 322) {
             procFile.ActionsError().add(eAction.FileCmd);
             Log(ComEvent.eType.Information, eComType.FileEvent, replyId == 320 ? eComSubType.FileCmd_NotFound : eComSubType.FileCmd_Error, procFile.Id());
+            if (replyId == 320) {
+                // File not found in anidb
+                File currentFile = procFile.FileObj();
+                String unknownFolderPath = "unknown/" + currentFile.getParentFile().getName();
+                appendToPostProcessingScript("mkdir -p \"" + unknownFolderPath + "\"");
+                appendToPostProcessingScript("mv \"" + currentFile.getAbsolutePath() + "\" \"" + unknownFolderPath + "/" + currentFile.getName() + "\"");
+            }
         } else {
             procFile.ActionsDone().add(eAction.FileCmd);
             ArrayDeque<String> df = new ArrayDeque<String>(query.getReply().DataField());
@@ -511,8 +519,15 @@ public class Mod_EpProcessing implements IModule {
 
 
             File renFile = new File(folderObj, filename);
+            Log(ComEvent.eType.Information, eComType.FileEvent, "canWrite", renFile.canWrite());
             if (renFile.exists() && !(renFile.getParentFile().equals(procFile.FileObj().getParentFile()))) {
                 Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "Destination filename already exists.");
+                if ((Boolean) mem.get("GUI_DeleteDuplicateFiles")) {
+                    appendToPostProcessingScript("rm \"" + procFile.FileObj().getAbsolutePath() + "\"");
+                } else {
+                    appendToPostProcessingScript("mkdir -p \"" + "/duplicates/" + renFile.getParentFile().getName() + "\"");
+                    appendToPostProcessingScript("mv \""+ procFile.FileObj().getAbsolutePath() + "\" \"" + "/duplicates/" + renFile.getParentFile().getName() + "/" + renFile.getName() + "\"" );
+                }
                 return false;
             } else if (renFile.getAbsolutePath().equals(procFile.FileObj().getAbsolutePath())) {
                 Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingNotNeeded, procFile.Id(), procFile.FileObj());
@@ -526,7 +541,7 @@ public class Mod_EpProcessing implements IModule {
                     procFile.FileObj(tmpFile);
                 }
 
-                if (procFile.FileObj().renameTo(renFile)) {
+                if (tryRenameFile(procFile.Id(), procFile.FileObj(), renFile)) {
                     Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.FileRenamed, procFile.Id(), renFile, truncated);
                     if ((Boolean) mem.get("GUI_RenameRelatedFiles")) {
                         // <editor-fold defaultstate="collapsed" desc="Rename Related Files">
@@ -545,7 +560,7 @@ public class Mod_EpProcessing implements IModule {
                             String newFn = filename.substring(0, filename.lastIndexOf("."));
                             for (File srcFile : srcFiles) {
                                 relExt = srcFile.getName().substring(oldFilenameWoExt.length());
-                                if (srcFile.renameTo(new File(folderObj, newFn + relExt))) {
+                                if (tryRenameFile(procFile.Id(), srcFile, new File(folderObj, newFn + relExt))) {
                                     accumExt += relExt + " ";
                                 } else {
                                     //Todo
@@ -559,7 +574,7 @@ public class Mod_EpProcessing implements IModule {
                         }
                         // </editor-fold>
                     }
-                    if ((Boolean) mem.get("GUI_DeleteEmptyFolder")) {
+                    if (mem.get("GUI_DeleteEmptyFolder") != null && (Boolean) mem.get("GUI_DeleteEmptyFolder")) {
                         // <editor-fold defaultstate="collapsed" desc="Delete Empty Folder">
                         File srcFolder = procFile.FileObj().getParentFile();
                         boolean recurse = (Boolean) mem.get("GUI_RecursivelyDeleteEmptyFolders");
@@ -589,7 +604,7 @@ public class Mod_EpProcessing implements IModule {
                     return true;
 
                 } else {
-                    Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), renFile.getAbsolutePath());
+                    Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", procFile.Id(), procFile.FileObj(), renFile.getAbsolutePath());
                     return false;
                 }
             }
@@ -597,6 +612,32 @@ public class Mod_EpProcessing implements IModule {
             ex.printStackTrace();
             Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), ex.getMessage());
             return false;
+        }
+    }
+
+    private boolean tryRenameFile(int id, File original, File targetFile) {
+        if (original.renameTo(targetFile)) {
+            return true;
+        }
+        Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", id,original, targetFile.getAbsolutePath(), "Will rename aftewards via shell script.");
+        String command = "mv \"" + original.getAbsolutePath() + "\" \"" + targetFile.getAbsolutePath() + "\"";
+        if (!targetFile.getParentFile().exists()) {
+            appendToPostProcessingScript("mkdir -p " + targetFile.getParentFile().getAbsolutePath()); // Make sure the folder exists
+        }
+        appendToPostProcessingScript(command);
+        return false;
+    }
+
+    private void appendToPostProcessingScript(String line) {
+        String path = "rename.sh";
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(path, true));
+
+            writer.append(line);
+            writer.append("\n");
+            writer.close();
+        } catch (IOException e) {
+            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Could not write to move file", e.getMessage());
         }
     }
 

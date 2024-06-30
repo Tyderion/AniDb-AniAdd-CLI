@@ -1,9 +1,11 @@
+
 group 'ch.is-a-geek'
 version 'cli-1.0-SNAPSHOT'
 
 apply plugin: 'java'
 
-sourceCompatibility = 1.7
+sourceCompatibility = 1.8
+targetCompatibility = JavaVersion.VERSION_1_8
 compileJava.options.encoding = 'UTF-8'
 
 repositories {
