@@ -33,9 +33,7 @@ public class ConfigFileParser<T, U extends T> {
         } else {
             try {
                 return mClazz.newInstance();
-            } catch (InstantiationException e) {
-                e.printStackTrace();
-            } catch (IllegalAccessException e) {
+            } catch (InstantiationException | IllegalAccessException e) {
                 e.printStackTrace();
             }
             return null;

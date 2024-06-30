@@ -207,7 +207,6 @@ public class AniConfiguration {
         public String toString() {
             return this.representation;
         }
-
     }
 
     private class Value<T> {

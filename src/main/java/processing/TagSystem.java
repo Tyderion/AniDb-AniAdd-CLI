@@ -6,7 +6,7 @@ import java.util.TreeMap;
 
 public class TagSystem {
 
-    private static char[] delimiters = new char[]{',', ')', ']', '}', '=', '?', ':'};
+    private static final char[] delimiters = new char[]{',', ')', ']', '}', '=', '?', ':'};
 
     public static void Evaluate(String sourceCode, TreeMap<String, String> vars) throws Exception {
         Environment e = new Environment(sourceCode.split("[\n\r]"), vars, null);

@@ -12,5 +12,5 @@ public interface IModule extends Communication {
 
     void Terminate();
 
-    public enum eModState {New, Initializing, Initialized, Terminating, Terminated}
+    enum eModState {New, Initializing, Initialized, Terminating, Terminated}
 }

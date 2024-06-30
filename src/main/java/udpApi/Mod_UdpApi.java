@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.TreeMap;
 
 import aniAdd.misc.ICallBack;
+import aniAdd.misc.Misc;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -71,15 +72,15 @@ public class Mod_UdpApi extends BaseModule {
 
     private void parseReply(String msg) {
         if (msg == null || msg.isEmpty()) {
-            Log(ComEvent.eType.Debug, "Server reply is an empty string... ignoring");
+            Log(CommunicationEvent.EventType.Debug, "Server reply is an empty string... ignoring");
             return;
         }
-        Log(ComEvent.eType.Debug, "Reply:" + msg.replace("\n", " \\n "));
+        Log(CommunicationEvent.EventType.Debug, "Reply:" + msg.replace("\n", " \\n "));
 
         Reply reply = new Reply();
         int Pos;
 
-        if (!isNumber(msg.substring(0, 3))) {
+        if (!Misc.isNumber(msg.substring(0, 3))) {
             Pos = msg.indexOf("-");
             reply.Identifier(msg.substring(0, Pos));
             if (reply.Identifier().contains(":")) {
@@ -137,7 +138,7 @@ public class Mod_UdpApi extends BaseModule {
             serverReplies.add(reply);
         }
 
-        Log(ComEvent.eType.Information, "Reply", (!reply.Identifier().equals("[SERVER]")) ? reply.QueryId() : ~reply.QueryId(), false);
+        Log(CommunicationEvent.EventType.Information, "Reply", (!reply.Identifier().equals("[SERVER]")) ? reply.QueryId() : ~reply.QueryId(), false);
         deliverReply(reply);
     }
 
@@ -149,12 +150,12 @@ public class Mod_UdpApi extends BaseModule {
         if (replyFunc != null) {
             replyFunc.invoke((!reply.Identifier().equals("[SERVER]")) ? reply.QueryId() : ~reply.QueryId());
         } else {
-            Log(ComEvent.eType.Debug, "Reply couldn't be delivered (unhandled reply)");
+            Log(CommunicationEvent.EventType.Debug, "Reply couldn't be delivered (unhandled reply)");
         }
     }
 
     public boolean authenticate() {
-        Log(ComEvent.eType.Debug, "Authenticating");
+        Log(CommunicationEvent.EventType.Debug, "Authenticating");
 
         boolean hasUserInfo, hasPass, hasAniDBSession, hasAutoPass;
         hasUserInfo = userName != null && !userName.isEmpty();
@@ -163,7 +164,7 @@ public class Mod_UdpApi extends BaseModule {
         hasAutoPass = autoPass != null && !autoPass.isEmpty();
 
         if (!hasUserInfo || !(hasPass || hasAniDBSession || hasAutoPass)) {
-            Log(ComEvent.eType.Error, "UserName or Password not set. (Aborting)");
+            Log(CommunicationEvent.EventType.Error, "UserName or Password not set. (Aborting)");
             return false;
         }
 
@@ -176,20 +177,20 @@ public class Mod_UdpApi extends BaseModule {
         }
 
         if (idle.getState() == java.lang.Thread.State.NEW) {
-            Log(ComEvent.eType.Debug, "Starting Idle thread");
+            Log(CommunicationEvent.EventType.Debug, "Starting Idle thread");
             idle.start();
         } else if (idle.getState() == java.lang.Thread.State.TERMINATED) {
-            Log(ComEvent.eType.Debug, "Restarting Idle thread");
+            Log(CommunicationEvent.EventType.Debug, "Restarting Idle thread");
             idleClass = new Idle();
             idle = new Thread(idleClass);
             idle.start();
         }
 
         if (receive.getState() == java.lang.Thread.State.NEW) {
-            Log(ComEvent.eType.Debug, "Starting Receive Thread");
+            Log(CommunicationEvent.EventType.Debug, "Starting Receive Thread");
             receive.start();
         } else if (receive.getState() == java.lang.Thread.State.TERMINATED) {
-            Log(ComEvent.eType.Debug, "Restarting Receive thread");
+            Log(CommunicationEvent.EventType.Debug, "Restarting Receive thread");
             receive = new Thread(new Receive());
             receive.start();
         }
@@ -215,12 +216,12 @@ public class Mod_UdpApi extends BaseModule {
             for (int i = cmdToSend.size() - 1; i >= 0; i--) {
                 if (cmdToSend.get(i).Action().equals("AUTH")) {
                     cmdToSend.remove(i);
-                    Log(ComEvent.eType.Debug, "Pending (old) Authentication removed");
+                    Log(CommunicationEvent.EventType.Debug, "Pending (old) Authentication removed");
                 }
             }
         }
 
-        Log(ComEvent.eType.Debug, "Adding Authentication Cmd to queue");
+        Log(CommunicationEvent.EventType.Debug, "Adding Authentication Cmd to queue");
         queryCmd(cmd);
         return true;
     }
@@ -232,7 +233,7 @@ public class Mod_UdpApi extends BaseModule {
             connected = true;
             return true;
         } catch (Exception e) {
-            Log(ComEvent.eType.Error, "Couldn't open connection. (Client may be running twice)");
+            Log(CommunicationEvent.EventType.Error, "Couldn't open connection. (Client may be running twice)");
             return false;
         }
     }
@@ -240,20 +241,20 @@ public class Mod_UdpApi extends BaseModule {
 
     public void queryCmd(Cmd cmd) {
         if (cmd == null) {
-            Log(ComEvent.eType.Warning, "cmd cannot be a null reference... (ignored)");
+            Log(CommunicationEvent.EventType.Warning, "cmd cannot be a null reference... (ignored)");
             return;
         }
 
         synchronized (cmdToSend) {
             cmdToSend.add(cmd);
-            Log(ComEvent.eType.Debug, "Added " + cmd.Action() + " cmd to queue");
+            Log(CommunicationEvent.EventType.Debug, "Added " + cmd.Action() + " cmd to queue");
         }
 
         if (send.getState() == java.lang.Thread.State.NEW) {
-            Log(ComEvent.eType.Debug, "Starting Send thread");
+            Log(CommunicationEvent.EventType.Debug, "Starting Send thread");
             send.start();
         } else if (send.getState() == java.lang.Thread.State.TERMINATED) {
-            Log(ComEvent.eType.Debug, "Restarting Send thread");
+            Log(CommunicationEvent.EventType.Debug, "Restarting Send thread");
             send = new Thread(new Send());
             send.start();
         }
@@ -267,7 +268,7 @@ public class Mod_UdpApi extends BaseModule {
                 evtLst.append(evt).append(" ");
             }
         }
-        Log(ComEvent.eType.Debug, "Registered Events (" + evtLst + ") for " + reply.getClass().getName());
+        Log(CommunicationEvent.EventType.Debug, "Registered Events (" + evtLst + ") for " + reply.getClass().getName());
     }
 
     public void logOut() {
@@ -339,12 +340,12 @@ public class Mod_UdpApi extends BaseModule {
                                     if (queries.get(i).getRetries() < MAXRETRIES) {
                                         queries.get(i).setRetries(queries.get(i).getRetries() + 1);
                                         queries.get(i).setSendOn(null);
-                                        Log(ComEvent.eType.Debug, "Cmd Timeout: Resend (Retries:" + queries.get(i).getRetries() + ")");
+                                        Log(CommunicationEvent.EventType.Debug, "Cmd Timeout: Resend (Retries:" + queries.get(i).getRetries() + ")");
                                         queryCmd(queries.get(i).getCmd());
                                     } else {
                                         queries.get(i).setSuccess(false);
-                                        Log(ComEvent.eType.Information, "Cmd", i, false);
-                                        Log(ComEvent.eType.Error, "Sending command failed. (Retried " + MAXRETRIES + " times)");
+                                        Log(CommunicationEvent.EventType.Information, "Cmd", i, false);
+                                        Log(CommunicationEvent.EventType.Error, "Sending command failed. (Retried " + MAXRETRIES + " times)");
                                     }
                                 } else if (queries.get(i).getRetries() <= MAXRETRIES) {
                                     replysPending++;
@@ -360,7 +361,7 @@ public class Mod_UdpApi extends BaseModule {
                                 (authRetry == null && !longDelay && !cmdToSend.isEmpty())) {
                             authRetry = new Date(now.getTime() + 4 * 60 * 1000);
                             longDelay = true;
-                            Log(ComEvent.eType.Warning, "Reply delay has passed 1 minute. Re-authentication in 5 min.");
+                            Log(CommunicationEvent.EventType.Warning, "Reply delay has passed 1 minute. Re-authentication in 5 min.");
                         }
                         if (longDelay && authRetry != null && (authRetry.getTime() - now.getTime() < 0)) {
                             idleThreadStartedOn = new Date();
@@ -388,7 +389,7 @@ public class Mod_UdpApi extends BaseModule {
                 }
             } while (!shutdown);
 
-            Log(ComEvent.eType.Debug, "Idle thread has shut down");
+            Log(CommunicationEvent.EventType.Debug, "Idle thread has shut down");
         }
 
         public void DelayedAuthentication() {
@@ -404,22 +405,22 @@ public class Mod_UdpApi extends BaseModule {
             boolean cmdReordered;
             Date now;
 
-            Log(ComEvent.eType.Debug, "Send: Entering send loop");
+            Log(CommunicationEvent.EventType.Debug, "Send: Entering send loop");
             while (!cmdToSend.isEmpty() && connected && !banned) {
                 cmdReordered = false;
                 now = new Date();
 
                 synchronized (cmdToSend) {
-                    Log(ComEvent.eType.Debug, "Send: replyHeadStart(" + replyHeadStart + ") isAuthed(" + isAuthed + ")");
+                    Log(CommunicationEvent.EventType.Debug, "Send: replyHeadStart(" + replyHeadStart + ") isAuthed(" + isAuthed + ")");
                     if ((replyHeadStart < 5 && idleClass.getReplysPending() < 3) || !isAuthed) {
 
-                        Log(ComEvent.eType.Debug, "Send: cmdLoginReq(" + cmdToSend.get(0).LoginReq() + ")");
+                        Log(CommunicationEvent.EventType.Debug, "Send: cmdLoginReq(" + cmdToSend.get(0).LoginReq() + ")");
                         if ((!cmdToSend.get(0).LoginReq() || isAuthed) &&
                                 (NODELAY.contains(cmdToSend.get(0).Action()) || lastDelayPackageMills == null || (now.getTime() - lastDelayPackageMills.getTime()) > 2000)) {
                             //Cmd doesn't need login or client is logged in and is allowed to send
                             //send cmds from top to bottom
 
-                            Log(ComEvent.eType.Debug, "Send: " + cmdToSend.get(0).Identifier() + " " + cmdToSend.get(0).Action());
+                            Log(CommunicationEvent.EventType.Debug, "Send: " + cmdToSend.get(0).Identifier() + " " + cmdToSend.get(0).Action());
                             try {
                                 cmdToSendBin = TransformCmd(cmdToSend.get(0));
 
@@ -431,7 +432,7 @@ public class Mod_UdpApi extends BaseModule {
                                 cmdToSend.remove(0);
 
                             } catch (IOException e) {
-                                Log(ComEvent.eType.Error, "Send: Error " + e.toString());
+                                Log(CommunicationEvent.EventType.Error, "Send: Error " + e.toString());
                             }
                             //Debug.Print("Send: " + cmdToSend[0].ToString(session).Replace("\n", " # "));
 
@@ -439,7 +440,7 @@ public class Mod_UdpApi extends BaseModule {
                         } else if (auth) {
                             //Cmd needs login but client is not connected OR Cmd needs delay which has not yet passed
                             //Move command without (login req./delay req.) to top
-                            Log(ComEvent.eType.Debug, "Send: Try to reorder requests");
+                            Log(CommunicationEvent.EventType.Debug, "Send: Try to reorder requests");
                             boolean r1, r2, n1, n2, canOptimize;
                             r1 = cmdToSend.get(0).LoginReq();
                             n1 = NODELAY.contains(cmdToSend.get(0).Action());
@@ -455,7 +456,7 @@ public class Mod_UdpApi extends BaseModule {
                                             (isAuthed && !n1 && r1 && n2);
 
                                     if (canOptimize) {
-                                        Log(ComEvent.eType.Debug, "Send: cmdToSend reordered QueryId: " + i + " Action: " + cmdToSend.get(i).Action());
+                                        Log(CommunicationEvent.EventType.Debug, "Send: cmdToSend reordered QueryId: " + i + " Action: " + cmdToSend.get(i).Action());
                                         cmdToSend.add(0, cmdToSend.get(i));
                                         cmdToSend.remove(i + 1);
                                         cmdReordered = true;
@@ -473,7 +474,7 @@ public class Mod_UdpApi extends BaseModule {
                     }
                 }
             }
-            Log(ComEvent.eType.Debug, "Send thread has shut down" + (banned ? " because you are BANNED" : ""));
+            Log(CommunicationEvent.EventType.Debug, "Send thread has shut down" + (banned ? " because you are BANNED" : ""));
             if (banned) {
                 Terminate();
             }
@@ -492,7 +493,7 @@ public class Mod_UdpApi extends BaseModule {
             }
             query.setSendOn(new Date());
 
-            Log(ComEvent.eType.Information, "Cmd", cmd.QueryId(), query.getRetries() == 0);
+            Log(CommunicationEvent.EventType.Information, "Cmd", cmd.QueryId(), query.getRetries() == 0);
 
             if (isEncodingSet) {
                 return cmd.toString(session).getBytes(StandardCharsets.UTF_8);
@@ -545,13 +546,13 @@ public class Mod_UdpApi extends BaseModule {
                     reply = new Thread(new Reply(new String(replyBinary, 0, length, "UTF8")));
                     reply.start();
                 } catch (Exception e) {
-                    Log(ComEvent.eType.Error, "Receive Error: " + e.toString());
+                    Log(CommunicationEvent.EventType.Error, "Receive Error: " + e.toString());
                     //aniDBAPIDown = true;
                     connected = false;
                 }//TODO
                 replyHeadStart = 0;
             }
-            Log(ComEvent.eType.Debug, "Receive thread has shut down");
+            Log(CommunicationEvent.EventType.Debug, "Receive thread has shut down");
         }
 
         private class Reply implements Runnable {
@@ -566,7 +567,7 @@ public class Mod_UdpApi extends BaseModule {
                 try {
                     parseReply(replyStr);
                 } catch (Exception e) {
-                    Log(ComEvent.eType.Error, "Parse Error: " + e.toString());
+                    Log(CommunicationEvent.EventType.Error, "Parse Error: " + e.toString());
                 }
             }
         }
@@ -579,7 +580,7 @@ public class Mod_UdpApi extends BaseModule {
             auth = false;
         } else {
             //Unexpected logout
-            Log(ComEvent.eType.Debug, "Sync Logout");
+            Log(CommunicationEvent.EventType.Debug, "Sync Logout");
             isEncodingSet = false;
             isAuthed = false;
             session = null;
@@ -606,13 +607,13 @@ public class Mod_UdpApi extends BaseModule {
                     break;
 
                 case 500:
-                    Log(ComEvent.eType.Error, "Wrong username and/or password. Try logging out of AniDB and back in.");
+                    Log(CommunicationEvent.EventType.Error, "Wrong username and/or password. Try logging out of AniDB and back in.");
                     break;
                 case 503:
-                    Log(ComEvent.eType.Error, "Outdated Version");
+                    Log(CommunicationEvent.EventType.Error, "Outdated Version");
                     break;
                 case 504:
-                    Log(ComEvent.eType.Error, "Client temporarily disabled by administrator - please try again later");
+                    Log(CommunicationEvent.EventType.Error, "Client temporarily disabled by administrator - please try again later");
                     break;
             }
 
@@ -659,7 +660,7 @@ public class Mod_UdpApi extends BaseModule {
             case 602:
                 isAuthed = false;
                 connected = false;
-                Log(ComEvent.eType.Warning, "Server Busy. Re-authenticating in 5 min.");
+                Log(CommunicationEvent.EventType.Warning, "Server Busy. Re-authenticating in 5 min.");
                 idleClass.DelayedAuthentication();
 
                 //aniDBAPIDown = true;
@@ -672,7 +673,7 @@ public class Mod_UdpApi extends BaseModule {
             case 502:
             case 505:
             case 598:
-                Log(ComEvent.eType.Error, "Client Failure Code: " + reply.ReplyId());
+                Log(CommunicationEvent.EventType.Error, "Client Failure Code: " + reply.ReplyId());
                 break;
         }
 
@@ -719,7 +720,7 @@ public class Mod_UdpApi extends BaseModule {
         } catch (InterruptedException ignored) {
         }
         if (send.isAlive() || receive.isAlive() || idle.isAlive()) {
-            Log(ComEvent.eType.Warning, "Thread abort timeout", idle.isAlive(), receive.isAlive(), send.isAlive());
+            Log(CommunicationEvent.EventType.Warning, "Thread abort timeout", idle.isAlive(), receive.isAlive(), send.isAlive());
         }
 
         if (com != null) {
@@ -730,13 +731,4 @@ public class Mod_UdpApi extends BaseModule {
     }
 
     // </editor-fold>
-
-    public static boolean isNumber(final String s) {
-        try {
-            Integer.parseInt(s);
-            return true;
-        } catch (Exception exception) {
-            return false;
-        }
-    }
 }

@@ -1,10 +1,8 @@
 package processing;
 
-import aniAdd.Communication;
 import aniAdd.IAniAdd;
 import aniAdd.Modules.BaseModule;
 import aniAdd.Modules.IModule;
-import aniAdd.misc.ICallBack;
 import aniAdd.misc.Misc;
 import aniAdd.misc.Mod_Memory;
 import aniAdd.misc.MultiKeyDict;
@@ -12,9 +10,7 @@ import udpApi.Cmd;
 import udpApi.Mod_UdpApi;
 import udpApi.Query;
 
-import java.io.File;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.BitSet;
 
 public class Mod_AnimeProcessing extends BaseModule {
@@ -103,7 +99,7 @@ public class Mod_AnimeProcessing extends BaseModule {
 
         if (replyId == 330 || replyId == 505 || replyId == 322) {
             animeInfo.ActionsError().add(AnimeInfo.eAction.AnimeCmd);
-            Log(Communication.ComEvent.eType.Information, Mod_AnimeProcessing.eComType.FileEvent, replyId == 320 ? Mod_AnimeProcessing.eComSubType.FileCmd_NotFound : Mod_AnimeProcessing.eComSubType.FileCmd_Error, animeInfo.Id());
+            Log(CommunicationEvent.EventType.Information, Mod_AnimeProcessing.eComType.FileEvent, replyId == 320 ? Mod_AnimeProcessing.eComSubType.FileCmd_NotFound : Mod_AnimeProcessing.eComSubType.FileCmd_Error, animeInfo.Id());
         } else {
             animeInfo.ActionsDone().add(AnimeInfo.eAction.AnimeCmd);
             ArrayDeque<String> df = new ArrayDeque<String>(query.getReply().DataField());
@@ -145,7 +141,7 @@ public class Mod_AnimeProcessing extends BaseModule {
 
             animeInfo.Data().put("DB_CharIdList", df.poll());
 
-            Log(Communication.ComEvent.eType.Information, Mod_AnimeProcessing.eComType.FileEvent, Mod_AnimeProcessing.eComSubType.FileCmd_GotInfo, animeInfo.Id());
+            Log(CommunicationEvent.EventType.Information, Mod_AnimeProcessing.eComType.FileEvent, Mod_AnimeProcessing.eComSubType.FileCmd_GotInfo, animeInfo.Id());
         }
 
         if (!animeInfo.IsFinal() && !(animeInfo.ActionsTodo().contains(AnimeInfo.eAction.AnimeCmd))) {

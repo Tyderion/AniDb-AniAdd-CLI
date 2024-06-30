@@ -7,7 +7,6 @@ package aniAdd.misc;
 
 import aniAdd.IAniAdd;
 import aniAdd.Modules.BaseModule;
-import aniAdd.Modules.IModule;
 import aniAdd.config.AniConfiguration;
 
 import java.io.ByteArrayInputStream;
@@ -16,8 +15,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -113,7 +110,7 @@ public class Mod_Memory extends BaseModule {
 
     public void clear() {
         mem.clear();
-        ComFire(new ComEvent(this, ComEvent.eType.Information, "SettingsCleared"));
+        ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, "SettingsCleared"));
     }
 
     public String toString() {

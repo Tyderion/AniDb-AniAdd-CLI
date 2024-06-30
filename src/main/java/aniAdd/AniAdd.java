@@ -49,7 +49,7 @@ public class AniAdd implements IAniAdd {
     }
 
     public void Start() {
-        ComFire(new ComEvent(this, ComEvent.eType.Information, IModule.eModState.Initializing));
+        ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Initializing));
 
         for (IModule module : modules.values()) {
             System.out.println("Initializing: " + module.ModuleName());
@@ -70,11 +70,11 @@ public class AniAdd implements IAniAdd {
         }
 
         mem.put("FirstStart", CURRENTVER);
-        ComFire(new ComEvent(this, ComEvent.eType.Information, IModule.eModState.Initialized));
+        ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Initialized));
     }
 
     public void Stop() {
-        ComFire(new ComEvent(this, ComEvent.eType.Information, IModule.eModState.Terminating));
+        ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Terminating));
 
         for (IModule module : modules.values()) {
             System.out.println("Terminating: " + module.ModuleName());
@@ -95,15 +95,11 @@ public class AniAdd implements IAniAdd {
         }
 
 
-        ComFire(new ComEvent(this, ComEvent.eType.Information, IModule.eModState.Terminated));
+        ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Terminated));
     }
 
     public <T extends IModule> T GetModule(Class<T> modName) {
-        return (T) modules.get(modName.getClass());
-    }
-
-    public Collection<IModule> GetModules() {
-        return modules.values();
+        return (T) modules.get(modName);
     }
 
     static class EventHandler implements ComListener {
@@ -111,8 +107,8 @@ public class AniAdd implements IAniAdd {
             mod.addComListener(this);
         }
 
-        public void EventHandler(ComEvent comEvent) {
-            System.out.println("Event: " + comEvent.toString());
+        public void handleEvent(CommunicationEvent communicationEvent) {
+            System.out.println("Event: " + communicationEvent.toString());
         }
     }
 
@@ -120,9 +116,9 @@ public class AniAdd implements IAniAdd {
     //Com System
     private ArrayList<ComListener> listeners = new ArrayList<ComListener>();
 
-    protected void ComFire(ComEvent comEvent) {
-        System.out.println("AniAdd Event: " + comEvent.toString());
-        for (ComListener listener : listeners) listener.EventHandler(comEvent);
+    protected void ComFire(CommunicationEvent communicationEvent) {
+        System.out.println("AniAdd Event: " + communicationEvent.toString());
+        for (ComListener listener : listeners) listener.handleEvent(communicationEvent);
 
     }
 
@@ -130,8 +126,5 @@ public class AniAdd implements IAniAdd {
         listeners.add(comListener);
     }
 
-    public void RemoveComListener(ComListener comListener) {
-        listeners.remove(comListener);
-    }
     //Com System End
 }

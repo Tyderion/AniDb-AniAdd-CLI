@@ -151,7 +151,7 @@ public class Main {
 
 
         aniAdd.addComListener(comEvent -> {
-            if (comEvent.Type() == Communication.ComEvent.eType.Information) {
+            if (comEvent.EventType() == Communication.CommunicationEvent.EventType.Information) {
                 if (comEvent.Params(0) == IModule.eModState.Initialized) {
                     Initialize();
                 }

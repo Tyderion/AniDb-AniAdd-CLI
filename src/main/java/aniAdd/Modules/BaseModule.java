@@ -5,9 +5,9 @@ import java.util.ArrayList;
 public abstract class BaseModule implements IModule {
     private final ArrayList<ComListener> listeners = new ArrayList<>();
 
-    protected void ComFire(ComEvent comEvent) {
+    protected void ComFire(CommunicationEvent communicationEvent) {
         for (ComListener listener : listeners) {
-            listener.EventHandler(comEvent);
+            listener.handleEvent(communicationEvent);
         }
 
     }
@@ -16,14 +16,10 @@ public abstract class BaseModule implements IModule {
         listeners.add(comListener);
     }
 
-    public void RemoveComListener(ComListener comListener) {
-        listeners.remove(comListener);
-    }
-
     // </editor-fold>
 
     // <editor-fold defaultstate="collapsed" desc="Misc">
-    protected void Log(ComEvent.eType type, Object... params) {
-        ComFire(new ComEvent(this, type, params));
+    protected void Log(CommunicationEvent.EventType eventType, Object... params) {
+        ComFire(new CommunicationEvent(this, eventType, params));
     }
 }

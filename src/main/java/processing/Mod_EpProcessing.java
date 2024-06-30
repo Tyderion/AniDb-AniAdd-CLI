@@ -1,10 +1,7 @@
 package processing;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 
@@ -14,7 +11,6 @@ import udpApi.Cmd;
 import udpApi.Query;
 
 import aniAdd.IAniAdd;
-import aniAdd.Modules.IModule;
 import aniAdd.misc.ICallBack;
 import aniAdd.misc.Mod_Memory;
 import aniAdd.misc.Misc;
@@ -62,7 +58,7 @@ public class Mod_EpProcessing extends BaseModule {
         for (FileInfo procFile : files.values()) {
             if (!procFile.Served()) {
                 procFile.Served(true);
-                Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.Processing, procFile.Id());
+                Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.Processing, procFile.Id());
 
                 while (filesBeingMoved > 0) {
                     try {
@@ -82,7 +78,7 @@ public class Mod_EpProcessing extends BaseModule {
             }
         }
         isProcessing = false;
-        Log(ComEvent.eType.Information, eComType.Status, eComSubType.Done);
+        Log(CommunicationEvent.EventType.Information, eComType.Status, eComSubType.Done);
     }
 
     private void continueProcessing(FileParser fileParser) {
@@ -96,7 +92,7 @@ public class Mod_EpProcessing extends BaseModule {
             procFile.ActionsDone().add(eAction.Process);
             procFile.ActionsTodo().remove(eAction.Process);
 
-            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.ParsingDone, procFile.Id(), fileParser);
+            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.ParsingDone, procFile.Id(), fileParser);
 
             boolean sendML = procFile.ActionsTodo().contains(eAction.MyListCmd);
             boolean sendFile = procFile.ActionsTodo().contains(eAction.FileCmd);
@@ -109,13 +105,13 @@ public class Mod_EpProcessing extends BaseModule {
                 requestDBMyList(procFile);
             }
 
-            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.GetDBInfo, procFile.Id(), sendFile, sendML);
+            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.GetDBInfo, procFile.Id(), sendFile, sendML);
 
         } else if (procFile != null) {
             procFile.ActionsError().add(eAction.Process);
             procFile.ActionsTodo().remove(eAction.Process);
 
-            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.ParsingError, procFile.Id(), fileParser);
+            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.ParsingError, procFile.Id(), fileParser);
         }
 
         if (isProcessing) {
@@ -237,7 +233,7 @@ public class Mod_EpProcessing extends BaseModule {
 
         if (replyId == 320 || replyId == 505 || replyId == 322) {
             procFile.ActionsError().add(eAction.FileCmd);
-            Log(ComEvent.eType.Information, eComType.FileEvent, replyId == 320 ? eComSubType.FileCmd_NotFound : eComSubType.FileCmd_Error, procFile.Id());
+            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, replyId == 320 ? eComSubType.FileCmd_NotFound : eComSubType.FileCmd_Error, procFile.Id());
             if (replyId == 320) {
                 // File not found in anidb
                 File currentFile = procFile.FileObj();
@@ -287,7 +283,7 @@ public class Mod_EpProcessing extends BaseModule {
             procFile.Data().put("DB_EpN_Kanji", df.poll());
             procFile.Data().put("DB_Group_Long", df.poll());
             procFile.Data().put("DB_Group_Short", df.poll());
-            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.FileCmd_GotInfo, procFile.Id());
+            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.FileCmd_GotInfo, procFile.Id());
         }
 
         if (!procFile.IsFinal() && !(procFile.ActionsTodo().contains(eAction.FileCmd) || (procFile.ActionsTodo().contains(eAction.MyListCmd)))) {
@@ -315,7 +311,7 @@ public class Mod_EpProcessing extends BaseModule {
             /*if (procFile.ActionsTodo().remove(eAction.SetWatchedState)) {
             procFile.ActionsDone().add(eAction.SetWatchedState);
             }*/
-            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.MLCmd_FileAdded, procFile.Id());
+            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.MLCmd_FileAdded, procFile.Id());
 
         } else if (replyId == 310) {
             //File Already Added
@@ -327,7 +323,7 @@ public class Mod_EpProcessing extends BaseModule {
                 api.queryCmd(cmd);
             }
 
-            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.MLCmd_AlreadyAdded, procFile.Id());
+            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.MLCmd_AlreadyAdded, procFile.Id());
 
         } else {
             procFile.ActionsError().add(eAction.MyListCmd);
@@ -336,9 +332,9 @@ public class Mod_EpProcessing extends BaseModule {
             }*/
 
             if (replyId == 320 || replyId == 330 || replyId == 350) {
-                Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.MLCmd_NotFound, procFile.Id());
+                Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.MLCmd_NotFound, procFile.Id());
             } else {
-                Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.MLCmd_Error, procFile.Id());
+                Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.MLCmd_Error, procFile.Id());
             }
         }
 
@@ -360,13 +356,13 @@ public class Mod_EpProcessing extends BaseModule {
 
         if (replyId == 260 && replyId == 262) {
             procFile.Data().put("Voted", "true"); //Voted
-            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.VoteCmd_EpVoted, procFile.Id());
+            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.VoteCmd_EpVoted, procFile.Id());
         } else if (replyId == 263) {
             procFile.Data().put("Voted", "false");//Revoked
-            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.VoteCmd_EpVoteRevoked, procFile.Id());
+            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.VoteCmd_EpVoteRevoked, procFile.Id());
         } else if (replyId == 363) {
             //PermVote Not Allowed
-            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.VoteCmd_Error, procFile.Id());
+            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.VoteCmd_Error, procFile.Id());
         }
     }
 
@@ -404,7 +400,7 @@ public class Mod_EpProcessing extends BaseModule {
 
         }
 
-        Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.Done, procFile.Id());
+        Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.Done, procFile.Id());
     }
 
     private boolean renameFile(FileInfo procFile) { //Todo: refractor into smaller Methods
@@ -414,7 +410,7 @@ public class Mod_EpProcessing extends BaseModule {
 
             File folderObj = null;
 
-            Log(ComEvent.eType.Debug, "Memory is ", mem);
+            Log(CommunicationEvent.EventType.Debug, "Memory is ", mem);
             System.out.println("HELP: \n" + mem.toString());
             System.out.println("GUI_EnableFileMove" + mem.get("GUI_EnableFileMove"));
             if ((Boolean) mem.get("GUI_EnableFileMove")) {
@@ -429,7 +425,7 @@ public class Mod_EpProcessing extends BaseModule {
                 } else {
                     ts = getPathFromTagSystem(procFile);
                     if (ts == null) {
-                        Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "TagSystem script failed");
+                        Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "TagSystem script failed");
                     }
 
                     String folderStr = ts.get("PathName");
@@ -442,7 +438,7 @@ public class Mod_EpProcessing extends BaseModule {
                     throw new Exception("Pathname (Folder) too long");
                 }
                 if (!folderObj.isAbsolute()) {
-                    Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "Folderpath needs to be absolute.");
+                    Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "Folderpath needs to be absolute.");
                     return false;
                 }
 
@@ -464,7 +460,7 @@ public class Mod_EpProcessing extends BaseModule {
                     ts = getPathFromTagSystem(procFile);
                 }
                 if (ts == null) {
-                    Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "TagSystem script failed");
+                    Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "TagSystem script failed");
                 }
 
                 filename = ts.get("FileName") + ext;
@@ -479,9 +475,9 @@ public class Mod_EpProcessing extends BaseModule {
 
 
             File renFile = new File(folderObj, filename);
-            Log(ComEvent.eType.Information, eComType.FileEvent, "canWrite", renFile.canWrite());
+            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, "canWrite", renFile.canWrite());
             if (renFile.exists() && !(renFile.getParentFile().equals(procFile.FileObj().getParentFile()))) {
-                Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "Destination filename already exists.");
+                Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "Destination filename already exists.");
                 if ((Boolean) mem.get("GUI_DeleteDuplicateFiles")) {
                     appendToPostProcessingScript("rm \"" + procFile.FileObj().getAbsolutePath() + "\"");
                 } else {
@@ -490,7 +486,7 @@ public class Mod_EpProcessing extends BaseModule {
                 }
                 return false;
             } else if (renFile.getAbsolutePath().equals(procFile.FileObj().getAbsolutePath())) {
-                Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingNotNeeded, procFile.Id(), procFile.FileObj());
+                Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingNotNeeded, procFile.Id(), procFile.FileObj());
                 return true;
             } else {
                 final String oldFilenameWoExt = procFile.FileObj().getName().substring(0, procFile.FileObj().getName().lastIndexOf("."));
@@ -502,7 +498,7 @@ public class Mod_EpProcessing extends BaseModule {
                 }
 
                 if (tryRenameFile(procFile.Id(), procFile.FileObj(), renFile)) {
-                    Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.FileRenamed, procFile.Id(), renFile, truncated);
+                    Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.FileRenamed, procFile.Id(), renFile, truncated);
                     if ((Boolean) mem.get("GUI_RenameRelatedFiles")) {
                         // <editor-fold defaultstate="collapsed" desc="Rename Related Files">
                         try {
@@ -527,10 +523,10 @@ public class Mod_EpProcessing extends BaseModule {
                                 }
                             }
                             if (!accumExt.isEmpty()) {
-                                Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RelFilesRenamed, procFile.Id(), accumExt);
+                                Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RelFilesRenamed, procFile.Id(), accumExt);
                             }
                         } catch (Exception e) {
-                            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RelFilesRenamingFailed, procFile.Id(), e.getMessage());
+                            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RelFilesRenamingFailed, procFile.Id(), e.getMessage());
                         }
                         // </editor-fold>
                     }
@@ -541,9 +537,9 @@ public class Mod_EpProcessing extends BaseModule {
                         try {
                             while (srcFolder.list().length == 0) {
                                 if (srcFolder.delete()) {
-                                    Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.DeletedEmptyFolder, procFile.Id(), srcFolder);
+                                    Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.DeletedEmptyFolder, procFile.Id(), srcFolder);
                                 } else {
-                                    Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.DeletetingEmptyFolderFailed, procFile.Id(), srcFolder);
+                                    Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.DeletetingEmptyFolderFailed, procFile.Id(), srcFolder);
                                     break;
                                 }
                                 if (!recurse) {
@@ -555,7 +551,7 @@ public class Mod_EpProcessing extends BaseModule {
                                 System.out.println(srcFolder.list().length);
                             }
                         } catch (Exception e) {
-                            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.DeletetingEmptyFolderFailed, procFile.Id(), srcFolder, e.getMessage());
+                            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.DeletetingEmptyFolderFailed, procFile.Id(), srcFolder, e.getMessage());
                         }
                         // </editor-fold>
                     }
@@ -564,13 +560,13 @@ public class Mod_EpProcessing extends BaseModule {
                     return true;
 
                 } else {
-                    Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", procFile.Id(), procFile.FileObj(), renFile.getAbsolutePath());
+                    Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", procFile.Id(), procFile.FileObj(), renFile.getAbsolutePath());
                     return false;
                 }
             }
         } catch (Exception ex) {
             ex.printStackTrace();
-            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), ex.getMessage());
+            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), ex.getMessage());
             return false;
         }
     }
@@ -579,7 +575,7 @@ public class Mod_EpProcessing extends BaseModule {
         if (original.renameTo(targetFile)) {
             return true;
         }
-        Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", id, original, targetFile.getAbsolutePath(), "Will rename aftewards via shell script.");
+        Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", id, original, targetFile.getAbsolutePath(), "Will rename aftewards via shell script.");
         String command = "mv \"" + original.getAbsolutePath() + "\" \"" + targetFile.getAbsolutePath() + "\"";
         if (!targetFile.getParentFile().exists()) {
             appendToPostProcessingScript("mkdir -p " + targetFile.getParentFile().getAbsolutePath()); // Make sure the folder exists
@@ -597,7 +593,7 @@ public class Mod_EpProcessing extends BaseModule {
             writer.append("\n");
             writer.close();
         } catch (IOException e) {
-            Log(ComEvent.eType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Could not write to move file", e.getMessage());
+            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Could not write to move file", e.getMessage());
         }
     }
 
@@ -727,7 +723,7 @@ public class Mod_EpProcessing extends BaseModule {
             lastFileId++;
         }
 
-        Log(ComEvent.eType.Information, eComType.FileCountChanged);
+        Log(CommunicationEvent.EventType.Information, eComType.FileCountChanged);
     }
 
     public void processing(eProcess proc) {
@@ -736,7 +732,7 @@ public class Mod_EpProcessing extends BaseModule {
                 //System.out.println("Processing started");
                 isProcessing = true;
                 isPaused = false;
-                Log(ComEvent.eType.Information, eComType.Status, eProcess.Start);
+                Log(CommunicationEvent.EventType.Information, eComType.Status, eProcess.Start);
                 processEps();
 
                 break;
@@ -748,7 +744,7 @@ public class Mod_EpProcessing extends BaseModule {
                     fileParser.pause();
                 }
 
-                Log(ComEvent.eType.Information, eComType.Status, eProcess.Pause);
+                Log(CommunicationEvent.EventType.Information, eComType.Status, eProcess.Pause);
                 break;
 
             case Resume:
@@ -758,7 +754,7 @@ public class Mod_EpProcessing extends BaseModule {
                 }
 
                 isPaused = false;
-                Log(ComEvent.eType.Information, eComType.Status, eProcess.Resume);
+                Log(CommunicationEvent.EventType.Information, eComType.Status, eProcess.Resume);
                 break;
 
             case Stop:
@@ -766,7 +762,7 @@ public class Mod_EpProcessing extends BaseModule {
                 //Not yet supported
                 isProcessing = false;
                 isPaused = false;
-                Log(ComEvent.eType.Information, eComType.Status, eProcess.Stop);
+                Log(CommunicationEvent.EventType.Information, eComType.Status, eProcess.Stop);
                 break;
 
         }

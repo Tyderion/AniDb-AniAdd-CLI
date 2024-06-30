@@ -1,15 +1,11 @@
 package nogui;
 
 import aniAdd.AniAdd;
-import aniAdd.Communication;
 import aniAdd.IAniAdd;
 import aniAdd.Modules.BaseModule;
-import aniAdd.Modules.IModule;
 import processing.Mod_EpProcessing;
-import udpApi.Mod_UdpApi;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
@@ -66,7 +62,7 @@ public class FileProcessor extends BaseModule {
         epProc.processing(Mod_EpProcessing.eProcess.Start);
 
         epProc.addComListener(comEvent -> {
-            if (comEvent.Type() == ComEvent.eType.Information) {
+            if (comEvent.EventType() == CommunicationEvent.EventType.Information) {
                 if (comEvent.ParamCount() == 3 &&
                         comEvent.Params(0) == Mod_EpProcessing.eComType.FileEvent &&
                         comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done &&

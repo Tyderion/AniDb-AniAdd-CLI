@@ -13,7 +13,7 @@ import java.util.Date;
 
 public class Misc {
 
-    public static final boolean isNumber(final String s) {
+    public static boolean isNumber(final String s) {
         try {
             Integer.parseInt(s);
             return true;
@@ -65,15 +65,15 @@ public class Misc {
     }
 
     public static String toMask(BitSet ba, int length) {
-        String hex = "";
+        StringBuilder hex = new StringBuilder();
         int hexPart;
 
         for (int i = 0; i < length; i += 8) {
             hexPart = 0;
             for (int j = 0; j < 8; j++) hexPart += ba.get(i + j) ? (1 << j) : 0;
-            hex += stringPadding(Integer.toHexString(hexPart).toUpperCase(), 2, '0');
+            hex.append(stringPadding(Integer.toHexString(hexPart).toUpperCase(), 2, '0'));
         }
-        return hex;
+        return hex.toString();
     }
 
     public static BitSet getBits(int b) {
@@ -91,7 +91,7 @@ public class Misc {
     }
 
     public static String stringPadding(String str, int size, char padChar) {
-        StringBuffer padded = new StringBuffer(str);
+        StringBuilder padded = new StringBuilder(str);
         while (padded.length() < size) {
             padded.insert(0, padChar);
         }
@@ -140,7 +140,7 @@ public class Misc {
                 return mid;
             }
         }
-        return mid ^ -1;
+        return ~mid;
     }
 }
 
