@@ -6,7 +6,7 @@ Thanks for Anidb team for publishing the source of this java applet.
 This Version replaces the GUI with a CLI only version.
 Old Versions still support GUI, see Tag [v1.1.1](https://github.com/Tyderion/AniDb-AniAdd-CLI/releases/tag/1.1.1)
 
-The following cli options are avaialble
+The following cli options are available:
 ```
 usage: aom [-c <FILEPATH>] -d <PATH> -p <PASSWORD> [-s <FILENAME>]
        [--tagging-system <PATH>] -u <USERNAME>

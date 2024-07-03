@@ -2,8 +2,8 @@ plugins {
     java
 }
 
-group = "ch.is-a-geek"
-version = "cli-1.0-SNAPSHOT"
+group = "ch.tyderion"
+version = "cli-2.0-SNAPSHOT"
 
 java {
     targetCompatibility = JavaVersion.VERSION_21
