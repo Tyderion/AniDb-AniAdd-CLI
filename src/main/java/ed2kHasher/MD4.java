@@ -145,8 +145,7 @@ public class MD4 extends BaseHash {
 
    public boolean selfTest() {
       if (valid == null)
-		valid = new Boolean(
-               DIGEST0.equals(toString(new MD4().digest())));
+		valid = DIGEST0.equals(toString(new MD4().digest()));
       return valid.booleanValue();
    }
 
