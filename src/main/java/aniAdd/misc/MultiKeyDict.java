@@ -43,11 +43,11 @@ public class MultiKeyDict<C, K, V> {
     }
 
     public Collection<V> values() {
-        return dict.size() != 0 ? dict.get(0).values() : new ArrayList<V>();
+        return !dict.isEmpty() ? dict.get(0).values() : new ArrayList<V>();
     }
 
     public int size() {
-        return dict.size() != 0 ? dict.get(0).size() : 0;
+        return !dict.isEmpty() ? dict.get(0).size() : 0;
     }
 
     public interface IKeyMapper<C, K, V> {

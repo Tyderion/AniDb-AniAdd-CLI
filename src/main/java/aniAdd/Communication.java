@@ -1,70 +1,45 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package aniAdd;
 
 import aniAdd.Modules.IModule;
 import aniAdd.misc.Misc;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.EventListener;
-import java.util.EventObject;
+
+import java.util.*;
 
 /**
  *
  * @author Arokh
  */
 public interface Communication {
-	//private ArrayList<ComListener> listeners;
-
-	/*protected void ComFire(ComEvent comEvent){
-	for (ComListener listener : listeners) {
-	listener.EventHandler(comEvent);
-	}
-	}*/
-	//public void AddComListener(ComListener comListener){ listeners.add(comListener); }
-	//public void RemoveComListener(ComListener comListener){ listeners.remove(comListener); }
 	void addComListener(ComListener comListener);
 
-	void RemoveComListener(ComListener comListener);
-
-	public static interface ComListener extends EventListener {
-		void EventHandler(ComEvent comEvent);
+	interface ComListener extends EventListener {
+		void handleEvent(CommunicationEvent communicationEvent);
 	}
 
-	public static class ComEvent extends EventObject {
+	class CommunicationEvent extends EventObject {
 		Date createdOn;
-		eType type;
+		EventType eventType;
 		ArrayList<Object> params;
 
-		public ComEvent(Object source, eType type, ArrayList<Object> params) {
-			this(source, type, params.toArray());
+		public CommunicationEvent(Object source, EventType eventType, Object... params) {
+			this(source, eventType);
+
+			this.params = new ArrayList<>();
+            Collections.addAll(this.params, params);
 		}
 
-		public ComEvent(Object source, eType type, Object... params) {
-			this(source, type);
-
-			this.params = new ArrayList<Object>();
-			for(Object param : params) {
-				this.params.add(param);
-			}
-		}
-
-		public ComEvent(Object source, eType type) {
+		public CommunicationEvent(Object source, EventType eventType) {
 			this(source);
-			this.type = type;
+			this.eventType = eventType;
 		}
 
-		private ComEvent(Object source) {
+		private CommunicationEvent(Object source) {
 			super(source);
 			createdOn = new Date();
 		}
 
-		public eType Type() {
-			return type;
+		public EventType EventType() {
+			return eventType;
 		}
 
 		public Object Params(int i) {
@@ -77,14 +52,14 @@ public interface Communication {
 
 		@Override
 		public String toString() {
-			String str;
-			str = Misc.DateToString(createdOn, "HH:mm:ss") + " " + type + ": " + (getSource() instanceof IModule ? (((IModule)getSource()).ModuleName()) : "");
-			for(int i = 0; i < ParamCount(); i++) str += " " + Params(i);
+			StringBuilder str;
+			str = new StringBuilder(Misc.DateToString(createdOn, "HH:mm:ss") + " " + eventType + ": " + (getSource() instanceof IModule ? (((IModule) getSource()).ModuleName()) : ""));
+			for(int i = 0; i < ParamCount(); i++) str.append(" ").append(Params(i));
 
-			return str;
+			return str.toString();
 		}
 
-		public enum eType {
+		public enum EventType {
 			Debug, Information, Manipulation, Warning, Error, Fatal
 		}
 	}
