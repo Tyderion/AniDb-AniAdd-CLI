@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="CreateExampleConfig" type="Application" factoryName="Application">
+    <option name="ALTERNATIVE_JRE_PATH" value="corretto-21" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="MAIN_CLASS_NAME" value="aniAdd.startup.Main" />
+    <module name="aniadd.main" />
+    <option name="PROGRAM_PARAMETERS" value="-u username -p password -d &quot;\path\to\scan&quot; --save example.config --tagging-system .run\example_tagsystem.txt" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

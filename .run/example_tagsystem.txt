@@ -1,3 +1,5 @@
+# Names anime in the following format "ShowTitle - S01EX - EpisodeTitle [Group][Source][Resolution][Codec][CRC]""
+# Kodi should parse those episode numbers correctly
 BaseTVShowPath:="mnt\Anime\TV Shows\"                       #Set to your root folder for anime TV shows
 BaseMoviePath:="mnt\Anime\Movies\"                          #Set to your root folder for anime movies
 ShowTitle:=[%ATr%, %ATe%, %ATk%]
@@ -14,8 +16,8 @@ EpisodeTitle:=$repl(%EpisodeTitle%, "`", "'")
 Trunc(str, len):=$repl(%str%, ".{" $len($repl(%str%, "(.?){" %len% "}$", "")) "}$", "")
 TruncEllipse(str, len):={$len(%str%) = $len($Trunc(%str%, %len%)) ? %str% : $Trunc(%str%, %len%) "…" }
 EpisodeTitle:=$TruncEllipse(%EpisodeTitle%, "64")
-Regular:=""
-Special:="S"
+Regular:="S01E"
+Special:="S00E"
 Separator:=" - "
 SpecialEp:=$repl(%EpNo%, "[1234567890]", "")
 EpNo:=$repl(%EpNo%, "[SCTPO]", "")
