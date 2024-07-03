@@ -24,7 +24,7 @@ import java.util.zip.InflaterInputStream;
 public class Mod_UdpApi extends BaseModule {
 
     public final int MAXRETRIES = 2;
-    public final int CLIENTVER = 1;
+    public final int CLIENTVER = 3;
     public final int PROTOCOLVER = 3;
     public final String CLIENTTAG = "AniAddCLI";
     public final String ANIDBAPIHOST = "api.anidb.info";

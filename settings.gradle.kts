@@ -1,1 +1,1 @@
-rootProject.name = "aniadd"
+rootProject.name = "aniadd-cli"

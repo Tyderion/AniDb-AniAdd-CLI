@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "ch.tyderion"
-version = "cli-2.0-SNAPSHOT"
+version = "3.0"
 
 java {
     targetCompatibility = JavaVersion.VERSION_21

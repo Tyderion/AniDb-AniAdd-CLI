@@ -4,6 +4,6 @@ MAINTAINER Tyderion
 
 RUN yum install -y findutils
 RUN mkdir /app
-COPY ./build/libs/aniadd-all-cli-2.0-SNAPSHOT.jar /app/aniadd-cli.jar
+COPY ./build/libs/aniadd-cli-all-3.0.jar /app/aniadd-cli.jar
 COPY ./run.sh /app/run.sh
 CMD ["/app/run.sh"]
