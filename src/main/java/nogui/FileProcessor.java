@@ -5,6 +5,7 @@ import aniAdd.Communication;
 import aniAdd.IAniAdd;
 import aniAdd.Modules.BaseModule;
 import aniAdd.Modules.IModule;
+import aniAdd.config.AniConfiguration;
 import processing.Mod_EpProcessing;
 
 import java.io.File;
@@ -37,17 +38,17 @@ public class FileProcessor extends BaseModule {
         return modName;
     }
 
-    public void Initialize(IAniAdd aniAdd) {
+    public void Initialize(IAniAdd aniAdd, AniConfiguration configuration) {
         Logger.getGlobal().log(Level.WARNING, "INITIALIZE FileProcessor");
 
         modState = eModState.Initializing;
         epProc = aniAdd.GetModule(Mod_EpProcessing.class);
 
-        String path = ((AniAdd) aniAdd).getDirectoryPath();
+        String path = configuration.directory();
         File folder = new File(path);
 
         Logger.getGlobal().log(Level.WARNING, "Folder: " + folder.getAbsolutePath());
-        File[] a = folder.listFiles();
+        File[] a = folder.listFiles(this::shouldScrapeFile);
         if (a != null) {
             mFiles = Arrays.stream(a).filter(File::isDirectory).flatMap(dir -> Arrays.stream(dir.listFiles())).collect(Collectors.toList());
             mFiles.addAll(Arrays.stream(a).filter(File::isFile).collect(Collectors.toList()));
@@ -84,6 +85,19 @@ public class FileProcessor extends BaseModule {
 
     public void Terminate() {
         modState = eModState.Terminated;
+    }
+
+    private boolean shouldScrapeFile(File _directory, String name) {
+        return !isKodiMetadataFileOrInvalidFile(_directory, name);
+    }
+
+    private boolean isKodiMetadataFileOrInvalidFile(File _directory, String name) {
+        return name.endsWith(".jpg")
+                || name.endsWith(".nfo")
+                || name.endsWith(".srt")
+                || name.endsWith(".sub")
+                || name.endsWith(".png")
+                || name.equalsIgnoreCase("thumbs.db");
     }
 
 }

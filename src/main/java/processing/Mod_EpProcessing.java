@@ -705,7 +705,7 @@ public class Mod_EpProcessing extends BaseModule {
         return modName;
     }
 
-    public void Initialize(IAniAdd aniAdd) {
+    public void Initialize(IAniAdd aniAdd, AniConfiguration configuration) {
         modState = eModState.Initializing;
         api = aniAdd.GetModule(Mod_UdpApi.class);
 

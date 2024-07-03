@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.TreeMap;
 
+import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
 import aniAdd.misc.Misc;
 
@@ -691,9 +692,7 @@ public class Mod_UdpApi extends BaseModule {
         return modName;
     }
 
-    public void Initialize(IAniAdd aniAdd) {
-        modState = eModState.Initializing;
-        aniAdd.addComListener(comEvent -> {});
+    public void Initialize(IAniAdd aniAdd, AniConfiguration configuration) {
         modState = eModState.Initialized;
     }
 

@@ -1,6 +1,7 @@
 package aniAdd.Modules;
 
 import aniAdd.*;
+import aniAdd.config.AniConfiguration;
 
 
 public interface IModule extends Communication {
@@ -8,7 +9,7 @@ public interface IModule extends Communication {
 
     eModState ModState();
 
-    void Initialize(IAniAdd aniAdd);
+    void Initialize(IAniAdd aniAdd, AniConfiguration configuration);
 
     void Terminate();
 
