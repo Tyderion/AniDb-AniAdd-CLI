@@ -475,12 +475,7 @@ public class Mod_EpProcessing extends BaseModule {
 
                             File srcFolder = procFile.FileObj().getParentFile();
 
-                            File[] srcFiles = srcFolder.listFiles(new FilenameFilter() {
-
-                                public boolean accept(File dir, String name) {
-                                    return name.startsWith(oldFilenameWoExt + ".");
-                                }
-                            });
+                            File[] srcFiles = srcFolder.listFiles((dir, name) -> name.startsWith(oldFilenameWoExt)  && !name.equals(oldFilenameWoExt + ext));
 
                             String relExt, accumExt = "";
                             String newFn = filename.substring(0, filename.lastIndexOf("."));
