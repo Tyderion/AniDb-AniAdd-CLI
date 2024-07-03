@@ -6,7 +6,6 @@ import aniAdd.config.AniConfiguration;
 import java.util.*;
 
 import nogui.FileProcessor;
-import processing.Mod_AnimeProcessing;
 import processing.Mod_EpProcessing;
 import udpApi.Mod_UdpApi;
 
@@ -27,7 +26,6 @@ public class AniAdd implements IAniAdd {
     public AniAdd(AniConfiguration configuration) {
         mConfiguration = configuration;
         addModule(new Mod_EpProcessing(mConfiguration));
-        addModule(new Mod_AnimeProcessing());
         addModule(new Mod_UdpApi());
 
         addModule(new FileProcessor());
