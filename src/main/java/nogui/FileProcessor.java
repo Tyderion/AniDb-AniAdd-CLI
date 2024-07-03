@@ -1,10 +1,7 @@
 package nogui;
 
-import aniAdd.AniAdd;
-import aniAdd.Communication;
 import aniAdd.IAniAdd;
 import aniAdd.Modules.BaseModule;
-import aniAdd.Modules.IModule;
 import aniAdd.config.AniConfiguration;
 import processing.Mod_EpProcessing;
 
@@ -93,7 +90,7 @@ public class FileProcessor extends BaseModule {
     }
 
     private boolean shouldScrapeFile(File _directory, String name) {
-        return !isKodiMetadataFileOrInvalidFile(_directory, name);
+        return !isKodiMetadataFileOrInvalidFile(_directory, name) && !(name.contains("- S01E") || name.contains("- S00E"));
     }
 
     private boolean isKodiMetadataFileOrInvalidFile(File _directory, String name) {
