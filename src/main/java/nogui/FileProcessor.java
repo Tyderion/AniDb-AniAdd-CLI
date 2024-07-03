@@ -59,6 +59,11 @@ public class FileProcessor extends BaseModule {
             System.exit(0);
         }
 
+        if (mFiles.isEmpty()) {
+            Logger.getGlobal().log(Level.WARNING, "No files found, shutting down");
+            System.exit(0);
+        }
+
         epProc.addFiles(mFiles);
 
         aniAdd.addComListener(communicationEvent -> {

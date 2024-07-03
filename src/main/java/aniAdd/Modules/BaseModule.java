@@ -16,9 +16,6 @@ public abstract class BaseModule implements IModule {
         listeners.add(comListener);
     }
 
-    // </editor-fold>
-
-    // <editor-fold defaultstate="collapsed" desc="Misc">
     protected void Log(CommunicationEvent.EventType eventType, Object... params) {
         ComFire(new CommunicationEvent(this, eventType, params));
     }
