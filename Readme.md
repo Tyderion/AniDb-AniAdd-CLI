@@ -35,7 +35,10 @@ I suggest using a cron-job or something similar to periodically scan your downlo
 There is a docker image available for now: https://hub.docker.com/repository/docker/tyderion/aniadd-cli/general
 
 # Tutorial
+
+There are intellij run configs available for these commands
+
 1. Install compatible Java (21 or higher, 8 or higher for v1.1.1 or lower)
-2. Generate default config file (`java -jar AniAdd.jar --no-gui  -u username -p password -d /path/to/anime -save config.conf`)
+2. Generate default config file (`java -jar AniAdd.jar -u username -p password -d /path/to/anime -save config.conf`)
 3. Edit configuration file with the editor of your choice, if you use the tagging system to move just replace it with your system
-4. run AniAdd to scan and move your files (`java -jar AniAdd.jar --no-gui  -u username -p password -d /path/to/anime -c config.conf`
+4. run AniAdd to scan and move your files (`java -jar AniAdd.jar -u username -p password -d /path/to/anime -c config.conf`
