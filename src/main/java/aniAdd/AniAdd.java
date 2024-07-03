@@ -19,10 +19,6 @@ public class AniAdd implements IAniAdd {
     private final Map<Class<? extends IModule>, IModule> modules = new HashMap<>();
     private final EventHandler eventHandler = new EventHandler();
 
-    public String getDirectoryPath() {
-        return mConfiguration.directory();
-    }
-
     public AniAdd(AniConfiguration configuration) {
         mConfiguration = configuration;
         addModule(new Mod_EpProcessing(mConfiguration));
@@ -41,7 +37,7 @@ public class AniAdd implements IAniAdd {
 
         for (IModule module : modules.values()) {
             System.out.println("Initializing: " + module.ModuleName());
-            module.Initialize(this);
+            module.Initialize(this, mConfiguration);
         }
 
         boolean allModsInitialized = false;

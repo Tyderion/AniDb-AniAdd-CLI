@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.TreeMap;
 
+import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
 import aniAdd.misc.Misc;
 
@@ -23,9 +24,9 @@ import java.util.zip.InflaterInputStream;
 public class Mod_UdpApi extends BaseModule {
 
     public final int MAXRETRIES = 2;
-    public final int CLIENTVER = 4;
+    public final int CLIENTVER = 1;
     public final int PROTOCOLVER = 3;
-    public final String CLIENTTAG = "AniAdd";
+    public final String CLIENTTAG = "AniAddCLI";
     public final String ANIDBAPIHOST = "api.anidb.info";
     public final int ANIDBAPIPORT = 9000;
     public final String NODELAY = ""; //"FILE,ANIME,MYLISTADD";
@@ -691,9 +692,7 @@ public class Mod_UdpApi extends BaseModule {
         return modName;
     }
 
-    public void Initialize(IAniAdd aniAdd) {
-        modState = eModState.Initializing;
-        aniAdd.addComListener(comEvent -> {});
+    public void Initialize(IAniAdd aniAdd, AniConfiguration configuration) {
         modState = eModState.Initialized;
     }
 

@@ -12,6 +12,18 @@ if [ "$CONTINUOUS_CHECKS" = true ]; then
    echo "Will only execute once"
  fi
 
+if [ -z "$ANIDB_USERNAME" ]
+then
+     echo "ANIDB_USERNAME is not set"
+     exit 1
+fi
+
+if [ -z "$ANIDB_PASSWORD" ]
+then
+     echo "ANIDB_PASSWORD is not set"
+     exit 1
+fi
+
 while true; do
 
   # check if the /from folder contains any files
@@ -21,7 +33,7 @@ while true; do
       touch rename.sh
       chmod a+x rename.sh
 
-      java -jar /app/aniadd-cli.jar --no-gui -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF -d /from
+      java -jar /app/aniadd-cli.jar -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF -d /from
 
       echo "will run following commands: "
       cat rename.sh

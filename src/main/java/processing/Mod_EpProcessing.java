@@ -445,7 +445,6 @@ public class Mod_EpProcessing extends BaseModule {
 
 
             File renFile = new File(folderObj, filename);
-            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, "canWrite", renFile.canWrite());
             if (renFile.exists() && !(renFile.getParentFile().equals(procFile.FileObj().getParentFile()))) {
                 Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "Destination filename already exists.");
                 if (configuration.deleteDuplicateFiles()) {
@@ -475,12 +474,7 @@ public class Mod_EpProcessing extends BaseModule {
 
                             File srcFolder = procFile.FileObj().getParentFile();
 
-                            File[] srcFiles = srcFolder.listFiles(new FilenameFilter() {
-
-                                public boolean accept(File dir, String name) {
-                                    return name.startsWith(oldFilenameWoExt + ".");
-                                }
-                            });
+                            File[] srcFiles = srcFolder.listFiles((dir, name) -> name.startsWith(oldFilenameWoExt)  && !name.equals(oldFilenameWoExt + ext));
 
                             String relExt, accumExt = "";
                             String newFn = filename.substring(0, filename.lastIndexOf("."));
@@ -705,7 +699,7 @@ public class Mod_EpProcessing extends BaseModule {
         return modName;
     }
 
-    public void Initialize(IAniAdd aniAdd) {
+    public void Initialize(IAniAdd aniAdd, AniConfiguration configuration) {
         modState = eModState.Initializing;
         api = aniAdd.GetModule(Mod_UdpApi.class);
 
