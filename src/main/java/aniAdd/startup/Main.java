@@ -94,7 +94,7 @@ public class Main {
 
 
 
-        AniConfiguration config = null;
+        AniConfiguration config;
 
         // Load optional Configuration File
         if (hasCliOption(cmd, AOMOptions.config)) {
@@ -105,11 +105,9 @@ public class Main {
             config = configParser.loadFromFile();
 
         } else {
-            Logger.getGlobal().log(Level.WARNING, "No Config file passed");
-            System.exit(0);
+            Logger.getGlobal().log(Level.WARNING, "Using default configuration");
+            config = new AniConfiguration();
         }
-
-        assert(config != null);
 
         // Load optional TagSystem File
         if (hasCliOption(cmd, AOMOptions.taggingSystem)) {
@@ -135,7 +133,7 @@ public class Main {
                 ConfigFileParser<AniConfiguration> configParser =
                         new ConfigFileParser<>(path, AniConfiguration.class);
                 configParser.saveToFile(config);
-                Logger.getGlobal().log(Level.WARNING, "Finished wiritng config to file: " + path);
+                Logger.getGlobal().log(Level.INFO, "Finished wiritng config to file: " + path);
             } catch (IOException e) {
                 e.printStackTrace();
             }

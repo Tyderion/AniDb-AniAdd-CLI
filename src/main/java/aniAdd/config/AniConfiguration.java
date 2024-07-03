@@ -14,8 +14,7 @@ public class AniConfiguration {
     private boolean renameFiles = false;
     private boolean renameRelatedFiles;
     private boolean renameTypeAniDBFileName;
-    private StorageType setStorageType;
-    private String folderToLoad;
+    private StorageType setStorageType = StorageType.UNKOWN;
     private boolean setWatched;
     private boolean addToMylist = false;
     private boolean advancedMode;
@@ -94,14 +93,6 @@ public class AniConfiguration {
 
     public void setSetStorageType(StorageType setStorageType) {
         this.setStorageType = setStorageType;
-    }
-
-    public String folderToLoad() {
-        return folderToLoad;
-    }
-
-    public void setFolderToLoad(String folderToLoad) {
-        this.folderToLoad = folderToLoad;
     }
 
     public boolean setWatched() {
