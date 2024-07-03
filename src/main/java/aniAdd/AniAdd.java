@@ -17,8 +17,8 @@ public class AniAdd implements IAniAdd {
     final static int CURRENTVER = 9;
     private final AniConfiguration mConfiguration;
 
-    Map<Class<? extends IModule>, IModule> modules = new HashMap<>();
-    EventHandler eventHandler;
+    private final Map<Class<? extends IModule>, IModule> modules = new HashMap<>();
+    private final EventHandler eventHandler = new EventHandler();
 
     public String getDirectoryPath() {
         return mConfiguration.directory();
@@ -26,7 +26,6 @@ public class AniAdd implements IAniAdd {
 
     public AniAdd(AniConfiguration configuration) {
         mConfiguration = configuration;
-        eventHandler = new EventHandler();
         addModule(new Mod_EpProcessing(mConfiguration));
         addModule(new Mod_AnimeProcessing());
         addModule(new Mod_UdpApi());
@@ -87,6 +86,7 @@ public class AniAdd implements IAniAdd {
         ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Terminated));
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends IModule> T GetModule(Class<T> modName) {
         return (T) modules.get(modName);
     }
@@ -103,7 +103,7 @@ public class AniAdd implements IAniAdd {
 
 
     //Com System
-    private ArrayList<ComListener> listeners = new ArrayList<ComListener>();
+    private final ArrayList<ComListener> listeners = new ArrayList<ComListener>();
 
     protected void ComFire(CommunicationEvent communicationEvent) {
         System.out.println("AniAdd Event: " + communicationEvent.toString());

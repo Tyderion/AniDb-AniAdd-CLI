@@ -3,6 +3,7 @@ package aniAdd.config;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,8 +32,9 @@ public class ConfigFileParser<T> {
             return mYaml.loadAs(input, mClazz);
         } else {
             try {
-                return mClazz.newInstance();
-            } catch (InstantiationException | IllegalAccessException e) {
+                return mClazz.getDeclaredConstructor().newInstance();
+            } catch (InstantiationException | IllegalAccessException | NoSuchMethodException |
+                     InvocationTargetException e) {
                 e.printStackTrace();
             }
             return null;
