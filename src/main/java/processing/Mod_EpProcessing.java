@@ -445,7 +445,6 @@ public class Mod_EpProcessing extends BaseModule {
 
 
             File renFile = new File(folderObj, filename);
-            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, "canWrite", renFile.canWrite());
             if (renFile.exists() && !(renFile.getParentFile().equals(procFile.FileObj().getParentFile()))) {
                 Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "Destination filename already exists.");
                 if (configuration.deleteDuplicateFiles()) {
