@@ -12,6 +12,18 @@ if [ "$CONTINUOUS_CHECKS" = true ]; then
    echo "Will only execute once"
  fi
 
+if [ -z "$ANIDB_USERNAME" ]
+then
+     echo "ANIDB_USERNAME is not set"
+     exit 1
+fi
+
+if [ -z "$ANIDB_PASSWORD" ]
+then
+     echo "ANIDB_PASSWORD is not set"
+     exit 1
+fi
+
 while true; do
 
   # check if the /from folder contains any files
