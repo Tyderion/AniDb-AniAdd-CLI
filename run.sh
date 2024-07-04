@@ -25,7 +25,6 @@ then
 fi
 
 while true; do
-
   # check if the /from folder contains any files
   has_files=$(find /from -type f)
   if [ -n "${has_files}" ]; then

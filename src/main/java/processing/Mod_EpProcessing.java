@@ -215,7 +215,7 @@ public class Mod_EpProcessing extends BaseModule {
             if (replyId == 320) {
                 // File not found in anidb
                 File currentFile = procFile.FileObj();
-                String unknownFolderPath = "unknown/" + currentFile.getParentFile().getName();
+                String unknownFolderPath = "/unknown/" + currentFile.getParentFile().getName();
                 appendToPostProcessingScript("mkdir -p \"" + unknownFolderPath + "\"");
                 appendToPostProcessingScript("mv \"" + currentFile.getAbsolutePath() + "\" \"" + unknownFolderPath + "/" + currentFile.getName() + "\"");
             }
