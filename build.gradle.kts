@@ -1,6 +1,7 @@
 import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
 import com.bmuschko.gradle.docker.tasks.image.DockerPushImage
 import com.bmuschko.gradle.docker.tasks.image.Dockerfile
+import java.io.ByteArrayOutputStream
 
 plugins {
     java
@@ -48,6 +49,9 @@ tasks.register("release") {
     group = "release"
     dependsOn("createGitTag")
     doLast {
+        exec {
+            commandLine("git", "push", "origin", "tag", version)
+        }
         println("Release $version as Docker image tyderion/aniadd-cli:$version")
     }
 }
@@ -104,8 +108,15 @@ tasks.register<Exec>("createGitTag") {
     group = "release"
     dependsOn("pushDockerImage")
     description = "Creates a Git tag for the release"
-    val branch = commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")
-    if (branch.toString() == "master" || version.toString().endsWith("-SNAPSHOT")) {
+
+    val branch: String = ByteArrayOutputStream().use { outputStream ->
+        project.exec {
+            commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")
+            standardOutput = outputStream
+        }
+        outputStream.toString()
+    }
+    if (branch.trim() == "master" || version.toString().endsWith("-SNAPSHOT")) {
         commandLine("git", "tag", "-a", version, "-m", "Release $version")
     } else {
         throw GradleException("Not on master branch, no tag created")
