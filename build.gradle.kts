@@ -46,7 +46,7 @@ tasks.register<Jar>("fatJar") {
 
 tasks.register("release") {
     group = "release"
-    dependsOn("pushDockerImage")
+    dependsOn("createGitTag")
     doLast {
         println("Release $version as Docker image tyderion/aniadd-cli:$version")
     }
@@ -99,6 +99,19 @@ tasks.register<DockerPushImage>("pushDockerImage") {
     description = "Pushes the Docker image for the application to Docker Hub"
     images.add("tyderion/aniadd-cli:$version")
 }
+
+tasks.register<Exec>("createGitTag") {
+    group = "release"
+    dependsOn("pushDockerImage")
+    description = "Creates a Git tag for the release"
+    val branch = commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")
+    if (branch.toString() == "master" || version.toString().endsWith("-SNAPSHOT")) {
+        commandLine("git", "tag", "-a", version, "-m", "Release $version")
+    } else {
+        throw GradleException("Not on master branch, no tag created")
+    }
+}
+
 
 tasks {
     withType<JavaCompile> {
