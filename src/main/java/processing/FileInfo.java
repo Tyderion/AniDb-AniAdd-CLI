@@ -1,5 +1,9 @@
 package processing;
 
+import aniAdd.config.AniConfiguration;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.io.File;
 import java.util.EnumSet;
 import java.util.TreeMap;
@@ -27,6 +31,9 @@ public class FileInfo {
     private Boolean watched;
     private boolean served;
     private boolean isFinal;
+    @Getter
+    @Setter
+    private AniConfiguration configuration;
 
     public enum eAction { Process, FileCmd, MyListCmd, VoteCmd, Rename, }
     public enum eMLStorageState { Unknown, Internal, External, Deleted, Remote }

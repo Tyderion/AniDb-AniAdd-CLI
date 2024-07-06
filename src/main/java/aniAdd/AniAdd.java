@@ -5,6 +5,7 @@ import aniAdd.config.AniConfiguration;
 
 import java.util.*;
 
+import aniAdd.misc.ICallBack;
 import lombok.val;
 import processing.FileProcessor;
 import processing.Mod_EpProcessing;
@@ -20,6 +21,7 @@ public class AniAdd implements IAniAdd {
     private final Map<Class<? extends IModule>, IModule> modules = new HashMap<>();
     private final EventHandler eventHandler = new EventHandler();
     private boolean allInitialized = false;
+    private boolean exitOnTermination = false;
 
     public AniAdd(AniConfiguration configuration) {
         mConfiguration = configuration;
@@ -30,10 +32,11 @@ public class AniAdd implements IAniAdd {
     }
 
     @Override
-    public void ProcessDirectory(String directory, boolean exitOnTermination) {
-        FileProcessor fileProcessor = GetModule(FileProcessor.class);
-        fileProcessor.Scan(directory);
-        Start(exitOnTermination);
+    public void ProcessDirectory(String directory) {
+        runCommand(_ -> {
+            FileProcessor fileProcessor = GetModule(FileProcessor.class);
+            fileProcessor.Scan(directory);
+        });
     }
 
     @Override
@@ -44,10 +47,27 @@ public class AniAdd implements IAniAdd {
                 .enableFileMove(false)
                 .enableFileRenaming(false)
                 .setWatched(true)
+                .overwriteMLEntries(true)
                 .build();
-        val fileProcessor = GetModule(FileProcessor.class);
-        fileProcessor.AddFile(path, config);
-        Start(false);
+        runCommand(_ -> {
+            val fileProcessor = GetModule(FileProcessor.class);
+            fileProcessor.AddFile(path, config);
+        });
+    }
+
+    private void runCommand(ICallBack<Void> callback) {
+        if (allInitialized) {
+            callback.invoke(null);
+        } else {
+            addComListener(comEvent -> {
+                if (comEvent.EventType() == Communication.CommunicationEvent.EventType.Information) {
+                    if (comEvent.Params(0) == IModule.eModState.Initialized) {
+                        callback.invoke(null);
+                    }
+                }
+            });
+            Start(exitOnTermination);
+        }
     }
 
     @Override
@@ -61,9 +81,7 @@ public class AniAdd implements IAniAdd {
     }
 
     public void Start(boolean exitOnTermination) {
-        if (allInitialized) {
-            return;
-        }
+        this.exitOnTermination = exitOnTermination;
         ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Initializing));
 
         for (IModule module : modules.values()) {
@@ -82,7 +100,6 @@ public class AniAdd implements IAniAdd {
                 allInitialized &= module.ModState() == IModule.eModState.Initialized;
             }
         }
-        ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Initialized));
         if (exitOnTermination) {
             addComListener(communicationEvent -> {
                 if (communicationEvent.EventType() == CommunicationEvent.EventType.Information
@@ -91,6 +108,7 @@ public class AniAdd implements IAniAdd {
                 }
             });
         }
+        ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Initialized));
     }
 
     public void Stop() {
@@ -141,7 +159,6 @@ public class AniAdd implements IAniAdd {
     protected void ComFire(CommunicationEvent communicationEvent) {
         System.out.println("AniAdd Event: " + communicationEvent.toString());
         for (ComListener listener : listeners) listener.handleEvent(communicationEvent);
-
     }
 
     public void addComListener(ComListener comListener) {

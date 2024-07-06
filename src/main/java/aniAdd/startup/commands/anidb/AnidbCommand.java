@@ -28,7 +28,7 @@ public class AnidbCommand {
         return parent.getConfiguration();
     }
 
-    IAniAdd initializeAniAdd() {
+    IAniAdd initializeAniAdd(boolean terminateOnCompletion) {
         val aniAdd = new AniAdd(parent.getConfiguration());
 
         aniAdd.addComListener(comEvent -> {
@@ -42,6 +42,7 @@ public class AnidbCommand {
                 }
             }
         });
+        aniAdd.Start(terminateOnCompletion);
         return aniAdd;
     }
 }

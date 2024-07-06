@@ -106,7 +106,9 @@ public class KodiNotificationSubscriber extends WebSocketClient {
             return;
         }
         val localFilePath = getPath(episodeDetail.file, VideoLibraryUpdateParams.Type.EPISODE);
-        aniAdd.MarkFileAsWatched(localFilePath);
+        if (episodeDetail.getPlayCount() > 0) {
+            aniAdd.MarkFileAsWatched(localFilePath);
+        }
     }
 
     private void handleMovieWatched(MovieDetail movieDetail) {
@@ -115,7 +117,9 @@ public class KodiNotificationSubscriber extends WebSocketClient {
             return;
         }
         val localFilePath = getPath(movieDetail.file, VideoLibraryUpdateParams.Type.MOVIE);
-        aniAdd.MarkFileAsWatched(localFilePath);
+        if (movieDetail.getPlayCount() > 0) {
+            aniAdd.MarkFileAsWatched(localFilePath);
+        }
     }
 
     private String getPath(String file, VideoLibraryUpdateParams.Type type) {

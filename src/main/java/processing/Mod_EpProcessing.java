@@ -7,6 +7,7 @@ import java.util.Collection;
 
 import aniAdd.Modules.BaseModule;
 import aniAdd.config.AniConfiguration;
+import lombok.val;
 import processing.FileInfo.eAction;
 import udpApi.Cmd;
 import udpApi.Query;
@@ -281,6 +282,7 @@ public class Mod_EpProcessing extends BaseModule {
             return; //File not found (Todo: throw error)
         }
         FileInfo procFile = files.get("Id", fileId);
+        val configuration = procFile.getConfiguration();
         procFile.ActionsTodo().remove(eAction.MyListCmd);
 
         if (replyId == 210 || replyId == 311) {
@@ -383,6 +385,7 @@ public class Mod_EpProcessing extends BaseModule {
 
     private boolean renameFile(FileInfo procFile) { //Todo: refractor into smaller Methods
         String filename = "";
+        val configuration = procFile.getConfiguration();
         try {
             TreeMap<String, String> ts = null;
 
@@ -539,6 +542,7 @@ public class Mod_EpProcessing extends BaseModule {
 
     private TreeMap<String, String> getPathFromTagSystem(FileInfo procFile) throws Exception {
         TreeMap<String, String> tags = new TreeMap<String, String>();
+        val configuration = procFile.getConfiguration();
         tags.put("BaseTVShowPath", configuration.getTvShowFolder());
         tags.put("BaseMoviePath", configuration.getMovieFolder());
 
@@ -635,6 +639,7 @@ public class Mod_EpProcessing extends BaseModule {
             fileInfo.MLStorage(FileInfo.eMLStorageState.values()[storage]);
             fileInfo.ActionsTodo().add(eAction.Process);
             fileInfo.ActionsTodo().add(eAction.FileCmd);
+            fileInfo.setConfiguration(configuration);
 
             if (addToMyList) {
                 fileInfo.ActionsTodo().add(eAction.MyListCmd);

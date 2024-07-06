@@ -24,7 +24,7 @@ public class ServerCommand implements Callable<Integer> {
     public Integer call() throws Exception {
         Logger.getGlobal().info((STR."Connecting to kodi at \{kodiUrl} on port \{port}"));
 
-        val subscriber = new KodiNotificationSubscriber(new URI(STR."ws://\{kodiUrl}:\{port}/jsonrpc"), parent.initializeAniAdd());
+        val subscriber = new KodiNotificationSubscriber(new URI(STR."ws://\{kodiUrl}:\{port}/jsonrpc"), parent.initializeAniAdd(false));
 
         subscriber.connect();
         return 0;
