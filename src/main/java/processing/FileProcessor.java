@@ -3,6 +3,7 @@ package processing;
 import aniAdd.IAniAdd;
 import aniAdd.Modules.BaseModule;
 import aniAdd.config.AniConfiguration;
+import lombok.val;
 
 import java.io.File;
 import java.util.Arrays;
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by Archie on 23.12.2015.
@@ -76,22 +78,27 @@ public class FileProcessor extends BaseModule {
         }
     }
 
+    private Stream<File> recursivelyGetFilesToScrape(File folder) {
+        if (!folder.exists() || !folder.isDirectory()) {
+            return Arrays.stream(new File[0]);
+        }
+        val files = Arrays.stream(folder.listFiles(this::shouldScrapeFile));
+        val subFolderFiles = Arrays.stream(folder.listFiles(File::isDirectory)).flatMap(this::recursivelyGetFilesToScrape);
+        return Stream.concat(files, subFolderFiles);
+    }
+
     public void Scan(String directory) {
         File folder = new File(directory);
 
         Logger.getGlobal().log(Level.WARNING, STR."Folder: \{folder.getAbsolutePath()}");
-        File[] a = folder.listFiles(this::shouldScrapeFile);
 
-        if (a != null) {
-            final List<File> files = Arrays.stream(a).filter(File::isDirectory).flatMap(dir -> Arrays.stream(dir.listFiles(this::shouldScrapeFile))).collect(Collectors.toList());
-            files.addAll(Arrays.stream(a).filter(File::isFile).collect(Collectors.toList()));
-            files.forEach(f -> Logger.getGlobal().log(Level.INFO, STR."Found file: \{f.getAbsolutePath()}"));
-            Logger.getGlobal().log(Level.INFO, STR."Number of found files: \{files.size()}");
-            if (files.isEmpty()) {
-                Logger.getGlobal().log(Level.WARNING, "No files found, shutting down");
-                aniAdd.Stop();
-            }
-
+        val files = recursivelyGetFilesToScrape(folder).collect(Collectors.toList());
+        files.forEach(f -> Logger.getGlobal().log(Level.INFO, STR."Found file: \{f.getAbsolutePath()}"));
+        Logger.getGlobal().log(Level.INFO, STR."Number of found files: \{files.size()}");
+        if (files.isEmpty()) {
+            Logger.getGlobal().log(Level.WARNING, "No files found, shutting down");
+            aniAdd.Stop();
+        } else {
             epProc.addFiles(files);
             epProc.addComListener(comEvent -> {
                 if (comEvent.EventType() == CommunicationEvent.EventType.Information) {
@@ -104,13 +111,8 @@ public class FileProcessor extends BaseModule {
                     }
                 }
             });
-
             startFileProcessing();
-        } else {
-            Logger.getGlobal().log(Level.WARNING, STR."Folder not found: \{folder.getAbsolutePath()}");
-            aniAdd.Stop();
         }
-
     }
 
     private void startFileProcessing() {
@@ -133,7 +135,7 @@ public class FileProcessor extends BaseModule {
     }
 
     private boolean shouldScrapeFile(File _directory, String name) {
-        return !isKodiMetadataFileOrInvalidFile(_directory, name) && !(name.contains("- S01E") || name.contains("- S00E"));
+        return !isKodiMetadataFileOrInvalidFile(_directory, name);
     }
 
     private boolean isKodiMetadataFileOrInvalidFile(File _directory, String name) {
