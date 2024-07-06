@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.stream.Collectors;
 
 /**
  * Created by Archie on 28.12.2015.
@@ -11,7 +12,6 @@ import java.nio.file.Paths;
 public class StringHelper {
     public static String readFile(String path, Charset encoding)
             throws IOException {
-        byte[] encoded = Files.readAllBytes(Paths.get(path));
-        return new String(encoded, encoding);
+        return String.join("\n", Files.readAllLines(Paths.get(path), encoding));
     }
 }

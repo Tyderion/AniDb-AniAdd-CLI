@@ -1,20 +1,15 @@
 package aniAdd.startup.commands;
 
-import aniAdd.AniAdd;
-import aniAdd.Communication;
-import aniAdd.IAniAdd;
-import aniAdd.Modules.IModule;
 import aniAdd.config.AniConfiguration;
 import aniAdd.config.ConfigFileParser;
-import lombok.val;
+import aniAdd.startup.commands.anidb.AnidbCommand;
+import aniAdd.startup.commands.config.ConfigCommand;
 import picocli.CommandLine;
-import udpApi.Mod_UdpApi;
 import util.StringHelper;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Objects;
-import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -23,49 +18,19 @@ import java.util.logging.Logger;
         version = "1.0",
         scope = CommandLine.ScopeType.INHERIT,
         description = "The main command.",
-        subcommands = {ScanCommand.class, ServerCommand.class, SaveConfigurationCommand.class})
-public class CliCommand implements Callable<Integer> {
+        subcommands = {AnidbCommand.class, ConfigCommand.class})
+public class CliCommand {
 
-    @CommandLine.Option(names = {"-u", "--username"}, description = "The AniDB username", required = true)
-    String username;
-    @CommandLine.Option(names = {"-p", "--password"}, description = "The AniDB password", required = true)
-    String password;
-    @CommandLine.Option(names = {"--tagging-system"}, description = "the path to a file containing the Tagging System definition", required = false)
+    @CommandLine.Option(names = {"--tagging-system"}, description = "the path to a file containing the Tagging System definition", required = false, scope = CommandLine.ScopeType.INHERIT)
     String taggingSystem;
-    @CommandLine.Option(names = {"-c", "--config"}, description = "The path to the config file. Specified parameters will override values from the config file.", required = false)
+    @CommandLine.Option(names = {"-c", "--config"}, description = "The path to the config file. Specified parameters will override values from the config file.", required = false, scope = CommandLine.ScopeType.INHERIT)
     String configPath;
 
-    @Override
-    public Integer call() throws Exception {
-        System.out.println("Please specify a subcommand. Use --help to see the available commands.");
-        return 0;
-    }
-
-    AniConfiguration getConfiguration() {
+    public AniConfiguration getConfiguration() {
         AniConfiguration configuration = loadConfiguration();
         loadTaggingSystem(configuration);
 
         return configuration;
-    }
-
-    IAniAdd initializeAniAdd() {
-        val aniAdd = new AniAdd(getConfiguration());
-
-
-        aniAdd.addComListener(comEvent -> {
-            if (comEvent.EventType() == Communication.CommunicationEvent.EventType.Information) {
-                if (comEvent.Params(0) == IModule.eModState.Initialized) {
-                    Mod_UdpApi api = aniAdd.GetModule(Mod_UdpApi.class);
-                    api.setPassword(password);
-                    api.setUsername(username);
-
-                    api.authenticate();
-                }
-            }
-        });
-
-        aniAdd.Start();
-        return aniAdd;
     }
 
     private void loadTaggingSystem(AniConfiguration config) {

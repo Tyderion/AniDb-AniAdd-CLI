@@ -1,4 +1,4 @@
-package aniAdd.startup.commands;
+package aniAdd.startup.commands.anidb;
 
 import picocli.CommandLine;
 

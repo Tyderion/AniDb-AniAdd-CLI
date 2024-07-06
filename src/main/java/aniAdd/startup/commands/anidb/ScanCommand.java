@@ -1,4 +1,4 @@
-package aniAdd.startup.commands;
+package aniAdd.startup.commands.anidb;
 
 import lombok.val;
 import picocli.CommandLine;
@@ -12,7 +12,7 @@ public class ScanCommand implements Callable<Integer> {
     private String directory;
 
     @CommandLine.ParentCommand
-    private CliCommand parent;
+    private AnidbCommand parent;
 
     @Override
     public Integer call() throws Exception {

@@ -1,4 +1,4 @@
-package aniAdd.startup.commands;
+package aniAdd.startup.commands.config;
 
 import aniAdd.config.AniConfiguration;
 import aniAdd.config.ConfigFileParser;
@@ -17,7 +17,7 @@ public class SaveConfigurationCommand implements Callable<Integer> {
     private String path;
 
     @CommandLine.ParentCommand
-    private CliCommand parent;
+    private ConfigCommand parent;
 
     @Override
     public Integer call() throws Exception {
