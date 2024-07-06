@@ -128,6 +128,7 @@ public class FileProcessor extends BaseModule {
     }
 
     public void Terminate() {
+        ready = false;
         modState = eModState.Terminated;
     }
 

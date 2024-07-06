@@ -32,7 +32,7 @@ while true; do
       touch rename.sh
       chmod a+x rename.sh
 
-      java -jar /app/aniadd-cli.jar -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF -d /from
+      java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF scan /from
 
       echo "will run following commands: "
       cat rename.sh
