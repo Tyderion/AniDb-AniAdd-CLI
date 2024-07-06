@@ -1,9 +1,8 @@
-package nogui;
+package processing;
 
 import aniAdd.IAniAdd;
 import aniAdd.Modules.BaseModule;
 import aniAdd.config.AniConfiguration;
-import processing.Mod_EpProcessing;
 
 import java.io.File;
 import java.util.Arrays;
