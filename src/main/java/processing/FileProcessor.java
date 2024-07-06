@@ -77,7 +77,7 @@ public class FileProcessor extends BaseModule {
             mFiles.forEach(f -> Logger.getGlobal().log(Level.WARNING, "Found file: " + f.getAbsolutePath()));
             Logger.getGlobal().log(Level.WARNING, "Number of found files: " + mFiles.size());
         } else {
-            Logger.getGlobal().log(Level.WARNING, "Folder not found");
+            Logger.getGlobal().log(Level.WARNING, STR."Folder not found: \{folder.getAbsolutePath()}");
             System.exit(0);
         }
 

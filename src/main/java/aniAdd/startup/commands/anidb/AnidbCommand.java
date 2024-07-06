@@ -16,9 +16,9 @@ import udpApi.Mod_UdpApi;
         version = "1.0",
         description = "AniDb handling")
 public class AnidbCommand {
-    @CommandLine.Option(names = {"-u", "--username"}, description = "The AniDB username", required = true)
+    @CommandLine.Option(names = {"-u", "--username"}, description = "The AniDB username", required = true, scope = CommandLine.ScopeType.INHERIT)
     String username;
-    @CommandLine.Option(names = {"-p", "--password"}, description = "The AniDB password", required = true)
+    @CommandLine.Option(names = {"-p", "--password"}, description = "The AniDB password", required = true, scope = CommandLine.ScopeType.INHERIT)
     String password;
     @CommandLine.ParentCommand
     private CliCommand parent;
