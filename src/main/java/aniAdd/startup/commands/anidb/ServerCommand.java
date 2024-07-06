@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 public class ServerCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"--port"}, description = "The port to listen on.")
     private int port = 9090;
-    @CommandLine.Option(names = {"--kodi"}, description = "The url of the kodi server.")
+    @CommandLine.Option(names = {"--kodi"}, description = "The url of the kodi server.", required = true)
     private String kodiUrl = "localhost";
 
     @CommandLine.ParentCommand
