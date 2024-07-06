@@ -4,13 +4,14 @@ import aniAdd.AniAdd;
 import aniAdd.Communication;
 import aniAdd.IAniAdd;
 import aniAdd.Modules.IModule;
+import aniAdd.config.AniConfiguration;
 import aniAdd.startup.commands.CliCommand;
 import lombok.val;
 import picocli.CommandLine;
 import udpApi.Mod_UdpApi;
 
 @CommandLine.Command(
-        subcommands = {ScanCommand.class, ServerCommand.class},
+        subcommands = {ScanCommand.class, ServerCommand.class, TagsCommand.class},
         name = "anidb",
         mixinStandardHelpOptions = true,
         version = "1.0",
@@ -22,6 +23,10 @@ public class AnidbCommand {
     String password;
     @CommandLine.ParentCommand
     private CliCommand parent;
+
+    AniConfiguration getConfiguration() {
+        return parent.getConfiguration();
+    }
 
     IAniAdd initializeAniAdd() {
         val aniAdd = new AniAdd(parent.getConfiguration());

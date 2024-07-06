@@ -21,6 +21,8 @@ public class AniConfiguration {
     private boolean moveTypeUseFolder;
     private String tagSystemCode;
     private boolean deleteDuplicateFiles;
+    private String tvShowFolder;
+    private String movieFolder;
 
     public enum StorageType {
         UNKOWN(0), INTERNAL(1), EXTERNAL(2), DELETE(3), REMOTE(4);

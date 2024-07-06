@@ -538,6 +538,9 @@ public class Mod_EpProcessing extends BaseModule {
 
     private TreeMap<String, String> getPathFromTagSystem(FileInfo procFile) throws Exception {
         TreeMap<String, String> tags = new TreeMap<String, String>();
+        tags.put("BaseTVShowPath", configuration.getTvShowFolder());
+        tags.put("BaseMoviePath", configuration.getMovieFolder());
+
         tags.put("ATr", procFile.Data().get("DB_SN_Romaji"));
         tags.put("ATe", procFile.Data().get("DB_SN_English"));
         tags.put("ATk", procFile.Data().get("DB_SN_Kanji"));

@@ -33,6 +33,16 @@ public class AniAdd implements IAniAdd {
         fileProcessor.Scan(directory);
     }
 
+    @Override
+    public void MarkFileAsWatched(String path) {
+        FileProcessor fileProcessor = GetModule(FileProcessor.class);
+    }
+
+    @Override
+    public AniConfiguration getConfiguration() {
+        return mConfiguration;
+    }
+
     private void addModule(IModule mod) {
         modules.put(mod.getClass(), mod);
         eventHandler.AddEventHandler(mod);
