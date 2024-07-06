@@ -294,7 +294,7 @@ public class Mod_EpProcessing extends BaseModule {
         } else if (replyId == 310) {
             //File Already Added
 
-            if (configuration.overwriteMLEntries()) {
+            if (configuration.isOverwriteMLEntries()) {
                 procFile.ActionsTodo().add(eAction.MyListCmd);
                 Cmd cmd = new Cmd(query.getCmd(), true);
                 cmd.setArgs("edit", "1");
@@ -388,10 +388,10 @@ public class Mod_EpProcessing extends BaseModule {
 
             File folderObj = null;
 
-            System.out.println("GUI_EnableFileMove" + configuration.enableFileMove());
-            if (configuration.enableFileMove()) {
-                if (configuration.moveTypeUseFolder()) {
-                    folderObj = new File(configuration.moveToFolder());
+            System.out.println("GUI_EnableFileMove" + configuration.isEnableFileMove());
+            if (configuration.isEnableFileMove()) {
+                if (configuration.isMoveTypeUseFolder()) {
+                    folderObj = new File(configuration.getMoveToFolder());
                 } else {
                     ts = getPathFromTagSystem(procFile);
                     if (ts == null) {
@@ -421,9 +421,9 @@ public class Mod_EpProcessing extends BaseModule {
             }
 
             String ext = procFile.FileObj().getName().substring(procFile.FileObj().getName().lastIndexOf("."));
-            if (!configuration.enableFileRenaming()) {
+            if (!configuration.isEnableFileRenaming()) {
                 filename = procFile.FileObj().getName();
-            } else if (configuration.renameTypeAniDBFileName()) {
+            } else if (configuration.isRenameTypeAniDBFileName()) {
                 filename = procFile.Data().get("DB_FileName");
             } else {
                 if (ts == null) {
@@ -447,7 +447,7 @@ public class Mod_EpProcessing extends BaseModule {
             File renFile = new File(folderObj, filename);
             if (renFile.exists() && !(renFile.getParentFile().equals(procFile.FileObj().getParentFile()))) {
                 Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "Destination filename already exists.");
-                if (configuration.deleteDuplicateFiles()) {
+                if (configuration.isDeleteDuplicateFiles()) {
                     appendToPostProcessingScript("rm \"" + procFile.FileObj().getAbsolutePath() + "\"");
                 } else {
                     appendToPostProcessingScript("mkdir -p \"" + "/duplicates/" + renFile.getParentFile().getName() + "\"");
@@ -468,7 +468,7 @@ public class Mod_EpProcessing extends BaseModule {
 
                 if (tryRenameFile(procFile.Id(), procFile.FileObj(), renFile)) {
                     Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.FileRenamed, procFile.Id(), renFile, truncated);
-                    if (configuration.renameRelatedFiles()) {
+                    if (configuration.isRenameRelatedFiles()) {
                         // <editor-fold defaultstate="collapsed" desc="Rename Related Files">
                         try {
 
@@ -601,7 +601,7 @@ public class Mod_EpProcessing extends BaseModule {
         tags.put("UnCen", ((Integer.valueOf(procFile.Data().get("DB_State")) & 1 << 6) != 0 ? "1" : ""));
         tags.put("Ver", GetFileVersion(Integer.valueOf(procFile.Data().get("DB_State"))).toString());
 
-        String codeStr = configuration.tagSystemCode();
+        String codeStr = configuration.getTagSystemCode();
         if (codeStr == null || codeStr.isEmpty()) {
             return null;
         }
@@ -612,11 +612,11 @@ public class Mod_EpProcessing extends BaseModule {
     }
 
     public void addFiles(Collection<File> newFiles) {
-        Boolean watched = configuration.setWatched() ? true : null;
+        Boolean watched = configuration.isSetWatched() ? true : null;
 
-        int storage = configuration.storageType().getValue();
-        boolean rename = configuration.renameFiles();
-        boolean addToMyList = configuration.addToMylist();
+        int storage = configuration.getSetStorageType().getValue();
+        boolean rename = configuration.isRenameFiles();
+        boolean addToMyList = configuration.isAddToMylist();
 
         for (File cf : newFiles) {
             if (files.contains("Path", cf.getAbsolutePath())) {

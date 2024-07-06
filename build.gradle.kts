@@ -6,6 +6,7 @@ import java.io.ByteArrayOutputStream
 plugins {
     java
     id("com.bmuschko.docker-java-application") version "9.4.0"
+    id("io.freefair.lombok") version "8.6"
 }
 
 group = "ch.tyderion"
@@ -28,6 +29,13 @@ dependencies {
     implementation("commons-cli:commons-cli:1.3.1")
     implementation("org.yaml:snakeyaml:2.0")
     implementation("org.jetbrains:annotations:13.0")
+    implementation("info.picocli:picocli:4.7.6")
+    annotationProcessor("info.picocli:picocli-codegen:4.7.6")
+}
+
+tasks.named<JavaCompile>("compileJava") {
+    options.compilerArgs.add("-Aproject=${project.group}/${project.name}")
+    options.compilerArgs.add("--enable-preview")
 }
 
 tasks.register<Jar>("fatJar") {

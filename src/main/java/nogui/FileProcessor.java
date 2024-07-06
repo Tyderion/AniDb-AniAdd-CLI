@@ -19,6 +19,7 @@ public class FileProcessor extends BaseModule {
 
     private Mod_EpProcessing epProc;
     private List<File> mFiles;
+    private IAniAdd aniAdd;
 
     public void start() {
         epProc.processing(Mod_EpProcessing.eProcess.Start);
@@ -26,6 +27,8 @@ public class FileProcessor extends BaseModule {
 
     protected String modName = "FileProcessor";
     protected eModState modState = eModState.New;
+
+    private boolean ready = false;
 
     public eModState ModState() {
         return modState;
@@ -36,13 +39,36 @@ public class FileProcessor extends BaseModule {
     }
 
     public void Initialize(IAniAdd aniAdd, AniConfiguration configuration) {
+        this.aniAdd = aniAdd;
         Logger.getGlobal().log(Level.WARNING, "INITIALIZE FileProcessor");
 
         modState = eModState.Initializing;
         epProc = aniAdd.GetModule(Mod_EpProcessing.class);
 
-        String path = configuration.directory();
-        File folder = new File(path);
+        aniAdd.addComListener(communicationEvent -> {
+            if (communicationEvent.EventType() == CommunicationEvent.EventType.Information
+                    && communicationEvent.ParamCount() == 1
+                    && communicationEvent.Params(0) == eModState.Initialized) {
+               ready = true;
+            }
+        });
+
+        epProc.addComListener(comEvent -> {
+            if (comEvent.EventType() == CommunicationEvent.EventType.Information) {
+                if (comEvent.ParamCount() == 3 &&
+                        comEvent.Params(0) == Mod_EpProcessing.eComType.FileEvent &&
+                        comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done &&
+                        comEvent.Params(2).equals(mFiles.size() - 1)) {
+                    Logger.getGlobal().log(Level.WARNING, "File moving done, shutting down");
+                    System.exit(0);
+                }
+            }
+        });
+        modState = eModState.Initialized;
+    }
+
+    public void Scan(String directory) {
+        File folder = new File(directory);
 
         Logger.getGlobal().log(Level.WARNING, "Folder: " + folder.getAbsolutePath());
         File[] a = folder.listFiles(this::shouldScrapeFile);
@@ -62,27 +88,17 @@ public class FileProcessor extends BaseModule {
         }
 
         epProc.addFiles(mFiles);
-
-        aniAdd.addComListener(communicationEvent -> {
-            if (communicationEvent.EventType() == CommunicationEvent.EventType.Information
-                    && communicationEvent.ParamCount() == 1
-                    && communicationEvent.Params(0) == eModState.Initialized) {
-                start();
-            }
-        });
-
-        epProc.addComListener(comEvent -> {
-            if (comEvent.EventType() == CommunicationEvent.EventType.Information) {
-                if (comEvent.ParamCount() == 3 &&
-                        comEvent.Params(0) == Mod_EpProcessing.eComType.FileEvent &&
-                        comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done &&
-                        comEvent.Params(2).equals(mFiles.size() - 1)) {
-                    Logger.getGlobal().log(Level.WARNING, "File moving done, shutting down");
-                    System.exit(0);
+        if (ready) {
+            start();
+        } else {
+            aniAdd.addComListener(communicationEvent -> {
+                if (communicationEvent.EventType() == CommunicationEvent.EventType.Information
+                        && communicationEvent.ParamCount() == 1
+                        && communicationEvent.Params(0) == eModState.Initialized) {
+                    start();
                 }
-            }
-        });
-        modState = eModState.Initialized;
+            });
+        }
     }
 
     public void Terminate() {

@@ -66,6 +66,9 @@ public class Main {
     }
 
     public static void main(String[] args) {
+
+
+
         CommandLineParser parser = new DefaultParser();
         CommandLine help = null;
         try {
@@ -126,7 +129,7 @@ public class Main {
         }
 
         // Save Configuration File
-        config.setDirectory(getCliOption(cmd, AOMOptions.directory, "."));
+//        config.setDirectory(getCliOption(cmd, AOMOptions.directory, "."));
         if (hasCliOption(cmd, AOMOptions.save)) {
             String path = getCliOption(cmd, AOMOptions.save, "");
             try {
@@ -142,10 +145,12 @@ public class Main {
         aniAdd = new AniAdd(config);
 
 
+        CommandLine finalCmd = cmd;
         aniAdd.addComListener(comEvent -> {
             if (comEvent.EventType() == Communication.CommunicationEvent.EventType.Information) {
                 if (comEvent.Params(0) == IModule.eModState.Initialized) {
                     Initialize();
+                    aniAdd.ProcessDirectory(getCliOption(finalCmd, AOMOptions.directory, "."));
                 }
             }
         });

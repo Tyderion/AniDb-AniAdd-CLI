@@ -27,6 +27,12 @@ public class AniAdd implements IAniAdd {
         addModule(new FileProcessor());
     }
 
+    @Override
+    public void ProcessDirectory(String directory) {
+        FileProcessor fileProcessor = GetModule(FileProcessor.class);
+        fileProcessor.Scan(directory);
+    }
+
     private void addModule(IModule mod) {
         modules.put(mod.getClass(), mod);
         eventHandler.AddEventHandler(mod);
