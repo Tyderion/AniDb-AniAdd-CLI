@@ -36,7 +36,6 @@ public class KodiNotificationSubscriber extends WebSocketClient {
 
     @Override
     public void onMessage(String message) {
-        Logger.getGlobal().log(Level.INFO, STR."Received message: \{message}");
         if (message == null || message.isEmpty()) {
             return;
         }
@@ -75,6 +74,13 @@ public class KodiNotificationSubscriber extends WebSocketClient {
     @Override
     public void onClose(int code, String reason, boolean remote) {
         Logger.getGlobal().log(Level.INFO, STR."Connection closed by \{remote ? "remote peer" : "us"} Code: \{code} Reason: \{reason}");
+        Logger.getGlobal().log(Level.INFO, "Will try to reconnect in 5s");
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        connect();
     }
 
     @Override

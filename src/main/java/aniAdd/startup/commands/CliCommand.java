@@ -13,7 +13,7 @@ import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-@CommandLine.Command(name = "cli",
+@CommandLine.Command(name = "aniadd-cli.jar",
         mixinStandardHelpOptions = true,
         version = "1.0",
         scope = CommandLine.ScopeType.INHERIT,

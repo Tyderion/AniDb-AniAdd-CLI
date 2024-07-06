@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 @CommandLine.Command(name = "tags",
         mixinStandardHelpOptions = true,
         version = "1.0",
-        description = "Test Tags")
+        description = "Output result of tag system for testing")
 public class TagsCommand implements Callable<Integer> {
 
     @CommandLine.Option(names = {"--movie"}, description = "Test movie naming", required = false)
