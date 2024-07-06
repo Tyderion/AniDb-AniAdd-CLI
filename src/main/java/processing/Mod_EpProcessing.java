@@ -714,7 +714,7 @@ public class Mod_EpProcessing extends BaseModule {
         api.registerEvent(this::aniDBInfoReply, "file");
         api.registerEvent(this::aniDBMyListReply, "mladd", "mldel");
         api.registerEvent(this::aniDBVoteReply, "vote");
-
+        lastFileId = 0;
         modState = eModState.Initialized;
     }
 

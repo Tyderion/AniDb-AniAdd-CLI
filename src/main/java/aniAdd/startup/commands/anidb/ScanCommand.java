@@ -17,7 +17,7 @@ public class ScanCommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         val aniAdd = parent.initializeAniAdd();
-        aniAdd.ProcessDirectory(directory);
+        aniAdd.ProcessDirectory(directory, true);
         return 0;
     }
 }

@@ -6,6 +6,7 @@ import picocli.CommandLine;
 import java.net.URI;
 
 import java.util.concurrent.Callable;
+import java.util.logging.Logger;
 
 @CommandLine.Command(name = "connect-to-kodi", mixinStandardHelpOptions = true, version = "1.0",
         description = "Starts the server.")
@@ -21,14 +22,11 @@ public class ServerCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        System.out.println(STR."Connecting to kodi at \{kodiUrl} on port \{port}");
+        Logger.getGlobal().info((STR."Connecting to kodi at \{kodiUrl} on port \{port}"));
 
         val subscriber = new KodiNotificationSubscriber(new URI(STR."ws://\{kodiUrl}:\{port}/jsonrpc"), parent.initializeAniAdd());
 
         subscriber.connect();
-
-//        val server = new AnidbServer(port, parent.initializeAniAdd()).init();
-//        server.start();
         return 0;
     }
 }

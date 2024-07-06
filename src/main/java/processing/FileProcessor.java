@@ -5,7 +5,6 @@ import aniAdd.Modules.BaseModule;
 import aniAdd.config.AniConfiguration;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
@@ -63,6 +62,17 @@ public class FileProcessor extends BaseModule {
         if (file.exists()) {
             epProc.addFiles(List.of(file), configuration);
             startFileProcessing();
+            epProc.addComListener(comEvent -> {
+                if (comEvent.EventType() == CommunicationEvent.EventType.Information) {
+                    if (comEvent.ParamCount() == 3 &&
+                            comEvent.Params(0) == Mod_EpProcessing.eComType.FileEvent &&
+                            comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done &&
+                            comEvent.Params(2).equals(0)) {
+                        Logger.getGlobal().log(Level.INFO, "File moving done, shutting down");
+                        aniAdd.Stop();
+                    }
+                }
+            });
         }
     }
 
@@ -79,7 +89,7 @@ public class FileProcessor extends BaseModule {
             Logger.getGlobal().log(Level.INFO, STR."Number of found files: \{files.size()}");
             if (files.isEmpty()) {
                 Logger.getGlobal().log(Level.WARNING, "No files found, shutting down");
-                System.exit(0);
+                aniAdd.Stop();
             }
 
             epProc.addFiles(files);
@@ -90,7 +100,7 @@ public class FileProcessor extends BaseModule {
                             comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done &&
                             comEvent.Params(2).equals(files.size() - 1)) {
                         Logger.getGlobal().log(Level.INFO, "File moving done, shutting down");
-                        System.exit(0);
+                        aniAdd.Stop();
                     }
                 }
             });
@@ -98,7 +108,7 @@ public class FileProcessor extends BaseModule {
             startFileProcessing();
         } else {
             Logger.getGlobal().log(Level.WARNING, STR."Folder not found: \{folder.getAbsolutePath()}");
-            System.exit(0);
+            aniAdd.Stop();
         }
 
     }

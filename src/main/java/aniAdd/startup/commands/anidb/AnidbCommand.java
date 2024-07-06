@@ -42,8 +42,6 @@ public class AnidbCommand {
                 }
             }
         });
-
-        aniAdd.Start();
         return aniAdd;
     }
 }

@@ -19,6 +19,7 @@ public class AniAdd implements IAniAdd {
 
     private final Map<Class<? extends IModule>, IModule> modules = new HashMap<>();
     private final EventHandler eventHandler = new EventHandler();
+    private boolean allInitialized = false;
 
     public AniAdd(AniConfiguration configuration) {
         mConfiguration = configuration;
@@ -29,9 +30,10 @@ public class AniAdd implements IAniAdd {
     }
 
     @Override
-    public void ProcessDirectory(String directory) {
+    public void ProcessDirectory(String directory, boolean exitOnTermination) {
         FileProcessor fileProcessor = GetModule(FileProcessor.class);
         fileProcessor.Scan(directory);
+        Start(exitOnTermination);
     }
 
     @Override
@@ -45,6 +47,7 @@ public class AniAdd implements IAniAdd {
                 .build();
         val fileProcessor = GetModule(FileProcessor.class);
         fileProcessor.AddFile(path, config);
+        Start(false);
     }
 
     @Override
@@ -57,7 +60,10 @@ public class AniAdd implements IAniAdd {
         eventHandler.AddEventHandler(mod);
     }
 
-    public void Start() {
+    public void Start(boolean exitOnTermination) {
+        if (allInitialized) {
+            return;
+        }
         ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Initializing));
 
         for (IModule module : modules.values()) {
@@ -65,26 +71,33 @@ public class AniAdd implements IAniAdd {
             module.Initialize(this, mConfiguration);
         }
 
-        boolean allModsInitialized = false;
-        while (!allModsInitialized) {
+        while (!allInitialized) {
             try {
                 Thread.sleep(100);
             } catch (InterruptedException ignored) {
             }
 
-            allModsInitialized = true;
+            allInitialized = true;
             for (IModule module : modules.values()) {
-                allModsInitialized &= module.ModState() == IModule.eModState.Initialized;
+                allInitialized &= module.ModState() == IModule.eModState.Initialized;
             }
         }
         ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Initialized));
+        if (exitOnTermination) {
+            addComListener(communicationEvent -> {
+                if (communicationEvent.EventType() == CommunicationEvent.EventType.Information
+                        && communicationEvent.Params(0) == IModule.eModState.Terminated) {
+                    System.exit(0);
+                }
+            });
+        }
     }
 
     public void Stop() {
         ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Terminating));
 
         for (IModule module : modules.values()) {
-            System.out.println("Terminating: " + module.ModuleName());
+            System.out.println(STR."Terminating: \{module.ModuleName()}");
             module.Terminate();
         }
 
@@ -100,6 +113,7 @@ public class AniAdd implements IAniAdd {
                 allModsTerminated &= module.ModState() == IModule.eModState.Terminated;
             }
         }
+        allInitialized = false;
 
 
         ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Terminated));
