@@ -33,6 +33,8 @@ dependencies {
     annotationProcessor("info.picocli:picocli-codegen:4.7.6")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
     implementation("org.apache.commons:commons-lang3:3.0")
+    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("org.java-websocket:Java-WebSocket:1.5.6")
 }
 
 tasks.named<JavaCompile>("compileJava") {

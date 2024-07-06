@@ -3,12 +3,13 @@ package aniAdd.config;
 
 import lombok.Data;
 
+import java.nio.file.Paths;
+
 @Data
 public class AniConfiguration {
 
     private boolean enableFileMove;
     private boolean enableFileRenaming;
-    private String moveToFolder;
     private boolean overwriteMLEntries;
     private boolean recursivelyDeleteEmptyFolders;
     private boolean renameFiles = false;
@@ -23,6 +24,14 @@ public class AniConfiguration {
     private boolean deleteDuplicateFiles;
     private String tvShowFolder;
     private String movieFolder;
+
+    public String getEpisodePath(String relativePath) {
+        return Paths.get(tvShowFolder, relativePath).toString();
+    }
+
+    public String getMoviePath(String relativePath) {
+        return Paths.get(movieFolder, relativePath).toString();
+    }
 
     public enum StorageType {
         UNKOWN(0), INTERNAL(1), EXTERNAL(2), DELETE(3), REMOTE(4);
