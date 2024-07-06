@@ -37,7 +37,7 @@ public class AniAdd implements IAniAdd {
     @Override
     public void MarkFileAsWatched(String path) {
         val config = getConfiguration().toBuilder()
-                .addToMylist(false)
+                .addToMylist(true)
                 .renameFiles(false)
                 .enableFileMove(false)
                 .enableFileRenaming(false)

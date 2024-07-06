@@ -5,6 +5,7 @@ import aniAdd.Modules.BaseModule;
 import aniAdd.config.AniConfiguration;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
@@ -17,7 +18,6 @@ import java.util.stream.Collectors;
 public class FileProcessor extends BaseModule {
 
     private Mod_EpProcessing epProc;
-    private List<File> mFiles;
     private IAniAdd aniAdd;
 
     public void start() {
@@ -48,19 +48,7 @@ public class FileProcessor extends BaseModule {
             if (communicationEvent.EventType() == CommunicationEvent.EventType.Information
                     && communicationEvent.ParamCount() == 1
                     && communicationEvent.Params(0) == eModState.Initialized) {
-               ready = true;
-            }
-        });
-
-        epProc.addComListener(comEvent -> {
-            if (comEvent.EventType() == CommunicationEvent.EventType.Information) {
-                if (comEvent.ParamCount() == 3 &&
-                        comEvent.Params(0) == Mod_EpProcessing.eComType.FileEvent &&
-                        comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done &&
-                        comEvent.Params(2).equals(mFiles.size() - 1)) {
-                    Logger.getGlobal().log(Level.INFO, "File moving done, shutting down");
-                    System.exit(0);
-                }
+                ready = true;
             }
         });
         modState = eModState.Initialized;
@@ -73,7 +61,7 @@ public class FileProcessor extends BaseModule {
     public void AddFile(String path, AniConfiguration configuration) {
         File file = new File(path);
         if (file.exists()) {
-            epProc.addFiles(mFiles, configuration);
+            epProc.addFiles(List.of(file), configuration);
             startFileProcessing();
         }
     }
@@ -83,23 +71,36 @@ public class FileProcessor extends BaseModule {
 
         Logger.getGlobal().log(Level.WARNING, STR."Folder: \{folder.getAbsolutePath()}");
         File[] a = folder.listFiles(this::shouldScrapeFile);
+
         if (a != null) {
-            mFiles = Arrays.stream(a).filter(File::isDirectory).flatMap(dir -> Arrays.stream(dir.listFiles(this::shouldScrapeFile))).collect(Collectors.toList());
-            mFiles.addAll(Arrays.stream(a).filter(File::isFile).collect(Collectors.toList()));
-            mFiles.forEach(f -> Logger.getGlobal().log(Level.INFO, STR."Found file: \{f.getAbsolutePath()}"));
-            Logger.getGlobal().log(Level.INFO, STR."Number of found files: \{mFiles.size()}");
+            final List<File> files = Arrays.stream(a).filter(File::isDirectory).flatMap(dir -> Arrays.stream(dir.listFiles(this::shouldScrapeFile))).collect(Collectors.toList());
+            files.addAll(Arrays.stream(a).filter(File::isFile).collect(Collectors.toList()));
+            files.forEach(f -> Logger.getGlobal().log(Level.INFO, STR."Found file: \{f.getAbsolutePath()}"));
+            Logger.getGlobal().log(Level.INFO, STR."Number of found files: \{files.size()}");
+            if (files.isEmpty()) {
+                Logger.getGlobal().log(Level.WARNING, "No files found, shutting down");
+                System.exit(0);
+            }
+
+            epProc.addFiles(files);
+            epProc.addComListener(comEvent -> {
+                if (comEvent.EventType() == CommunicationEvent.EventType.Information) {
+                    if (comEvent.ParamCount() == 3 &&
+                            comEvent.Params(0) == Mod_EpProcessing.eComType.FileEvent &&
+                            comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done &&
+                            comEvent.Params(2).equals(files.size() - 1)) {
+                        Logger.getGlobal().log(Level.INFO, "File moving done, shutting down");
+                        System.exit(0);
+                    }
+                }
+            });
+
+            startFileProcessing();
         } else {
             Logger.getGlobal().log(Level.WARNING, STR."Folder not found: \{folder.getAbsolutePath()}");
             System.exit(0);
         }
 
-        if (mFiles.isEmpty()) {
-            Logger.getGlobal().log(Level.WARNING, "No files found, shutting down");
-            System.exit(0);
-        }
-
-        epProc.addFiles(mFiles);
-        startFileProcessing();
     }
 
     private void startFileProcessing() {
