@@ -136,6 +136,9 @@ tasks.register<Exec>("createGitTag") {
     }
     if (branch.trim() == "master" || version.toString().contains("-SNAPSHOT")) {
         commandLine("git", "tag", "-a", version, "-m", "Release $version")
+        if (branch.trim() == "master") {
+            commandLine("git", "push", "origin", "tag", version)
+        }
     } else {
         throw GradleException("Not on master branch, no tag created")
     }
