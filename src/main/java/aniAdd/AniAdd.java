@@ -4,6 +4,8 @@ import aniAdd.Modules.IModule;
 import aniAdd.config.AniConfiguration;
 
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import aniAdd.misc.ICallBack;
 import lombok.val;
@@ -101,6 +103,17 @@ public class AniAdd implements IAniAdd {
             }
         }
         if (exitOnTermination) {
+            addComListener(comEvent -> {
+                if (comEvent.EventType() == CommunicationEvent.EventType.Information) {
+                    if (comEvent.ParamCount() == 3 &&
+                            comEvent.Params(0) == Mod_EpProcessing.eComType.FileEvent &&
+                            comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done &&
+                            comEvent.Params(2).equals(0)) {
+                        Logger.getGlobal().log(Level.INFO, "File moving done, shutting down");
+                        Stop();
+                    }
+                }
+            });
             addComListener(communicationEvent -> {
                 if (communicationEvent.EventType() == CommunicationEvent.EventType.Information
                         && communicationEvent.Params(0) == IModule.eModState.Terminated) {

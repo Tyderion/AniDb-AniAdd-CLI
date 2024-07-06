@@ -64,17 +64,6 @@ public class FileProcessor extends BaseModule {
         if (file.exists()) {
             epProc.addFiles(List.of(file), configuration);
             startFileProcessing();
-            epProc.addComListener(comEvent -> {
-                if (comEvent.EventType() == CommunicationEvent.EventType.Information) {
-                    if (comEvent.ParamCount() == 3 &&
-                            comEvent.Params(0) == Mod_EpProcessing.eComType.FileEvent &&
-                            comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done &&
-                            comEvent.Params(2).equals(0)) {
-                        Logger.getGlobal().log(Level.INFO, "File moving done, shutting down");
-                        aniAdd.Stop();
-                    }
-                }
-            });
         }
     }
 
@@ -97,36 +86,14 @@ public class FileProcessor extends BaseModule {
         Logger.getGlobal().log(Level.INFO, STR."Number of found files: \{files.size()}");
         if (files.isEmpty()) {
             Logger.getGlobal().log(Level.WARNING, "No files found, shutting down");
-            aniAdd.Stop();
         } else {
             epProc.addFiles(files);
-            epProc.addComListener(comEvent -> {
-                if (comEvent.EventType() == CommunicationEvent.EventType.Information) {
-                    if (comEvent.ParamCount() == 3 &&
-                            comEvent.Params(0) == Mod_EpProcessing.eComType.FileEvent &&
-                            comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done &&
-                            comEvent.Params(2).equals(files.size() - 1)) {
-                        Logger.getGlobal().log(Level.INFO, "File moving done, shutting down");
-                        aniAdd.Stop();
-                    }
-                }
-            });
             startFileProcessing();
         }
     }
 
     private void startFileProcessing() {
-        if (ready) {
-            start();
-        } else {
-            aniAdd.addComListener(communicationEvent -> {
-                if (communicationEvent.EventType() == CommunicationEvent.EventType.Information
-                        && communicationEvent.ParamCount() == 1
-                        && communicationEvent.Params(0) == eModState.Initialized) {
-                    start();
-                }
-            });
-        }
+        start();
     }
 
     public void Terminate() {
