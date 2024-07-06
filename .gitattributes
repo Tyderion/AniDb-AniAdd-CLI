@@ -1,1 +1,1 @@
-run.sh eol=lf
+*.sh eol=lf

@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "ch.tyderion"
-version = "3.1.0"
+version = "4.0.0-SNAPSHOT-1"
 
 java {
     targetCompatibility = JavaVersion.VERSION_21
@@ -43,6 +43,7 @@ tasks.named<JavaCompile>("compileJava") {
 }
 
 tasks.register<Jar>("fatJar") {
+    group = "build"
     dependsOn("build")
     manifest {
         attributes(
@@ -79,7 +80,11 @@ tasks.register("prepareForRelease") {
             into(project.layout.buildDirectory.dir("docker").get().asFile)
         }
         copy {
-            from(file("run.sh"))
+            from(file("watch-folder.sh"))
+            into(project.layout.buildDirectory.dir("docker").get().asFile)
+        }
+        copy {
+            from(file("handle-kodi.sh"))
             into(project.layout.buildDirectory.dir("docker").get().asFile)
         }
     }
@@ -88,7 +93,7 @@ tasks.register("prepareForRelease") {
 tasks.register<Dockerfile>("createDockerfile") {
     group = "docker"
     dependsOn("prepareForRelease")
-    from("amazoncorretto:22.0.1-al2023-headless")
+    from("amazoncorretto:21.0.3-al2023-headless")
     label(mapOf("maintainer" to "Tyderion"))
 
     val fatJarTask = tasks.named<Jar>("fatJar").get()
@@ -96,7 +101,8 @@ tasks.register<Dockerfile>("createDockerfile") {
     runCommand("yum install -y findutils")
     runCommand("mkdir /app")
     copyFile(jarFileName, "/app/aniadd-cli.jar")
-    copyFile("run.sh", "/app/run.sh")
+    copyFile("watch-folder.sh", "/app/run.sh")
+    copyFile("handle-kodi.sh", "/app/kodi.sh")
     defaultCommand("/app/run.sh")
 }
 
@@ -128,7 +134,7 @@ tasks.register<Exec>("createGitTag") {
         }
         outputStream.toString()
     }
-    if (branch.trim() == "master" || version.toString().endsWith("-SNAPSHOT")) {
+    if (branch.trim() == "master" || version.toString().contains("-SNAPSHOT")) {
         commandLine("git", "tag", "-a", version, "-m", "Release $version")
     } else {
         throw GradleException("Not on master branch, no tag created")

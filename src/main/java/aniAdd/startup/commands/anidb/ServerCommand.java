@@ -3,6 +3,7 @@ package aniAdd.startup.commands.anidb;
 import aniAdd.kodi.KodiNotificationSubscriber;
 import lombok.val;
 import picocli.CommandLine;
+
 import java.net.URI;
 
 import java.util.concurrent.Callable;
@@ -13,7 +14,7 @@ import java.util.logging.Logger;
 public class ServerCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"--port"}, description = "The port to listen on.")
     private int port = 9090;
-    @CommandLine.Option(names = {"--kodiUrl"}, description = "The url of the kodi server.")
+    @CommandLine.Option(names = {"--kodi"}, description = "The url of the kodi server.")
     private String kodiUrl = "localhost";
 
     @CommandLine.ParentCommand
