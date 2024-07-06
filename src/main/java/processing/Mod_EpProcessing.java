@@ -391,7 +391,8 @@ public class Mod_EpProcessing extends BaseModule {
             System.out.println("GUI_EnableFileMove" + configuration.isEnableFileMove());
             if (configuration.isEnableFileMove()) {
                 if (configuration.isMoveTypeUseFolder()) {
-                    folderObj = new File(configuration.getMoveToFolder());
+                    // TODO: Remove this functionality
+                    folderObj = new File(configuration.getMovieFolder());
                 } else {
                     ts = getPathFromTagSystem(procFile);
                     if (ts == null) {
@@ -515,9 +516,9 @@ public class Mod_EpProcessing extends BaseModule {
             return true;
         }
         Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", id, original, targetFile.getAbsolutePath(), "Will rename aftewards via shell script.");
-        String command = "mv \"" + original.getAbsolutePath() + "\" \"" + targetFile.getAbsolutePath() + "\"";
+        String command = STR."mv \"\{original.getAbsolutePath()}\" \"\{targetFile.getAbsolutePath()}\"";
         if (!targetFile.getParentFile().exists()) {
-            appendToPostProcessingScript("mkdir -p " + targetFile.getParentFile().getAbsolutePath()); // Make sure the folder exists
+            appendToPostProcessingScript(STR."mkdir -p \{targetFile.getParentFile().getAbsolutePath()}"); // Make sure the folder exists
         }
         appendToPostProcessingScript(command);
         return false;
@@ -615,6 +616,10 @@ public class Mod_EpProcessing extends BaseModule {
     }
 
     public void addFiles(Collection<File> newFiles) {
+        addFiles(newFiles, configuration);
+    }
+
+    public void addFiles(Collection<File> newFiles, AniConfiguration configuration) {
         Boolean watched = configuration.isSetWatched() ? true : null;
 
         int storage = configuration.getSetStorageType().getValue();

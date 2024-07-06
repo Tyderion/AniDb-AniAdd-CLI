@@ -5,6 +5,7 @@ import aniAdd.config.AniConfiguration;
 
 import java.util.*;
 
+import lombok.val;
 import processing.FileProcessor;
 import processing.Mod_EpProcessing;
 import udpApi.Mod_UdpApi;
@@ -35,7 +36,15 @@ public class AniAdd implements IAniAdd {
 
     @Override
     public void MarkFileAsWatched(String path) {
-        FileProcessor fileProcessor = GetModule(FileProcessor.class);
+        val config = getConfiguration().toBuilder()
+                .addToMylist(false)
+                .renameFiles(false)
+                .enableFileMove(false)
+                .enableFileRenaming(false)
+                .setWatched(true)
+                .build();
+        val fileProcessor = GetModule(FileProcessor.class);
+        fileProcessor.AddFile(path, config);
     }
 
     @Override

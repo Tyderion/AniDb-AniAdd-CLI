@@ -1,22 +1,31 @@
 package aniAdd.config;
 
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.nio.file.Paths;
 
 @Data
+@Builder(toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
 public class AniConfiguration {
 
     private boolean enableFileMove;
     private boolean enableFileRenaming;
     private boolean overwriteMLEntries;
     private boolean recursivelyDeleteEmptyFolders;
+    @Builder.Default
     private boolean renameFiles = false;
     private boolean renameRelatedFiles;
     private boolean renameTypeAniDBFileName;
+    @Builder.Default
     private StorageType setStorageType = StorageType.UNKOWN;
     private boolean setWatched;
+    @Builder.Default
     private boolean addToMylist = false;
     private boolean advancedMode;
     private boolean moveTypeUseFolder;

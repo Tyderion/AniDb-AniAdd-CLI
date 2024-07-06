@@ -39,7 +39,7 @@ public class FileProcessor extends BaseModule {
 
     public void Initialize(IAniAdd aniAdd, AniConfiguration configuration) {
         this.aniAdd = aniAdd;
-        Logger.getGlobal().log(Level.WARNING, "INITIALIZE FileProcessor");
+        Logger.getGlobal().log(Level.INFO, "INITIALIZE FileProcessor");
 
         modState = eModState.Initializing;
         epProc = aniAdd.GetModule(Mod_EpProcessing.class);
@@ -58,7 +58,7 @@ public class FileProcessor extends BaseModule {
                         comEvent.Params(0) == Mod_EpProcessing.eComType.FileEvent &&
                         comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done &&
                         comEvent.Params(2).equals(mFiles.size() - 1)) {
-                    Logger.getGlobal().log(Level.WARNING, "File moving done, shutting down");
+                    Logger.getGlobal().log(Level.INFO, "File moving done, shutting down");
                     System.exit(0);
                 }
             }
@@ -66,16 +66,28 @@ public class FileProcessor extends BaseModule {
         modState = eModState.Initialized;
     }
 
+    public void AddFile(String path) {
+        AddFile(path, aniAdd.getConfiguration());
+    }
+
+    public void AddFile(String path, AniConfiguration configuration) {
+        File file = new File(path);
+        if (file.exists()) {
+            epProc.addFiles(mFiles, configuration);
+            startFileProcessing();
+        }
+    }
+
     public void Scan(String directory) {
         File folder = new File(directory);
 
-        Logger.getGlobal().log(Level.WARNING, "Folder: " + folder.getAbsolutePath());
+        Logger.getGlobal().log(Level.WARNING, STR."Folder: \{folder.getAbsolutePath()}");
         File[] a = folder.listFiles(this::shouldScrapeFile);
         if (a != null) {
-            mFiles = Arrays.stream(a).filter(File::isDirectory).flatMap(dir -> Arrays.stream(dir.listFiles())).collect(Collectors.toList());
+            mFiles = Arrays.stream(a).filter(File::isDirectory).flatMap(dir -> Arrays.stream(dir.listFiles(this::shouldScrapeFile))).collect(Collectors.toList());
             mFiles.addAll(Arrays.stream(a).filter(File::isFile).collect(Collectors.toList()));
-            mFiles.forEach(f -> Logger.getGlobal().log(Level.WARNING, "Found file: " + f.getAbsolutePath()));
-            Logger.getGlobal().log(Level.WARNING, "Number of found files: " + mFiles.size());
+            mFiles.forEach(f -> Logger.getGlobal().log(Level.INFO, STR."Found file: \{f.getAbsolutePath()}"));
+            Logger.getGlobal().log(Level.INFO, STR."Number of found files: \{mFiles.size()}");
         } else {
             Logger.getGlobal().log(Level.WARNING, STR."Folder not found: \{folder.getAbsolutePath()}");
             System.exit(0);
@@ -87,6 +99,10 @@ public class FileProcessor extends BaseModule {
         }
 
         epProc.addFiles(mFiles);
+        startFileProcessing();
+    }
+
+    private void startFileProcessing() {
         if (ready) {
             start();
         } else {
