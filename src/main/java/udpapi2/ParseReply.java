@@ -1,7 +1,11 @@
 package udpapi2;
 
 import aniAdd.Communication;
+import aniAdd.misc.Misc;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
+import udpapi2.reply.Reply;
+import udpapi2.reply.ReplyStatus;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -14,18 +18,38 @@ public class ParseReply implements  Runnable{
     @Override
     public void run() {
         try {
-            parseReply(message);
+            parseReply();
         } catch (Exception e) {
             Logger.getGlobal().log(Level.WARNING, STR."Parse Error: \{e.toString()}");
         }
     }
 
-    private void parseReply(String msg) {
-        if (msg == null || msg.isEmpty()) {
+    private void parseReply() {
+        if (message == null || message.isEmpty()) {
             Logger.getGlobal().log(Level.INFO, "Server reply is an empty string... ignoring");
             return;
         }
-        Logger.getGlobal().log(Level.INFO, STR."Reply:\{msg.replace("\n", " \\n ")}");
+        Logger.getGlobal().log(Level.INFO, STR."Reply:\{message.replace("\n", " \\n ")}");
+// LOGIN: auth-0 200 i6qdp 94.101.114.107:3333 LOGIN ACCEPTED
+
+        val builder = Reply.builder().fullMessage(message);
+        val parts = message.split(" ");
+        val tag = parts[0];
+        builder.fullTag(tag);
+
+        if (Misc.isNumber(parts[1])) {
+            builder.replyStatus(ReplyStatus.fromString(parts[1]));
+//            builder.replyStatus(Integer.parseInt(parts[1]));
+        }
+
+        if (!message.contains("\n")) {
+            // No data fields, i.e. PONG, AUTH or LOGOUT
+            for (int i = 2; i < parts.length; i++) {
+                builder.value(parts[i]);
+            }
+        }
+
+        api.addReply(builder.build());
 
 //        Reply.ReplyBuilder reply = Reply.builder();
 //        int Pos;

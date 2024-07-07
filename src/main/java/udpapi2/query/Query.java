@@ -18,7 +18,10 @@ public class Query {
     private final Date sentAt;
     private Date receivedAt;
     private int retries;
-    private boolean success;
+
+    public boolean isSuccess() {
+        return reply != null;
+    }
 
     public String getTag() {
         return command.getTag();

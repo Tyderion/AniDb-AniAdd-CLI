@@ -3,15 +3,14 @@ package udpapi2;
 import aniAdd.IAniAdd;
 import aniAdd.Modules.BaseModule;
 import aniAdd.config.AniConfiguration;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.Delegate;
 import lombok.val;
 import udpapi2.command.CommandWrapper;
 import udpapi2.command.LoginCommand;
 import udpapi2.command.LogoutCommand;
 import udpapi2.query.Query;
+import udpapi2.reply.Reply;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -26,7 +25,7 @@ import java.util.logging.Logger;
 public class UdpApi extends BaseModule {
     public static final int PROTOCOL_VERSION = 3;
     public static final String CLIENT_TAG = "AniAddCLI";
-    public static final int CLIENT_VERSION = 4;
+    public static final int CLIENT_VERSION = 3;
     private static final int LOCAL_PORT = 3333;
     private static final int DELAY = 2200;
     private static final int EXECUTOR_THREADS = 10;
@@ -58,6 +57,8 @@ public class UdpApi extends BaseModule {
     @Getter
     @Setter
     private boolean banned;
+
+    private boolean needsLongWait;
 
     private final List<CommandWrapper> commandQueue = new ArrayList<>();
     private Map<String, Query> queries = new HashMap<>();
@@ -92,16 +93,73 @@ public class UdpApi extends BaseModule {
         }
     }
 
-    public synchronized void receivePacket(DatagramPacket p) throws IOException {
+    public void receivePacket(DatagramPacket p) throws IOException {
         socket.receive(p);
     }
 
-    public synchronized void sendPacket(DatagramPacket p) throws IOException {
+    public void sendPacket(DatagramPacket p) throws IOException {
         socket.send(p);
     }
 
     public void scheduleParseReply(String message) {
         executor.execute(new ParseReply(this, message));
+    }
+
+    public void addReply(Reply reply) {
+        val query = queries.get(reply.getFullTag());
+        if (query == null) {
+            Log(CommunicationEvent.EventType.Error, "Reply without query", reply.toString());
+            return;
+        }
+        query.setReply(reply);
+        handleQueryReply(query);
+    }
+
+    private void handleQueryReply(Query query) {
+        if (query.getReply() == null) {
+            return;
+        }
+        val command = query.getCommand();
+        if (Objects.equals(command.getCommand().getAction(), LoginCommand.AUTH_ACTION)) {
+            handleLogin(query);
+        }
+    }
+
+    private void handleLogin(Query query) {
+        switch (query.getReply().getReplyStatus()) {
+            case LOGIN_ACCEPTED, LOGIN_ACCEPTED_NEW_VERSION-> {
+                isLoggedIn = true;
+                session = query.getReply().getResponseData().getFirst();
+                Log(CommunicationEvent.EventType.Information, "Logged in", session);
+            }
+            case CLIENT_BANNED -> {
+                banned = true;
+                Log(CommunicationEvent.EventType.Error, "Client banned", query.getReply().toString());
+            }
+            case BANNED -> {
+                banned = true;
+                Log(CommunicationEvent.EventType.Error, "Banned", query.getReply().toString());
+            }
+            case LOGIN_FAILED -> {
+                isLoggedIn = false;
+                session = null;
+                Log(CommunicationEvent.EventType.Error, "Login failed", query.getReply().toString());
+            }
+            case ANIDB_OUT_OF_SERVICE, TIMEOUT, SERVER_BUSY -> {
+                Log(CommunicationEvent.EventType.Error, "AniDB out of service", query.getReply().toString());
+                needsLongWait = true;
+            }
+            case INTERNAL_SERVER_ERROR -> {
+                Log(CommunicationEvent.EventType.Error, "Internal server error", query.getReply().toString());
+            }
+            default -> {
+                Log(CommunicationEvent.EventType.Error, "Unhandled login response", query.getReply().toString());
+            }
+        }
+        queries.remove(query.getTag());
+        if (queries.isEmpty() && commandQueue.isEmpty()) {
+            QueryId.Reset();
+        }
     }
 
     @Override
@@ -118,11 +176,7 @@ public class UdpApi extends BaseModule {
         }
     }
 
-    public boolean hasCommandsToSend() {
-        return !commandQueue.isEmpty();
-    }
-
-    private boolean logIn() {
+    public boolean logIn() {
         try {
             val command = LoginCommand.Create(username, password);
             queueCommand(command);
@@ -143,7 +197,7 @@ public class UdpApi extends BaseModule {
         }
     }
 
-    public synchronized void addQuery(Query query) {
+    public void addQuery(Query query) {
         queries.put(query.getTag(), query);
     }
 

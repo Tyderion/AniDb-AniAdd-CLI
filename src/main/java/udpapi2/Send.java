@@ -25,7 +25,7 @@ class Send implements Runnable {
 
     @Override
     public void run() {
-        Logger.getGlobal().log(Level.INFO, "Send thread started");
+        Logger.getGlobal().log(Level.INFO, STR."Send command \{commandToSend.getCommand().getIdentifier()}");
         val query = createQuery(commandToSend);
         api.addQuery(query);
         try {

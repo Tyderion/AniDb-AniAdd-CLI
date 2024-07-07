@@ -4,7 +4,7 @@ import udpapi2.QueryId;
 import udpapi2.UdpApi;
 
 public class LoginCommand extends CommandWrapper {
-    private static final String AUTH_ACTION = "AUTH";
+    public static final String AUTH_ACTION = "AUTH";
 
     private LoginCommand(Command command) throws IllegalArgumentException {
         super(command);
@@ -23,14 +23,14 @@ public class LoginCommand extends CommandWrapper {
                 .queryId(QueryId.Next())
                 .tag(null)
                 .needsLogin(false)
-                .parameter("nat", "1")
-                .parameter("enc", "UTF8")
+                .parameter("client", UdpApi.CLIENT_TAG.toLowerCase())
+                .parameter("clientver", String.valueOf(UdpApi.CLIENT_VERSION))
                 .parameter("comp", "1")
-                .parameter("user", username)
+                .parameter("enc", "UTF8")
+                .parameter("nat", "1")
                 .parameter("pass", password)
                 .parameter("protover", String.valueOf(UdpApi.PROTOCOL_VERSION))
-                .parameter("client", UdpApi.CLIENT_TAG)
-                .parameter("clientver", String.valueOf(UdpApi.CLIENT_VERSION))
+                .parameter("user", username.toLowerCase())
                 .build());
     }
 }

@@ -7,7 +7,7 @@ public class QueryId {
         return queryId++;
     }
 
-    public static void ResetQueryId() {
+    public static void Reset() {
         queryId = 0;
     }
 }

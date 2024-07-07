@@ -11,7 +11,8 @@ import java.util.List;
 public class Reply {
     String fullMessage;
     String fullTag;
-    Integer replyStatus;
+    ReplyStatus replyStatus;
+    Integer queryId;
     @Singular("value")
     List<String> responseData;
 }
