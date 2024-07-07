@@ -67,6 +67,7 @@ public class UdpApi extends BaseModule {
     private Thread idleThread = new Thread(new Idle(this));
 
     private boolean isSendScheduled = false;
+    private String usedPort;
 
     @Override
     public String ModuleName() {
@@ -119,31 +120,34 @@ public class UdpApi extends BaseModule {
         if (query.getReply() == null) {
             return;
         }
-        val command = query.getCommand();
-        if (Objects.equals(command.getCommand().getAction(), LoginCommand.AUTH_ACTION)) {
-            handleLogin(query);
-        }
-    }
 
-    private void handleLogin(Query query) {
         switch (query.getReply().getReplyStatus()) {
             case LOGIN_ACCEPTED, LOGIN_ACCEPTED_NEW_VERSION-> {
                 isLoggedIn = true;
                 session = query.getReply().getResponseData().getFirst();
+                usedPort = query.getReply().getResponseData().get(1).split("")[1];
                 Log(CommunicationEvent.EventType.Information, "Logged in", session);
+            }
+            case LOGIN_FAILED -> {
+                logOut(false);
+                Log(CommunicationEvent.EventType.Error, "Login failed", query.getReply().toString());
+            }
+            case PONG -> {
+                Log(CommunicationEvent.EventType.Debug, "Pong", query.getReply().toString());
+            }
+            case LOGGED_OUT, NOT_LOGGED_IN -> {
+                logOut(false);
+                Log(CommunicationEvent.EventType.Information, "Logged out", query.getReply().toString());
             }
             case CLIENT_BANNED -> {
                 banned = true;
+                logOut(false);
                 Log(CommunicationEvent.EventType.Error, "Client banned", query.getReply().toString());
             }
             case BANNED -> {
                 banned = true;
+                logOut(false);
                 Log(CommunicationEvent.EventType.Error, "Banned", query.getReply().toString());
-            }
-            case LOGIN_FAILED -> {
-                isLoggedIn = false;
-                session = null;
-                Log(CommunicationEvent.EventType.Error, "Login failed", query.getReply().toString());
             }
             case ANIDB_OUT_OF_SERVICE, TIMEOUT, SERVER_BUSY -> {
                 Log(CommunicationEvent.EventType.Error, "AniDB out of service", query.getReply().toString());
@@ -153,9 +157,10 @@ public class UdpApi extends BaseModule {
                 Log(CommunicationEvent.EventType.Error, "Internal server error", query.getReply().toString());
             }
             default -> {
-                Log(CommunicationEvent.EventType.Error, "Unhandled login response", query.getReply().toString());
+                Log(CommunicationEvent.EventType.Error, "Unhandled response", query.getReply().toString());
             }
         }
+
         queries.remove(query.getTag());
         if (queries.isEmpty() && commandQueue.isEmpty()) {
             QueryId.Reset();

@@ -29,8 +29,8 @@ public class ParseReply implements  Runnable{
             Logger.getGlobal().log(Level.INFO, "Server reply is an empty string... ignoring");
             return;
         }
-        Logger.getGlobal().log(Level.INFO, STR."Reply:\{message.replace("\n", " \\n ")}");
-// LOGIN: auth-0 200 i6qdp 94.101.114.107:3333 LOGIN ACCEPTED
+        Logger.getGlobal().log(Level.INFO, STR."Reply: \{message.replace("\n", " \\n ")}");
+// LOGIN: auth-0 200 i6qdp 94.101.114.107:3333 LOGIN ACCEPTED\n
 
         val builder = Reply.builder().fullMessage(message);
         val parts = message.split(" ");
@@ -39,11 +39,13 @@ public class ParseReply implements  Runnable{
 
         if (Misc.isNumber(parts[1])) {
             builder.replyStatus(ReplyStatus.fromString(parts[1]));
-//            builder.replyStatus(Integer.parseInt(parts[1]));
         }
+        val lines = message.split("\n");
 
-        if (!message.contains("\n")) {
-            // No data fields, i.e. PONG, AUTH or LOGOUT
+        if (lines.length == 1) {
+            // No data fields, i.e. AUTH or LOGOUT
+            // auth-0 200 i6qdp 94.101.114.107:3333 LOGIN ACCEPTED\n
+            // logout-0 203 LOGGED OUT\n
             for (int i = 2; i < parts.length; i++) {
                 builder.value(parts[i]);
             }

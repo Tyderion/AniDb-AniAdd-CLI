@@ -3,6 +3,12 @@ package udpapi2.reply;
 public enum ReplyStatus {
     LOGIN_ACCEPTED(200),
     LOGIN_ACCEPTED_NEW_VERSION(201),
+    LOGGED_OUT(203),
+    FILE(220),
+    PONG(300),
+    NO_SUCH_FILE(320),
+    MULTIPLE_FILES_FOUND(322),
+    NOT_LOGGED_IN(403),
     LOGIN_FAILED(500),
     LOGIN_FIRST(501),
     ACCESS_DENIED(502),
