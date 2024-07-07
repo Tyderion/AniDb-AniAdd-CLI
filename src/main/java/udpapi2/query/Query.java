@@ -1,17 +1,32 @@
 package udpapi2.query;
 
+import aniAdd.config.AniConfiguration;
 import lombok.Data;
+import lombok.val;
 import udpapi2.command.CommandWrapper;
 import udpapi2.reply.Reply;
 
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Data
 public class Query {
     private final CommandWrapper command;
     private Reply reply;
-    private Date sentAt;
+    private final Date sentAt;
     private Date receivedAt;
     private int retries;
     private boolean success;
+
+    public String getTag() {
+        return command.getTag();
+    }
+
+    public DatagramPacket getBytes(String session, InetAddress ip, int port) {
+        // Encoding??
+        val data =  command.getCommand().toString(session).getBytes(StandardCharsets.US_ASCII);
+        return new DatagramPacket(data, data.length, ip, port);
+    }
 }
