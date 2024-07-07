@@ -96,6 +96,7 @@ public class UdpApi extends BaseModule {
                 executor = new ScheduledThreadPoolExecutor(EXECUTOR_THREADS);
             }
             schedulePing();
+            startReceiving();
             modState = eModState.Initialized;
         } else {
             Terminate();
@@ -144,15 +145,18 @@ public class UdpApi extends BaseModule {
                 Logger.getGlobal().log(Level.INFO, "Pong received");
                 if (query.getReply().getResponseData().size() == 1) {
                     val newPort = query.getReply().getResponseData().getFirst();
-                    if (!usedPort.equals(newPort)) {
-                        Log(CommunicationEvent.EventType.Warning, "Port changed. Need to decrease ping time", newPort);
-                        usedPort = newPort;
-                        pingBackoffMultiplier = Math.max(pingBackoffMultiplier - 1, 1);
+                    if (usedPort != null) {
+                        if (!usedPort.equals(newPort)) {
+                            Log(CommunicationEvent.EventType.Warning, "Port changed. Need to decrease ping time", newPort);
+                            usedPort = newPort;
+                            pingBackoffMultiplier = Math.max(pingBackoffMultiplier - 1, 1);
+                        } else {
+                            pingBackoffMultiplier = Math.min(pingBackoffMultiplier + 1, 5);
+                        }
                     } else {
-                        pingBackoffMultiplier = Math.min(pingBackoffMultiplier + 1, 5);
+                        usedPort = newPort;
                     }
                 }
-                schedulePing();
             }
             case LOGGED_OUT, NOT_LOGGED_IN -> {
                 logOut(false);
@@ -181,6 +185,9 @@ public class UdpApi extends BaseModule {
         }
 
         queries.remove(query.getTag());
+        if (commandQueue.isEmpty()){
+            schedulePing();
+        }
         if (queries.isEmpty() && commandQueue.isEmpty()) {
             QueryId.Reset();
         } else {
@@ -227,7 +234,7 @@ public class UdpApi extends BaseModule {
         queries.put(query.getTag(), query);
     }
 
-    public synchronized CommandWrapper getNextCommand() {
+    public CommandWrapper getNextCommand() {
         if (commandQueue.isEmpty()) {
             Logger.getGlobal().log(Level.INFO, "No commands in queue");
             return null;
@@ -262,7 +269,6 @@ public class UdpApi extends BaseModule {
         Log(CommunicationEvent.EventType.Debug, STR."Added \{command.getCommand().getAction()} cmd to queue");
 
         scheduleSend();
-        startReceiving();
     }
 
     private void schedulePing() {
@@ -270,11 +276,11 @@ public class UdpApi extends BaseModule {
             if (pingingSince == null) {
                 pingingSince = new Date();
             }
-            val nextPingIn = getNextPingDelay();
-            Logger.getGlobal().log(Level.INFO, STR."Next ping in \{nextPingIn} ms");
+            val nextPingMs = getNextPingDelay();
+            Logger.getGlobal().log(Level.INFO, STR."Next ping in \{nextPingMs / 60 / 1000}min");
             scheduledPing = executor.schedule(
                     new Send(this, PingCommand.Create(), aniDbIp, configuration.getAnidbPort()),
-                    nextPingIn,
+                    nextPingMs,
                     java.util.concurrent.TimeUnit.MILLISECONDS);
         }
     }
@@ -294,7 +300,7 @@ public class UdpApi extends BaseModule {
         }
     }
 
-    private synchronized void scheduleSend() {
+    private void scheduleSend() {
         if (isSendScheduled) {
             return;
         }
@@ -302,9 +308,7 @@ public class UdpApi extends BaseModule {
         if (nextCommand == null) {
             return;
         }
-        if (scheduledPing != null && !scheduledPing.isDone()) {
-            scheduledPing.cancel(false);
-        }
+        cancelPing();
         executor.schedule(
                 new Send(this, nextCommand, aniDbIp, configuration.getAnidbPort()),
                 getNextSendDelay(),
@@ -313,7 +317,7 @@ public class UdpApi extends BaseModule {
     }
 
 
-    public synchronized void commandSent() {
+    public void commandSent() {
         lastSent = new Date();
         isSendScheduled = false;
     }

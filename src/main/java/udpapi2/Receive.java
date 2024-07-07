@@ -22,6 +22,7 @@ class Receive implements Runnable {
 
     @Override
     public void run() {
+        Logger.getGlobal().log(Level.INFO, "Receive thread started");
         while (api.isConnectedToSocket()) {
             try {
                 val packet = new DatagramPacket(new byte[1400], 1400);
