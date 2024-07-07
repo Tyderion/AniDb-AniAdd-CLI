@@ -33,6 +33,10 @@ public class AniConfiguration {
     private boolean deleteDuplicateFiles;
     private String tvShowFolder;
     private String movieFolder;
+    @Builder.Default
+    private int anidbPort = 9000;
+    @Builder.Default
+    private String anidbHost = "api.anidb.net";
 
     public String getEpisodePath(String relativePath) {
         return Paths.get(tvShowFolder, relativePath).toString();
