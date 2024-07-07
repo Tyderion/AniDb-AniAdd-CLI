@@ -4,7 +4,7 @@ import udpapi2.QueryId;
 import udpapi2.UdpApi;
 
 public class LoginCommand extends CommandWrapper {
-    public static final String AUTH_ACTION = "AUTH";
+    public static final String ACTION = "AUTH";
 
     private LoginCommand(Command command) throws IllegalArgumentException {
         super(command);
@@ -18,8 +18,8 @@ public class LoginCommand extends CommandWrapper {
             throw new IllegalArgumentException("password empty");
         }
         return new LoginCommand(Command.builder()
-                .action(AUTH_ACTION)
-                .identifier(AUTH_ACTION.toLowerCase())
+                .action(ACTION)
+                .identifier(ACTION.toLowerCase())
                 .queryId(QueryId.Next())
                 .tag(null)
                 .needsLogin(false)

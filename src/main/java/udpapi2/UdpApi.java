@@ -9,6 +9,7 @@ import lombok.val;
 import udpapi2.command.CommandWrapper;
 import udpapi2.command.LoginCommand;
 import udpapi2.command.LogoutCommand;
+import udpapi2.command.PingCommand;
 import udpapi2.query.Query;
 import udpapi2.reply.Reply;
 
@@ -18,6 +19,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -29,6 +31,9 @@ public class UdpApi extends BaseModule {
     private static final int LOCAL_PORT = 3333;
     private static final int DELAY = 2200;
     private static final int EXECUTOR_THREADS = 10;
+    private static final long PING_DELAY = 5 * 60 * 1000;
+    private static final long MAX_PING_TIME = 30 * 60 * 1000;
+    private int pingBackoffMultiplier = 1;
 
     private InetAddress aniDbIp;
 
@@ -67,6 +72,8 @@ public class UdpApi extends BaseModule {
     private Thread idleThread = new Thread(new Idle(this));
 
     private boolean isSendScheduled = false;
+    private ScheduledFuture<?> scheduledPing;
+    private Date pingingSince;
     private String usedPort;
 
     @Override
@@ -88,6 +95,7 @@ public class UdpApi extends BaseModule {
             if (executor.isTerminated() || executor.isShutdown()) {
                 executor = new ScheduledThreadPoolExecutor(EXECUTOR_THREADS);
             }
+            schedulePing();
             modState = eModState.Initialized;
         } else {
             Terminate();
@@ -122,7 +130,7 @@ public class UdpApi extends BaseModule {
         }
 
         switch (query.getReply().getReplyStatus()) {
-            case LOGIN_ACCEPTED, LOGIN_ACCEPTED_NEW_VERSION-> {
+            case LOGIN_ACCEPTED, LOGIN_ACCEPTED_NEW_VERSION -> {
                 isLoggedIn = true;
                 session = query.getReply().getResponseData().getFirst();
                 usedPort = query.getReply().getResponseData().get(1).split("")[1];
@@ -133,7 +141,18 @@ public class UdpApi extends BaseModule {
                 Log(CommunicationEvent.EventType.Error, "Login failed", query.getReply().toString());
             }
             case PONG -> {
-                Log(CommunicationEvent.EventType.Debug, "Pong", query.getReply().toString());
+                Logger.getGlobal().log(Level.INFO, "Pong received");
+                if (query.getReply().getResponseData().size() == 1) {
+                    val newPort = query.getReply().getResponseData().getFirst();
+                    if (!usedPort.equals(newPort)) {
+                        Log(CommunicationEvent.EventType.Warning, "Port changed. Need to decrease ping time", newPort);
+                        usedPort = newPort;
+                        pingBackoffMultiplier = Math.max(pingBackoffMultiplier - 1, 1);
+                    } else {
+                        pingBackoffMultiplier = Math.min(pingBackoffMultiplier + 1, 5);
+                    }
+                }
+                schedulePing();
             }
             case LOGGED_OUT, NOT_LOGGED_IN -> {
                 logOut(false);
@@ -164,6 +183,8 @@ public class UdpApi extends BaseModule {
         queries.remove(query.getTag());
         if (queries.isEmpty() && commandQueue.isEmpty()) {
             QueryId.Reset();
+        } else {
+            scheduleSend();
         }
     }
 
@@ -231,6 +252,10 @@ public class UdpApi extends BaseModule {
         return Math.max(DELAY - (new Date().getTime() - lastSent.getTime()), 0);
     }
 
+    private long getNextPingDelay() {
+        return pingBackoffMultiplier * PING_DELAY;
+    }
+
     public synchronized void queueCommand(CommandWrapper command) {
         connectToSocket();
         commandQueue.add(command);
@@ -240,6 +265,35 @@ public class UdpApi extends BaseModule {
         startReceiving();
     }
 
+    private void schedulePing() {
+        if (!isSendScheduled && (scheduledPing == null || scheduledPing.isDone())) {
+            if (pingingSince == null) {
+                pingingSince = new Date();
+            }
+            val nextPingIn = getNextPingDelay();
+            Logger.getGlobal().log(Level.INFO, STR."Next ping in \{nextPingIn} ms");
+            scheduledPing = executor.schedule(
+                    new Send(this, PingCommand.Create(), aniDbIp, configuration.getAnidbPort()),
+                    nextPingIn,
+                    java.util.concurrent.TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private void logoutAndStopPingingIfNeeded() {
+        if (pingingSince != null && new Date().getTime() - pingingSince.getTime() > MAX_PING_TIME) {
+            Log(CommunicationEvent.EventType.Error, "Ping timeout");
+            cancelPing();
+            logOut(isLoggedIn);
+        }
+    }
+
+    private void cancelPing() {
+        if (scheduledPing != null && !scheduledPing.isDone()) {
+            pingingSince = null;
+            scheduledPing.cancel(false);
+        }
+    }
+
     private synchronized void scheduleSend() {
         if (isSendScheduled) {
             return;
@@ -247,6 +301,9 @@ public class UdpApi extends BaseModule {
         val nextCommand = getNextCommand();
         if (nextCommand == null) {
             return;
+        }
+        if (scheduledPing != null && !scheduledPing.isDone()) {
+            scheduledPing.cancel(false);
         }
         executor.schedule(
                 new Send(this, nextCommand, aniDbIp, configuration.getAnidbPort()),
@@ -259,7 +316,6 @@ public class UdpApi extends BaseModule {
     public synchronized void commandSent() {
         lastSent = new Date();
         isSendScheduled = false;
-        scheduleSend();
     }
 
     private void startReceiving() {

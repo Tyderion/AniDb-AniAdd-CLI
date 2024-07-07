@@ -1,10 +1,9 @@
 package udpapi2.command;
 
 import udpapi2.QueryId;
-import udpapi2.UdpApi;
 
 public class PingCommand extends CommandWrapper {
-    private static final String PING_ACTION = "PING";
+    private static final String ACTION = "PING";
 
     private PingCommand(Command command) throws IllegalArgumentException {
         super(command);
@@ -12,8 +11,8 @@ public class PingCommand extends CommandWrapper {
 
     public static PingCommand Create() {
         return new PingCommand(Command.builder()
-                .action(PING_ACTION)
-                .identifier(PING_ACTION.toLowerCase())
+                .action(ACTION)
+                .identifier(ACTION.toLowerCase())
                 .queryId(QueryId.Next())
                 .needsLogin(false)
                 .tag(null)
