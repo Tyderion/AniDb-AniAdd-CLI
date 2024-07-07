@@ -14,6 +14,7 @@ import java.util.TreeMap;
 import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
 import aniAdd.misc.Misc;
+import lombok.val;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,6 +39,12 @@ public class Mod_UdpApi extends BaseModule {
     private String autoPass;
     private String session;
     private String aniDBsession;
+    private int currentPort;
+    private int pingBackOffInMillis = 5 * 60000;
+    private int pingBackoffCount = 1;
+    static private int MAX_PING_BACKOFF_COUNT = 5;
+    private boolean pingQueued = false;
+    private Date lastCommandSentAt;
     private boolean connected, shutdown;
     private boolean banned;
     private boolean aniDBAPIDown;
@@ -51,7 +58,7 @@ public class Mod_UdpApi extends BaseModule {
     private Thread send = new Thread(new Send());
     private Thread receive = new Thread(new Receive());
     private Idle idleClass = new Idle(); //-_-
-    private Thread idle  = new Thread(idleClass);
+    private Thread idle = new Thread(idleClass);
     private final TreeMap<String, ICallBack<Integer>> eventList = new TreeMap<String, ICallBack<Integer>>();
 
     public ArrayList<Query> Queries() {
@@ -195,7 +202,6 @@ public class Mod_UdpApi extends BaseModule {
             receive = new Thread(new Receive());
             receive.start();
         }
-
         auth = true;
         Cmd cmd = new Cmd("AUTH", "auth", null, false);
         if (aniDBsession != null && !aniDBsession.isEmpty()) {
@@ -225,6 +231,24 @@ public class Mod_UdpApi extends BaseModule {
         Log(CommunicationEvent.EventType.Debug, "Adding Authentication Cmd to queue");
         queryCmd(cmd);
         return true;
+    }
+
+    private void ping() {
+        // Ping
+        Cmd cmd = new Cmd("PING", "ping", null, false);
+        cmd.setArgs("nat", "1");
+
+        synchronized (cmdToSend) {
+            for (int i = cmdToSend.size() - 1; i >= 0; i--) {
+                if (cmdToSend.get(i).Action().equals("PING")) {
+                    cmdToSend.remove(i);
+                    Log(CommunicationEvent.EventType.Debug, "Pending (old) Ping removed");
+                }
+            }
+        }
+
+        Log(CommunicationEvent.EventType.Debug, "Adding Ping Cmd to queue");
+        queryCmd(cmd);
     }
 
     public boolean connect() {
@@ -356,13 +380,24 @@ public class Mod_UdpApi extends BaseModule {
                         this.replysPending = replysPending;
 
                         //quickfix
-                        if ((now.getTime() - idleThreadStartedOn.getTime()) > 60000 * 5 &&
-                                (lastReplyPackage == null || (now.getTime() - lastReplyPackage.getTime()) > 60000) &&
+                        val idleForMoreThan5Mins = (now.getTime() - idleThreadStartedOn.getTime()) > 60000 * 5;
+                        val lastReplyMoreThan1MinAgo = (lastReplyPackage == null || (now.getTime() - lastReplyPackage.getTime()) > 60000);
+                        if (idleForMoreThan5Mins && lastReplyMoreThan1MinAgo &&
                                 (lastDelayPackageMills == null || (now.getTime() - lastDelayPackageMills.getTime()) > 60000) &&
                                 (authRetry == null && !longDelay && !cmdToSend.isEmpty())) {
                             authRetry = new Date(now.getTime() + 4 * 60 * 1000);
                             longDelay = true;
                             Log(CommunicationEvent.EventType.Warning, "Reply delay has passed 1 minute. Re-authentication in 5 min.");
+                        }
+                        val currentPingInterval = (long) pingBackOffInMillis * pingBackoffCount;
+                        val needsPing =
+                                (now.getTime() - idleThreadStartedOn.getTime()) > currentPingInterval
+                                        && (now.getTime() - lastCommandSentAt.getTime()) > currentPingInterval && isAuthed;
+                        if (needsPing && !pingQueued) {
+                            // We are authenticated but nothing to do, so we ping sometimes
+                            Log(CommunicationEvent.EventType.Debug, STR."Idle: Time for a ping, passed \{(now.getTime() - lastCommandSentAt.getTime())} ms since last command sent.");
+                            pingQueued = true;
+                            ping();
                         }
                         if (longDelay && authRetry != null && (authRetry.getTime() - now.getTime() < 0)) {
                             idleThreadStartedOn = new Date();
@@ -426,6 +461,7 @@ public class Mod_UdpApi extends BaseModule {
                                 cmdToSendBin = TransformCmd(cmdToSend.get(0));
 
                                 com.send(new DatagramPacket(cmdToSendBin, cmdToSendBin.length, aniDBIP, ANIDBAPIPORT));
+                                lastCommandSentAt = new Date(now.getTime());
 
                                 if (!NODELAY.contains(cmdToSend.get(0).Action()))
                                     lastDelayPackageMills = new Date(now.getTime());
@@ -442,19 +478,19 @@ public class Mod_UdpApi extends BaseModule {
                             //Cmd needs login but client is not connected OR Cmd needs delay which has not yet passed
                             //Move command without (login req./delay req.) to top
                             Log(CommunicationEvent.EventType.Debug, "Send: Try to reorder requests");
-                            boolean r1, r2, n1, n2, canOptimize;
-                            r1 = cmdToSend.get(0).LoginReq();
-                            n1 = NODELAY.contains(cmdToSend.get(0).Action());
+                            boolean needsLogin, otherCommandNeedsLogin, skipDelay, otherCommandSkipDelay, canOptimize;
+                            needsLogin = cmdToSend.get(0).LoginReq();
+                            skipDelay = NODELAY.contains(cmdToSend.get(0).Action());
 
-                            if ((!isAuthed && r1) || !n1) {
+                            if ((!isAuthed && needsLogin) || !skipDelay) {
                                 for (int i = 0; i < cmdToSend.size(); i++) {
-                                    r2 = cmdToSend.get(i).LoginReq();
-                                    n2 = NODELAY.contains(cmdToSend.get(i).Action());
-                                    canOptimize = (!isAuthed && !n1 && !r1 && n2 && !r2) ||
-                                            (!isAuthed && !n1 && r1 && !r2) ||
-                                            (!isAuthed && n1 && r1 && !r2) ||
-                                            (isAuthed && !n1 && !r1 && n2) ||
-                                            (isAuthed && !n1 && r1 && n2);
+                                    otherCommandNeedsLogin = cmdToSend.get(i).LoginReq();
+                                    otherCommandSkipDelay = NODELAY.contains(cmdToSend.get(i).Action());
+                                    canOptimize = (!isAuthed && !skipDelay && !needsLogin && otherCommandSkipDelay && !otherCommandNeedsLogin) ||
+                                            (!isAuthed && !skipDelay && needsLogin && !otherCommandNeedsLogin) ||
+                                            (!isAuthed && skipDelay && needsLogin && !otherCommandNeedsLogin) ||
+                                            (isAuthed && !skipDelay && !needsLogin && otherCommandSkipDelay) ||
+                                            (isAuthed && !skipDelay && needsLogin && otherCommandSkipDelay);
 
                                     if (canOptimize) {
                                         Log(CommunicationEvent.EventType.Debug, "Send: cmdToSend reordered QueryId: " + i + " Action: " + cmdToSend.get(i).Action());
@@ -600,6 +636,7 @@ public class Mod_UdpApi extends BaseModule {
                     }
                     session = reply.ReplyMsg().substring(0, reply.ReplyMsg().indexOf(" "));
                     reply.ReplyMsg(reply.ReplyMsg().substring(reply.ReplyMsg().indexOf(" ") + 1));
+                    currentPort = Integer.parseInt(reply.ReplyMsg().split(":")[1].split(" ")[0]);
                     isAuthed = true;
 
                     aniDBAPIDown = false;
@@ -624,6 +661,16 @@ public class Mod_UdpApi extends BaseModule {
             session = null;
 
         } else if (reply.Identifier().equals("ping")) {
+            pingQueued = false;
+            val newPort = Integer.parseInt(reply.DataField().get(0));
+            if (currentPort != newPort) {
+                pingBackoffCount = Math.max(pingBackoffCount - 1, 1);
+                Log(CommunicationEvent.EventType.Information, STR."Server port changed from \{currentPort} to \{newPort}. Decreasing backoff count to \{pingBackoffCount}");
+            } else {
+                pingBackoffCount = Math.min(pingBackoffCount + 1, MAX_PING_BACKOFF_COUNT);
+                Log(CommunicationEvent.EventType.Information, STR."Server port is still \{currentPort}. Increasing backoff count to \{pingBackoffCount}");
+            }
+
         } else if (reply.Identifier().equals("uptime")) {
         }
 

@@ -116,7 +116,7 @@ public class KodiNotificationSubscriber extends WebSocketClient {
         val localFilePath = getPath(episodeDetail.file, VideoLibraryUpdateParams.Type.EPISODE);
         Logger.getGlobal().log(Level.INFO, STR."Episode file path: \{localFilePath}");
         if (episodeDetail.getPlayCount() > 0) {
-//            aniAdd.MarkFileAsWatched(localFilePath);
+            aniAdd.MarkFileAsWatched(localFilePath);
         }
     }
 
@@ -128,7 +128,7 @@ public class KodiNotificationSubscriber extends WebSocketClient {
         val localFilePath = getPath(movieDetail.file, VideoLibraryUpdateParams.Type.MOVIE);
         Logger.getGlobal().log(Level.INFO, STR."Movie file path: \{localFilePath}");
         if (movieDetail.getPlayCount() > 0) {
-//            aniAdd.MarkFileAsWatched(localFilePath);
+            aniAdd.MarkFileAsWatched(localFilePath);
         }
     }
 
