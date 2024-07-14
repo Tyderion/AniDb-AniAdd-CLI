@@ -35,15 +35,13 @@ public class AnidbCommand {
     }
 
     IAniAdd initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService) {
-        val udpApi = new UdpApi(executorService, localPort);
-        udpApi.setPassword(password);
-        udpApi.setUsername(username);
+        val udpApi = new UdpApi(executorService, localPort, username, password);
+        udpApi.Initialize(getConfiguration());
+
         val processing = new Mod_EpProcessing(getConfiguration(), udpApi);
         val fileProcessor = new FileProcessor(processing, getConfiguration(), executorService);
 
         val aniAdd = new AniAdd(getConfiguration(), udpApi, terminateOnCompletion, fileProcessor, processing, _ -> executorService.shutdownNow());
-
-        udpApi.Initialize(getConfiguration());
 
         aniAdd.Start(terminateOnCompletion);
         return aniAdd;
