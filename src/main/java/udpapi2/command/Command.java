@@ -1,9 +1,9 @@
 package udpapi2.command;
 
 import lombok.*;
-import lombok.experimental.NonFinal;
 
 import java.util.Map;
+
 @Builder(toBuilder = true)
 @Value
 public class Command {
@@ -16,7 +16,7 @@ public class Command {
     Integer queryId;
 
 
-    public String getFullTag()  {
+    public String getFullTag() {
         val tagValue = tag == null ? "" : STR.":\{tag}";
         return STR."\{identifier}\{tagValue}-\{queryId}";
     }
@@ -25,7 +25,9 @@ public class Command {
         StringBuilder cmdStr;
         cmdStr = new StringBuilder(STR."\{action} tag=\{getFullTag()}");
 
-        if(session != null) cmdStr.append("&s=").append(session);
+        if (session != null) {
+            cmdStr.append("&s=").append(session);
+        }
 
         for (Map.Entry<String, String> arg : parameters.entrySet()) {
             cmdStr.append("&").append(arg.getKey()).append("=").append(arg.getValue());

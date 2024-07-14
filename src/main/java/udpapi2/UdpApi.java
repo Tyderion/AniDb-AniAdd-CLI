@@ -3,14 +3,16 @@ package udpapi2;
 import aniAdd.IAniAdd;
 import aniAdd.Modules.BaseModule;
 import aniAdd.config.AniConfiguration;
+import aniAdd.misc.ICallBack;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 import udpapi2.command.CommandWrapper;
+import udpapi2.command.FileCommand;
 import udpapi2.command.LoginCommand;
 import udpapi2.command.LogoutCommand;
-import udpapi2.command.PingCommand;
 import udpapi2.query.Query;
+import udpapi2.receive.Receive;
 import udpapi2.reply.Reply;
 
 import java.io.IOException;
@@ -69,12 +71,16 @@ public class UdpApi extends BaseModule {
     private Map<String, Query> queries = new HashMap<>();
 
     private Thread receiveThread = new Thread(new Receive(this));
-    private Thread idleThread = new Thread(new Idle(this));
 
     private boolean isSendScheduled = false;
     private ScheduledFuture<?> scheduledPing;
     private Date pingingSince;
     private String usedPort;
+
+    @Setter
+    private ICallBack<Query> fileCommandCallback;
+    @Setter
+    private ICallBack<Query> mylistCommandCallback;
 
     @Override
     public String ModuleName() {
@@ -95,8 +101,8 @@ public class UdpApi extends BaseModule {
             if (executor.isTerminated() || executor.isShutdown()) {
                 executor = new ScheduledThreadPoolExecutor(EXECUTOR_THREADS);
             }
-            schedulePing();
             startReceiving();
+            schedulePing();
             modState = eModState.Initialized;
         } else {
             Terminate();
@@ -179,17 +185,41 @@ public class UdpApi extends BaseModule {
             case INTERNAL_SERVER_ERROR -> {
                 Log(CommunicationEvent.EventType.Error, "Internal server error", query.getReply().toString());
             }
+
+            case NO_SUCH_FILE -> {
+                if (query.getCommand() instanceof FileCommand) {
+                    if (fileCommandCallback != null) {
+                        fileCommandCallback.invoke(query);
+                    }
+                } else {
+                    if (mylistCommandCallback != null) {
+                        mylistCommandCallback.invoke(query);
+                    }
+                }
+            }
+            case FILE, MULTIPLE_FILES_FOUND -> {
+                if (fileCommandCallback != null) {
+                    fileCommandCallback.invoke(query);
+                }
+                Log(CommunicationEvent.EventType.Debug, "File response", query.getReply().toString());
+            }
+            case MYLIST_ENTRY_ADDED, FILE_ALREADY_IN_MYLIST, MYLIST_ENTRY_EDITED, NO_SUCH_ANIME, NO_SUCH_GROUP -> {
+                if (mylistCommandCallback != null) {
+                    mylistCommandCallback.invoke(query);
+                }
+            }
             default -> {
                 Log(CommunicationEvent.EventType.Error, "Unhandled response", query.getReply().toString());
             }
         }
 
         queries.remove(query.getTag());
-        if (commandQueue.isEmpty()){
+        if (commandQueue.isEmpty()) {
             schedulePing();
+            logoutAndStopPingingIfNeeded();
         }
         if (queries.isEmpty() && commandQueue.isEmpty()) {
-            QueryId.Reset();
+            QueryId.reset();
         } else {
             scheduleSend();
         }
@@ -221,12 +251,15 @@ public class UdpApi extends BaseModule {
     }
 
     private void logOut(boolean sendCommand) {
+        cancelPing();
         if (sendCommand) {
             queueCommand(LogoutCommand.Create());
         } else {
             Log(CommunicationEvent.EventType.Debug, "Unexpected Logout");
             isLoggedIn = false;
             session = null;
+            connectedToSocket = false;
+            stopReceiving();
         }
     }
 
@@ -240,14 +273,19 @@ public class UdpApi extends BaseModule {
             return null;
         }
         if (isLoggedIn && isConnectedToSocket()) {
-            return commandQueue.removeFirst();
+            synchronized (commandQueue) {
+                return commandQueue.removeFirst();
+            }
         }
         for (int i = 0; i < commandQueue.size(); i++) {
             // Find first non-auth command
             if (!commandQueue.get(i).getCommand().isNeedsLogin()) {
-                return commandQueue.remove(i);
+                synchronized (commandQueue) {
+                    return commandQueue.remove(i);
+                }
             }
         }
+        // All commands need login but api is not logged in
         logIn();
         return getNextCommand();
     }
@@ -263,31 +301,32 @@ public class UdpApi extends BaseModule {
         return pingBackoffMultiplier * PING_DELAY;
     }
 
-    public synchronized void queueCommand(CommandWrapper command) {
+    public void queueCommand(CommandWrapper command) {
         connectToSocket();
-        commandQueue.add(command);
+        synchronized (commandQueue) {
+            commandQueue.add(command);
+        }
         Log(CommunicationEvent.EventType.Debug, STR."Added \{command.getCommand().getAction()} cmd to queue");
-
         scheduleSend();
     }
 
     private void schedulePing() {
-        if (!isSendScheduled && (scheduledPing == null || scheduledPing.isDone())) {
-            if (pingingSince == null) {
-                pingingSince = new Date();
-            }
-            val nextPingMs = getNextPingDelay();
-            Logger.getGlobal().log(Level.INFO, STR."Next ping in \{nextPingMs / 60 / 1000}min");
-            scheduledPing = executor.schedule(
-                    new Send(this, PingCommand.Create(), aniDbIp, configuration.getAnidbPort()),
-                    nextPingMs,
-                    java.util.concurrent.TimeUnit.MILLISECONDS);
-        }
+//        if (!isSendScheduled && (scheduledPing == null || scheduledPing.isDone())) {
+//            if (pingingSince == null) {
+//                pingingSince = new Date();
+//            }
+//            val nextPingMs = getNextPingDelay();
+//            Logger.getGlobal().log(Level.INFO, STR."Next ping in \{nextPingMs / 60 / 1000}min");
+//            scheduledPing = executor.schedule(
+//                    new Send(this, PingCommand.Create(), aniDbIp, configuration.getAnidbPort()),
+//                    nextPingMs,
+//                    java.util.concurrent.TimeUnit.MILLISECONDS);
+//        }
     }
 
     private void logoutAndStopPingingIfNeeded() {
         if (pingingSince != null && new Date().getTime() - pingingSince.getTime() > MAX_PING_TIME) {
-            Log(CommunicationEvent.EventType.Error, "Ping timeout");
+            Log(CommunicationEvent.EventType.Error, "Stopping ping due to inactivity");
             cancelPing();
             logOut(isLoggedIn);
         }
@@ -331,6 +370,10 @@ public class UdpApi extends BaseModule {
             receiveThread = new Thread(new Receive(this));
             receiveThread.start();
         }
+    }
+
+    private void stopReceiving() {
+        receiveThread.interrupt();
     }
 
     private boolean connectToSocket() {

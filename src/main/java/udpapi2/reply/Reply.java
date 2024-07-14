@@ -15,4 +15,8 @@ public class Reply {
     Integer queryId;
     @Singular("value")
     List<String> responseData;
+
+    public boolean isFatal() {
+        return replyStatus.isFatal();
+    }
 }

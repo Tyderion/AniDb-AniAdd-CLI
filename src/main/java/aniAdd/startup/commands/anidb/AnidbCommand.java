@@ -9,9 +9,10 @@ import aniAdd.startup.commands.CliCommand;
 import lombok.val;
 import picocli.CommandLine;
 import udpApi.Mod_UdpApi;
+import udpapi2.UdpApi;
 
 @CommandLine.Command(
-        subcommands = {ScanCommand.class, ServerCommand.class, TagsCommand.class},
+        subcommands = {ScanCommand.class, ServerCommand.class, TagsCommand.class, TestCommand.class},
         name = "anidb",
         mixinStandardHelpOptions = true,
         version = "1.0",
@@ -34,11 +35,9 @@ public class AnidbCommand {
         aniAdd.addComListener(comEvent -> {
             if (comEvent.EventType() == Communication.CommunicationEvent.EventType.Information) {
                 if (comEvent.Params(0) == IModule.eModState.Initialized) {
-                    Mod_UdpApi api = aniAdd.GetModule(Mod_UdpApi.class);
+                    val api = aniAdd.GetModule(UdpApi.class);
                     api.setPassword(password);
                     api.setUsername(username);
-
-                    api.authenticate();
                 }
             }
         });

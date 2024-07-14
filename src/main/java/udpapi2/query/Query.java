@@ -17,6 +17,7 @@ public class Query {
     private Reply reply;
     private final Date sentAt;
     private Date receivedAt;
+
     private int retries;
 
     public boolean isSuccess() {
@@ -31,5 +32,9 @@ public class Query {
         // Encoding??
         val data =  command.getCommand().toString(session).getBytes(StandardCharsets.US_ASCII);
         return new DatagramPacket(data, data.length, ip, port);
+    }
+
+    public boolean success() {
+        return reply != null && reply.getReplyStatus().success();
     }
 }

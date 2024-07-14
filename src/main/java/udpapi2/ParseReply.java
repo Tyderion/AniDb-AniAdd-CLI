@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ParseReply implements Runnable {
 
-    final UdpApi api;
+    final Integration api;
     final String message;
 
     @Override
@@ -70,5 +70,9 @@ public class ParseReply implements Runnable {
         );
 
         api.addReply(builder.build());
+    }
+
+    public interface Integration {
+        void addReply(Reply reply);
     }
 }

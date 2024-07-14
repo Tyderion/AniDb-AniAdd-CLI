@@ -4,10 +4,12 @@ import aniAdd.config.AniConfiguration;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
+import org.jetbrains.annotations.Nullable;
 import udpapi2.command.CommandWrapper;
 import udpapi2.query.Query;
 
 import java.io.IOException;
+import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.util.Date;
 import java.util.logging.Level;
@@ -16,7 +18,7 @@ import java.util.logging.Logger;
 @RequiredArgsConstructor
 class Send implements Runnable {
 
-    final UdpApi api;
+    final Integration integration;
     @NonNull
     final CommandWrapper commandToSend;
     private final InetAddress aniDbIp;
@@ -27,16 +29,27 @@ class Send implements Runnable {
     public void run() {
         Logger.getGlobal().log(Level.INFO, STR."Send command \{commandToSend.getCommand().getIdentifier()}");
         val query = createQuery(commandToSend);
-        api.addQuery(query);
+        integration.addQuery(query);
         try {
-            api.sendPacket(query.getBytes(api.getSession(), aniDbIp, port));
+            integration.sendPacket(query.getBytes(integration.getSession(), aniDbIp, port));
         } catch (IOException e) {
             Logger.getGlobal().log(Level.SEVERE, "Failed to send packet", e);
         }
-        api.commandSent();
+        integration.onSent();
     }
 
     private Query createQuery(CommandWrapper command) {
         return new Query(command, new Date());
+    }
+
+    public interface Integration {
+        void sendPacket(DatagramPacket packet) throws IOException;
+
+        void addQuery(Query query);
+
+        @Nullable
+        String getSession();
+
+        void onSent();
     }
 }

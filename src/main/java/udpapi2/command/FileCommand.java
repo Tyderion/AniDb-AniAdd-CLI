@@ -7,7 +7,7 @@ import udpapi2.QueryId;
 import java.util.BitSet;
 
 public class FileCommand extends CommandWrapper {
-    private static final String ACTION = "PING";
+    private static final String ACTION = "FILE";
 
     private static final BitSet FILE_MASK = createFileMask();
     private static final BitSet ANIME_MASK = createAnimeMask();

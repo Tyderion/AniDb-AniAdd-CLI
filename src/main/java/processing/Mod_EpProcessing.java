@@ -21,11 +21,17 @@ import aniAdd.misc.MultiKeyDict.IKeyMapper;
 import java.util.TreeMap;
 
 import udpApi.Mod_UdpApi;
+import udpapi2.UdpApi;
+import udpapi2.command.FileCommand;
+import udpapi2.command.MylistAddCommand;
+import udpapi2.reply.ReplyStatus;
+
+import static udpapi2.reply.ReplyStatus.FILE_ALREADY_IN_MYLIST;
 
 public class Mod_EpProcessing extends BaseModule {
 
     public static String[] supportedFiles = {"avi", "ac3", "mpg", "mpeg", "rm", "rmvb", "asf", "wmv", "mov", "ogm", "mp4", "mkv", "rar", "zip", "ace", "srt", "sub", "ssa", "smi", "idx", "ass", "txt", "swf", "flv"};
-    private Mod_UdpApi api;
+    private UdpApi api;
     private FileParser fileParser;
     private boolean isProcessing;
     private boolean isPaused;
@@ -125,62 +131,7 @@ public class Mod_EpProcessing extends BaseModule {
     }
 
     private void requestDBFileInfo(FileInfo procFile) {
-        Cmd cmd = new Cmd("FILE", "file", procFile.Id().toString(), true);
-
-        BitSet binCode = new BitSet(64);
-        binCode.set(0); //'state
-        binCode.set(1); //'Depr
-        binCode.set(2); //'other eps //new
-        binCode.set(3); //'lid
-        binCode.set(4); //gid
-        binCode.set(5); //eid
-        binCode.set(6); //aid
-
-        binCode.set(9); //'bit depth //new
-        binCode.set(11); //'crc
-
-        binCode.set(17); //'video res
-        binCode.set(19); //'VideoCodec
-        binCode.set(21); //'AudioCodec
-        binCode.set(22); //'Source
-        binCode.set(23); //'Quality
-
-        binCode.set(24); //'anidb filename scheme
-        binCode.set(27); //'air date //new
-        binCode.set(29); //'length in seconds //new
-        binCode.set(30); //'sub lang list
-        binCode.set(31); //'dub lang list
-
-        binCode.set(37); //'watched state
-        cmd.setArgs("fmask", Misc.toMask(binCode, 40));
-
-        binCode = new BitSet(32);
-        binCode.set(1); //'category list
-        binCode.set(4); //'type
-        binCode.set(5); //'year
-        binCode.set(6); //'highest EpCount
-        binCode.set(7); //'epCount
-
-        binCode.set(10); //'synonym
-        binCode.set(11); //'short name
-        binCode.set(12); //'other name
-        binCode.set(13); //'english name
-        binCode.set(14); //'kanji name
-        binCode.set(15); //'romaji name
-
-        binCode.set(20); //'ep kanji
-        binCode.set(21); //'ep romaji
-        binCode.set(22); //'ep name
-        binCode.set(23); //'epno
-
-        binCode.set(30); //'group short name
-        binCode.set(31); //'group name
-        cmd.setArgs("amask", Misc.toMask(binCode, 32));
-        cmd.setArgs("size", Long.toString(procFile.FileObj().length()));
-        cmd.setArgs("ed2k", procFile.Data().get("Ed2k"));
-
-        api.queryCmd(cmd);
-        //System.out.println("Sending File Cmd");
+        api.queueCommand(FileCommand.Create(procFile.Id(), procFile.FileObj().length(), procFile.Data().get("Ed2k")));
     }
 
     private void requestDBMyList(FileInfo procFile) {
@@ -193,27 +144,26 @@ public class Mod_EpProcessing extends BaseModule {
             cmd.setArgs("viewed", procFile.Watched() ? "1" : "0");
         }
 
-        api.queryCmd(cmd);
+//        api.queryCmd(cmd);
         //System.out.println("Sending ML Cmd");
     }
 
-    private void aniDBInfoReply(int queryId) {
+    private void aniDBInfoReply(udpapi2.query.Query query) {
         //System.out.println("Got Fileinfo reply");
 
-        Query query = api.Queries().get(queryId);
-        int replyId = query.getReply().ReplyId();
-
-        int fileId = Integer.parseInt(query.getReply().Tag());
+        int fileId = Integer.parseInt(query.getCommand().getTag());
         if (!files.contains("Id", fileId)) {
             return; //File not found (Todo: throw error)
         }
         FileInfo procFile = files.get("Id", fileId);
         procFile.ActionsTodo().remove(eAction.FileCmd);
-
-        if (replyId == 320 || replyId == 505 || replyId == 322) {
+        val replyStatus = query.getReply().getReplyStatus();
+        if (replyStatus == ReplyStatus.NO_SUCH_FILE
+                || replyStatus == ReplyStatus.ILLEGAL_INPUT_OR_ACCESS_DENIED
+                || replyStatus == ReplyStatus.MULTIPLE_FILES_FOUND) {
             procFile.ActionsError().add(eAction.FileCmd);
-            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, replyId == 320 ? eComSubType.FileCmd_NotFound : eComSubType.FileCmd_Error, procFile.Id());
-            if (replyId == 320) {
+            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, replyStatus == ReplyStatus.NO_SUCH_FILE ? eComSubType.FileCmd_NotFound : eComSubType.FileCmd_Error, procFile.Id());
+            if (replyStatus == ReplyStatus.NO_SUCH_FILE) {
                 // File not found in anidb
                 File currentFile = procFile.FileObj();
                 String unknownFolderPath = "/unknown/" + currentFile.getParentFile().getName();
@@ -222,7 +172,7 @@ public class Mod_EpProcessing extends BaseModule {
             }
         } else {
             procFile.ActionsDone().add(eAction.FileCmd);
-            ArrayDeque<String> df = new ArrayDeque<String>(query.getReply().DataField());
+            ArrayDeque<String> df = new ArrayDeque<String>(query.getReply().getResponseData());
             procFile.Data().put("DB_FId", df.poll());
             procFile.Data().put("DB_AId", df.poll());
             procFile.Data().put("DB_EId", df.poll());
@@ -270,13 +220,11 @@ public class Mod_EpProcessing extends BaseModule {
         }
     }
 
-    private void aniDBMyListReply(int queryId) {
+    private void aniDBMyListReply(udpapi2.query.Query query) {
         //System.out.println("Got ML Reply");
+        val replyStatus = query.getReply().getReplyStatus();
 
-        Query query = api.Queries().get(queryId);
-        int replyId = query.getReply().ReplyId();
-
-        int fileId = Integer.parseInt(query.getReply().Tag());
+        int fileId = Integer.parseInt(query.getCommand().getTag());
         if (!files.contains("Id", fileId)) {
             //System.out.println("MLCmd: Id not found");
             return; //File not found (Todo: throw error)
@@ -285,7 +233,8 @@ public class Mod_EpProcessing extends BaseModule {
         val configuration = procFile.getConfiguration();
         procFile.ActionsTodo().remove(eAction.MyListCmd);
 
-        if (replyId == 210 || replyId == 311) {
+        if (replyStatus == ReplyStatus.MYLIST_ENTRY_ADDED
+                || replyStatus == ReplyStatus.MYLIST_ENTRY_EDITED) {
             //File Added/Edited
             procFile.ActionsDone().add(eAction.MyListCmd);
             /*if (procFile.ActionsTodo().remove(eAction.SetWatchedState)) {
@@ -293,14 +242,12 @@ public class Mod_EpProcessing extends BaseModule {
             }*/
             Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.MLCmd_FileAdded, procFile.Id());
 
-        } else if (replyId == 310) {
+        } else if (replyStatus == ReplyStatus.FILE_ALREADY_IN_MYLIST) {
             //File Already Added
 
             if (configuration.isOverwriteMLEntries()) {
                 procFile.ActionsTodo().add(eAction.MyListCmd);
-                Cmd cmd = new Cmd(query.getCmd(), true);
-                cmd.setArgs("edit", "1");
-                api.queryCmd(cmd);
+                api.queueCommand(((MylistAddCommand) query.getCommand()).WithEdit());
             }
 
             Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.MLCmd_AlreadyAdded, procFile.Id());
@@ -311,7 +258,9 @@ public class Mod_EpProcessing extends BaseModule {
             procFile.ActionsError().add(eAction.SetWatchedState);
             }*/
 
-            if (replyId == 320 || replyId == 330 || replyId == 350) {
+            if (replyStatus == ReplyStatus.NO_SUCH_FILE
+                    || replyStatus == ReplyStatus.NO_SUCH_ANIME
+                    || replyStatus == ReplyStatus.NO_SUCH_GROUP) {
                 Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.MLCmd_NotFound, procFile.Id());
             } else {
                 Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.MLCmd_Error, procFile.Id());
@@ -320,29 +269,6 @@ public class Mod_EpProcessing extends BaseModule {
 
         if (!procFile.IsFinal() && !(procFile.ActionsTodo().contains(eAction.FileCmd) || (procFile.ActionsTodo().contains(eAction.MyListCmd)))) {
             finalProcessing(procFile);
-        }
-    }
-
-    private void aniDBVoteReply(int queryId) {
-        Query query = api.Queries().get(queryId);
-        int replyId = query.getReply().ReplyId();
-
-        int fileId = Integer.parseInt(query.getReply().Tag());
-        if (!files.contains("Id", fileId)) {
-            return; //File not found (Todo: throw error)
-        }
-        FileInfo procFile = files.get("Id", fileId);
-        procFile.ActionsTodo().remove(eAction.MyListCmd);
-
-        if (replyId == 260 && replyId == 262) {
-            procFile.Data().put("Voted", "true"); //Voted
-            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.VoteCmd_EpVoted, procFile.Id());
-        } else if (replyId == 263) {
-            procFile.Data().put("Voted", "false");//Revoked
-            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.VoteCmd_EpVoteRevoked, procFile.Id());
-        } else if (replyId == 363) {
-            //PermVote Not Allowed
-            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.VoteCmd_Error, procFile.Id());
         }
     }
 
@@ -478,7 +404,7 @@ public class Mod_EpProcessing extends BaseModule {
 
                             File srcFolder = procFile.FileObj().getParentFile();
 
-                            File[] srcFiles = srcFolder.listFiles((dir, name) -> name.startsWith(oldFilenameWoExt)  && !name.equals(oldFilenameWoExt + ext));
+                            File[] srcFiles = srcFolder.listFiles((dir, name) -> name.startsWith(oldFilenameWoExt) && !name.equals(oldFilenameWoExt + ext));
 
                             String relExt, accumExt = "";
                             String newFn = filename.substring(0, filename.lastIndexOf("."));
@@ -714,11 +640,11 @@ public class Mod_EpProcessing extends BaseModule {
 
     public void Initialize(IAniAdd aniAdd, AniConfiguration configuration) {
         modState = eModState.Initializing;
-        api = aniAdd.GetModule(Mod_UdpApi.class);
+        api = aniAdd.GetModule(UdpApi.class);
 
-        api.registerEvent(this::aniDBInfoReply, "file");
-        api.registerEvent(this::aniDBMyListReply, "mladd", "mldel");
-        api.registerEvent(this::aniDBVoteReply, "vote");
+        api.setFileCommandCallback(this::aniDBInfoReply);
+        api.setMylistCommandCallback(this::aniDBMyListReply);
+
         lastFileId = 0;
         modState = eModState.Initialized;
     }

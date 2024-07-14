@@ -12,6 +12,7 @@ import lombok.val;
 import processing.FileProcessor;
 import processing.Mod_EpProcessing;
 import udpApi.Mod_UdpApi;
+import udpapi2.UdpApi;
 
 /**
  * @author Arokh
@@ -28,7 +29,8 @@ public class AniAdd implements IAniAdd {
     public AniAdd(AniConfiguration configuration) {
         mConfiguration = configuration;
         addModule(new Mod_EpProcessing(mConfiguration));
-        addModule(new Mod_UdpApi());
+        addModule(new UdpApi());
+//        addModule(new Mod_UdpApi());
 
         addModule(new FileProcessor());
     }

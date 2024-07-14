@@ -1,32 +1,32 @@
-package udpapi2;
+package udpapi2.receive;
 
-import aniAdd.Communication;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
-import udpApi.Mod_UdpApi;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.util.Date;
+import java.nio.charset.StandardCharsets;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
 @RequiredArgsConstructor
-class Receive implements Runnable {
+public class Receive implements Runnable {
 
-    final UdpApi api;
+    @NotNull
+    final Integration integration;
 
     @Override
     public void run() {
         Logger.getGlobal().log(Level.INFO, "Receive thread started");
-        while (api.isConnectedToSocket()) {
+        while (integration.isSocketConnected()) {
             try {
                 val packet = new DatagramPacket(new byte[1400], 1400);
-                api.receivePacket(packet);
+                integration.receive(packet);
 
                 byte[] replyBinary;
                 int length;
@@ -38,15 +38,15 @@ class Receive implements Runnable {
                     replyBinary = packetBinary;
                     length = packet.getLength();
                 }
-
-                api.scheduleParseReply(new String(replyBinary, 0, length, "UTF8"));
+                integration.onReceiveRawMessage(new String(replyBinary, 0, length, StandardCharsets.UTF_8));
 
             } catch (Exception e) {
                 Logger.getGlobal().log(Level.SEVERE, STR."Receive Error: \{e.getMessage()}");
-                api.disconnect();
+                integration.disconnect();
             }
         }
 
+        Logger.getGlobal().log(Level.INFO, "Receive thread stopped");
     }
 
     private byte[] inflatePacket(ByteArrayInputStream stream) throws IOException {
@@ -59,5 +59,12 @@ class Receive implements Runnable {
         while ((readBytes = iis.read(b)) != -1) baos.write(b, 0, readBytes);
 
         return baos.toByteArray();
+    }
+
+    public interface Integration {
+        void onReceiveRawMessage(String message);
+        boolean isSocketConnected();
+        void disconnect();
+        void receive(DatagramPacket packet) throws IOException;
     }
 }

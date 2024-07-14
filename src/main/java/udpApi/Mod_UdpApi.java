@@ -398,6 +398,7 @@ public class Mod_UdpApi extends BaseModule {
                             Log(CommunicationEvent.EventType.Debug, STR."Idle: Time for a ping, passed \{(now.getTime() - lastCommandSentAt.getTime())} ms since last command sent.");
                             pingQueued = true;
                             ping();
+                            // TODO: Logout if we haven't done anything for about 30 minutes
                         }
                         if (longDelay && authRetry != null && (authRetry.getTime() - now.getTime() < 0)) {
                             idleThreadStartedOn = new Date();
