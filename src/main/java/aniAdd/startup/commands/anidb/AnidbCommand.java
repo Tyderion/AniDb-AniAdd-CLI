@@ -9,7 +9,10 @@ import aniAdd.startup.commands.CliCommand;
 import lombok.val;
 import picocli.CommandLine;
 import udpApi.Mod_UdpApi;
+import udpapi2.NewUdpApi;
 import udpapi2.UdpApi;
+
+import java.util.concurrent.ScheduledExecutorService;
 
 @CommandLine.Command(
         subcommands = {ScanCommand.class, ServerCommand.class, TagsCommand.class, TestCommand.class},
@@ -22,6 +25,10 @@ public class AnidbCommand {
     String username;
     @CommandLine.Option(names = {"-p", "--password"}, description = "The AniDB password", required = true, scope = CommandLine.ScopeType.INHERIT)
     String password;
+
+    @CommandLine.Option(names = {"--localport"}, description = "The AniDB password", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "3333")
+    int localPort;
+
     @CommandLine.ParentCommand
     private CliCommand parent;
 
@@ -29,18 +36,15 @@ public class AnidbCommand {
         return parent.getConfiguration();
     }
 
-    IAniAdd initializeAniAdd(boolean terminateOnCompletion) {
-        val aniAdd = new AniAdd(parent.getConfiguration());
+    IAniAdd initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService) {
+        val udpApi = new NewUdpApi(executorService, localPort);
+        udpApi.setPassword(password);
+        udpApi.setUsername(username);
 
-        aniAdd.addComListener(comEvent -> {
-            if (comEvent.EventType() == Communication.CommunicationEvent.EventType.Information) {
-                if (comEvent.Params(0) == IModule.eModState.Initialized) {
-                    val api = aniAdd.GetModule(UdpApi.class);
-                    api.setPassword(password);
-                    api.setUsername(username);
-                }
-            }
-        });
+        val aniAdd = new AniAdd(getConfiguration(), udpApi);
+
+        udpApi.Initialize(getConfiguration());
+
         aniAdd.Start(terminateOnCompletion);
         return aniAdd;
     }

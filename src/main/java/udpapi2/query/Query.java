@@ -1,6 +1,5 @@
 package udpapi2.query;
 
-import aniAdd.config.AniConfiguration;
 import lombok.Data;
 import lombok.val;
 import udpapi2.command.CommandWrapper;
@@ -22,6 +21,10 @@ public class Query {
 
     public boolean isSuccess() {
         return reply != null;
+    }
+
+    public String getFullTag() {
+        return command.getFullTag();
     }
 
     public String getTag() {

@@ -7,6 +7,8 @@ import picocli.CommandLine;
 import java.net.URI;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 @CommandLine.Command(name = "connect-to-kodi", mixinStandardHelpOptions = true, version = "1.0",
@@ -25,9 +27,15 @@ public class ServerCommand implements Callable<Integer> {
     public Integer call() throws Exception {
         Logger.getGlobal().info((STR."Connecting to kodi at \{kodiUrl} on port \{port}"));
 
-        val subscriber = new KodiNotificationSubscriber(new URI(STR."ws://\{kodiUrl}:\{port}/jsonrpc"), parent.initializeAniAdd(false));
+        try (val executorService = Executors.newScheduledThreadPool(10)) {
+            val aniAdd = parent.initializeAniAdd(false, executorService);
+            val subscriber = new KodiNotificationSubscriber(new URI(STR."ws://\{kodiUrl}:\{port}/jsonrpc"), aniAdd);
+            subscriber.connect();
 
-        subscriber.connect();
+            val _ = executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+        }
+
+
         return 0;
     }
 }

@@ -41,6 +41,7 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
 
     private Date lastSentDate = null;
     private boolean isSendScheduled = false;
+    private boolean isLoginScheduled = false;
     private boolean shouldWaitLong = false;
 
     @Setter
@@ -79,7 +80,7 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
 
     public void queueCommand(CommandWrapper command) {
         commandQueue.add(command);
-        if (!isSendScheduled) {
+        if (!isSendScheduled && !isLoginScheduled) {
             scheduleNextCommand();
         }
     }
@@ -89,9 +90,19 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
             Logger.getGlobal().warning("Must be initialized before logging in");
             return false;
         }
+        if (isSendScheduled) {
+            Logger.getGlobal().warning("Command is scheduled, not scheduling login");
+            return false;
+        }
+        if (isLoginScheduled) {
+            Logger.getGlobal().warning("Login already scheduled, not scheduling login");
+            return false;
+        }
         try {
             val command = LoginCommand.Create(username, password);
             scheduleCommand(command, getNextSendDelay());
+            isSendScheduled = true;
+            isLoginScheduled = true;
             return true;
         } catch (IllegalArgumentException e) {
             Logger.getGlobal().warning(STR."Username or password is empty: \{e.getMessage()}");
@@ -114,10 +125,18 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
             }
             return;
         }
+        if (command.getCommand().isNeedsLogin() && !isLoggedIn) {
+            if (!isLoginScheduled) {
+                queueLogin();
+            }
+            queueCommand(command);
+            return;
+        }
         scheduleCommand(command, getNextSendDelay());
     }
 
     private void scheduleCommand(@NotNull CommandWrapper command, Duration delay) {
+        Logger.getGlobal().info(STR."Scheduling command \{command.toString()} in \{delay.toMillis()} ms");
         executorService.schedule(new Send(this, command, aniDbIp, aniDbPort), delay.toMillis(), TimeUnit.MILLISECONDS);
         isSendScheduled = true;
     }
@@ -160,10 +179,15 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
         if (!query.success()) {
             Logger.getGlobal().warning(STR."Query failed: \{query.toString()}");
             handleQueryError(query);
+            try {
+                Thread.sleep(1000000);
+            } catch (Exception _e) {
+
+            }
             scheduleNextCommand();
             return;
         }
-        queries.remove(query.getTag());
+        queries.remove(query.getFullTag());
 
         if (query.getCommand() instanceof LoginCommand) {
             switch (query.getReply().getReplyStatus()) {
@@ -171,6 +195,7 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
                     isLoggedIn = true;
                     session = query.getReply().getResponseData().getFirst();
                     Logger.getGlobal().info(STR."Logged in with session \{session}");
+                    isLoginScheduled = false;
                     return;
                 }
             }
@@ -245,10 +270,10 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
 
     @Override
     public void addQuery(Query query) {
-        if (queries.containsKey(query.getTag())) {
-            queries.get(query.getTag()).setRetries(query.getRetries() + 1);
+        if (queries.containsKey(query.getFullTag())) {
+            queries.get(query.getFullTag()).setRetries(query.getRetries() + 1);
         } else {
-            queries.put(query.getTag(), query);
+            queries.put(query.getFullTag(), query);
         }
     }
 

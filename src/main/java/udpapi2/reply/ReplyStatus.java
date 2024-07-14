@@ -1,5 +1,7 @@
 package udpapi2.reply;
 
+import java.util.logging.Logger;
+
 public enum ReplyStatus {
     LOGIN_ACCEPTED(200),
     LOGIN_ACCEPTED_NEW_VERSION(201),
@@ -57,7 +59,7 @@ public enum ReplyStatus {
                 return false;
             }
             default -> {
-                return isFatal();
+                return !isFatal();
             }
         }
     }
@@ -67,10 +69,10 @@ public enum ReplyStatus {
             case BANNED, CLIENT_BANNED,
                  ILLEGAL_INPUT_OR_ACCESS_DENIED, INTERNAL_SERVER_ERROR,
                  ANIDB_OUT_OF_SERVICE, SERVER_BUSY -> {
-                return false;
+                return true;
             }
             default -> {
-                return true;
+                return false;
             }
         }
     }

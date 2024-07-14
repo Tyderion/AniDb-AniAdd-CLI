@@ -2,7 +2,6 @@ package processing;
 
 import java.io.*;
 import java.util.ArrayDeque;
-import java.util.BitSet;
 import java.util.Collection;
 
 import aniAdd.Modules.BaseModule;
@@ -10,28 +9,23 @@ import aniAdd.config.AniConfiguration;
 import lombok.val;
 import processing.FileInfo.eAction;
 import udpApi.Cmd;
-import udpApi.Query;
 
 import aniAdd.IAniAdd;
 import aniAdd.misc.ICallBack;
-import aniAdd.misc.Misc;
 import aniAdd.misc.MultiKeyDict;
 import aniAdd.misc.MultiKeyDict.IKeyMapper;
 
 import java.util.TreeMap;
 
-import udpApi.Mod_UdpApi;
-import udpapi2.UdpApi;
+import udpapi2.NewUdpApi;
 import udpapi2.command.FileCommand;
 import udpapi2.command.MylistAddCommand;
 import udpapi2.reply.ReplyStatus;
 
-import static udpapi2.reply.ReplyStatus.FILE_ALREADY_IN_MYLIST;
-
 public class Mod_EpProcessing extends BaseModule {
 
     public static String[] supportedFiles = {"avi", "ac3", "mpg", "mpeg", "rm", "rmvb", "asf", "wmv", "mov", "ogm", "mp4", "mkv", "rar", "zip", "ace", "srt", "sub", "ssa", "smi", "idx", "ass", "txt", "swf", "flv"};
-    private UdpApi api;
+    private NewUdpApi api;
     private FileParser fileParser;
     private boolean isProcessing;
     private boolean isPaused;
@@ -54,8 +48,12 @@ public class Mod_EpProcessing extends BaseModule {
         }
     });
 
-    public Mod_EpProcessing(AniConfiguration configuration) {
+    public Mod_EpProcessing(AniConfiguration configuration, NewUdpApi udpApi) {
         this.configuration = configuration;
+        this.api = udpApi;
+
+        api.setFileCommandCallback(this::aniDBInfoReply);
+        api.setMylistCommandCallback(this::aniDBMyListReply);
     }
 
     private void processEps() {
@@ -224,7 +222,7 @@ public class Mod_EpProcessing extends BaseModule {
         //System.out.println("Got ML Reply");
         val replyStatus = query.getReply().getReplyStatus();
 
-        int fileId = Integer.parseInt(query.getCommand().getTag());
+        int fileId = Integer.parseInt(query.getCommand().getFullTag());
         if (!files.contains("Id", fileId)) {
             //System.out.println("MLCmd: Id not found");
             return; //File not found (Todo: throw error)
@@ -640,11 +638,6 @@ public class Mod_EpProcessing extends BaseModule {
 
     public void Initialize(IAniAdd aniAdd, AniConfiguration configuration) {
         modState = eModState.Initializing;
-        api = aniAdd.GetModule(UdpApi.class);
-
-        api.setFileCommandCallback(this::aniDBInfoReply);
-        api.setMylistCommandCallback(this::aniDBMyListReply);
-
         lastFileId = 0;
         modState = eModState.Initialized;
     }

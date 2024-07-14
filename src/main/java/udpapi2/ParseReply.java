@@ -24,6 +24,7 @@ public class ParseReply implements Runnable {
             parseReply();
         } catch (Exception e) {
             Logger.getGlobal().log(Level.WARNING, STR."Parse Error: \{e.toString()}");
+            e.printStackTrace();
         }
     }
 

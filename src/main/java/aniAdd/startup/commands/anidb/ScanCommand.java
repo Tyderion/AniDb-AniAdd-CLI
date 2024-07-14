@@ -4,6 +4,8 @@ import lombok.val;
 import picocli.CommandLine;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @CommandLine.Command(name = "scan", mixinStandardHelpOptions = true, version = "1.0",
         description = "Scans the directory for files and adds them to AniDb")
@@ -16,8 +18,12 @@ public class ScanCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        val aniAdd = parent.initializeAniAdd(false);
-        aniAdd.ProcessDirectory(directory);
+        try (val executorService = Executors.newScheduledThreadPool(10)) {
+            val aniAdd = parent.initializeAniAdd(false, executorService);
+            aniAdd.ProcessDirectory(directory);
+
+            val _ = executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+        }
         return 0;
     }
 }

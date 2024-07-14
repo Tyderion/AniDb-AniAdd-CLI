@@ -12,7 +12,6 @@ import udpapi2.command.FileCommand;
 import udpapi2.command.LoginCommand;
 import udpapi2.command.LogoutCommand;
 import udpapi2.query.Query;
-import udpapi2.receive.Receive;
 import udpapi2.reply.Reply;
 
 import java.io.IOException;
@@ -70,7 +69,7 @@ public class UdpApi extends BaseModule {
     private final List<CommandWrapper> commandQueue = new ArrayList<>();
     private Map<String, Query> queries = new HashMap<>();
 
-    private Thread receiveThread = new Thread(new Receive(this));
+//    private Thread receiveThread = new Thread(new Receive(this));
 
     private boolean isSendScheduled = false;
     private ScheduledFuture<?> scheduledPing;
@@ -118,7 +117,7 @@ public class UdpApi extends BaseModule {
     }
 
     public void scheduleParseReply(String message) {
-        executor.execute(new ParseReply(this, message));
+//        executor.execute(new ParseReply(this, message));
     }
 
     public void addReply(Reply reply) {
@@ -213,7 +212,7 @@ public class UdpApi extends BaseModule {
             }
         }
 
-        queries.remove(query.getTag());
+        queries.remove(query.getFullTag());
         if (commandQueue.isEmpty()) {
             schedulePing();
             logoutAndStopPingingIfNeeded();
@@ -264,7 +263,7 @@ public class UdpApi extends BaseModule {
     }
 
     public void addQuery(Query query) {
-        queries.put(query.getTag(), query);
+        queries.put(query.getFullTag(), query);
     }
 
     public CommandWrapper getNextCommand() {
@@ -348,10 +347,10 @@ public class UdpApi extends BaseModule {
             return;
         }
         cancelPing();
-        executor.schedule(
-                new Send(this, nextCommand, aniDbIp, configuration.getAnidbPort()),
-                getNextSendDelay(),
-                java.util.concurrent.TimeUnit.MILLISECONDS);
+//        executor.schedule(
+//                new Send(this, nextCommand, aniDbIp, configuration.getAnidbPort()),
+//                getNextSendDelay(),
+//                java.util.concurrent.TimeUnit.MILLISECONDS);
         isSendScheduled = true;
     }
 
@@ -362,18 +361,18 @@ public class UdpApi extends BaseModule {
     }
 
     private void startReceiving() {
-        if (receiveThread.getState() == java.lang.Thread.State.NEW) {
-            Log(CommunicationEvent.EventType.Debug, "Starting Receive Thread");
-            receiveThread.start();
-        } else if (receiveThread.getState() == java.lang.Thread.State.TERMINATED) {
-            Log(CommunicationEvent.EventType.Debug, "Restarting Receive thread");
-            receiveThread = new Thread(new Receive(this));
-            receiveThread.start();
-        }
+//        if (receiveThread.getState() == java.lang.Thread.State.NEW) {
+//            Log(CommunicationEvent.EventType.Debug, "Starting Receive Thread");
+//            receiveThread.start();
+//        } else if (receiveThread.getState() == java.lang.Thread.State.TERMINATED) {
+//            Log(CommunicationEvent.EventType.Debug, "Restarting Receive thread");
+//            receiveThread = new Thread(new Receive(this));
+//            receiveThread.start();
+//        }
     }
 
     private void stopReceiving() {
-        receiveThread.interrupt();
+//        receiveThread.interrupt();
     }
 
     private boolean connectToSocket() {
