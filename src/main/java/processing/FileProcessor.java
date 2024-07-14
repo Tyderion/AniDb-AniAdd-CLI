@@ -85,9 +85,10 @@ public class FileProcessor extends BaseModule {
         files.forEach(f -> Logger.getGlobal().log(Level.INFO, STR."Found file: \{f.getAbsolutePath()}"));
         Logger.getGlobal().log(Level.INFO, STR."Number of found files: \{files.size()}");
         if (files.isEmpty()) {
-            Logger.getGlobal().log(Level.WARNING, "No files found, shutting down");
-            Log(CommunicationEvent.EventType.Information, Mod_EpProcessing.eComType.Status, Mod_EpProcessing.eComSubType.Done);
+            Logger.getGlobal().log(Level.WARNING, "No files found");
+            Log(CommunicationEvent.EventType.Information, eComType.Status, eComSubType.NothingToProcess);
         } else {
+            Log(CommunicationEvent.EventType.Information, eComType.Status, eComSubType.Processing);
             epProc.addFiles(files);
             startFileProcessing();
         }
@@ -113,6 +114,16 @@ public class FileProcessor extends BaseModule {
                 || name.endsWith(".sub")
                 || name.endsWith(".png")
                 || name.equalsIgnoreCase("thumbs.db");
+    }
+
+    public enum eComType {
+
+        Status
+    }
+
+    public enum eComSubType {
+
+        NothingToProcess, Processing
     }
 
 }

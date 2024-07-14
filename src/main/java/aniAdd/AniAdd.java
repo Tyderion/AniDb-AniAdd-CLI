@@ -3,6 +3,7 @@ package aniAdd;
 import aniAdd.Modules.IModule;
 import aniAdd.config.AniConfiguration;
 
+import java.io.File;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -111,16 +112,21 @@ public class AniAdd implements IAniAdd {
                                 comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done) {
                             Logger.getGlobal().log(Level.INFO, "File moving done, shutting down");
                             Stop();
+                        } else if (comEvent.ParamCount() == 2 &&
+                                comEvent.Params(0) == FileProcessor.eComType.Status &&
+                                comEvent.Params(1) == FileProcessor.eComSubType.NothingToProcess) {
+                            Logger.getGlobal().log(Level.INFO, "No files to process, shutting down");
+                            Stop();
                         }
                     }
                 });
             }
-            addComListener(communicationEvent -> {
-                if (communicationEvent.EventType() == CommunicationEvent.EventType.Information
-                        && communicationEvent.Params(0) == IModule.eModState.Terminated) {
-                    System.exit(0);
-                }
-            });
+//            addComListener(communicationEvent -> {
+//                if (communicationEvent.EventType() == CommunicationEvent.EventType.Information
+//                        && communicationEvent.Params(0) == IModule.eModState.Terminated) {
+//                    System.exit(0);
+//                }
+//            });
         }
         ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Initialized));
     }
@@ -145,6 +151,7 @@ public class AniAdd implements IAniAdd {
                 allModsTerminated &= module.ModState() == IModule.eModState.Terminated;
             }
         }
+        api.queueShutdown();
         allInitialized = false;
 
 

@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
+import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,8 +41,11 @@ public class Receive implements Runnable {
                 }
                 integration.onReceiveRawMessage(new String(replyBinary, 0, length, StandardCharsets.UTF_8));
 
+            } catch (SocketException e) {
+                Logger.getGlobal().info("Socket was closed");
+                integration.disconnect();
             } catch (Exception e) {
-                Logger.getGlobal().log(Level.SEVERE, STR."Receive Error: \{e.getMessage()}");
+                Logger.getGlobal().severe(STR."Receive Error: \{e.getMessage()}");
                 integration.disconnect();
             }
         }
@@ -63,8 +67,11 @@ public class Receive implements Runnable {
 
     public interface Integration {
         void onReceiveRawMessage(String message);
+
         boolean isSocketConnected();
+
         void disconnect();
+
         void receive(DatagramPacket packet) throws IOException;
     }
 }

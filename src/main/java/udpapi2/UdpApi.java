@@ -1,7 +1,6 @@
 package udpapi2;
 
 import aniAdd.config.AniConfiguration;
-import aniAdd.misc.ICallBack;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.val;
@@ -24,7 +23,7 @@ import java.util.logging.Logger;
 public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integration, ParseReply.Integration {
     final Queue<Command> commandQueue = new ConcurrentLinkedQueue<>();
     final Map<String, Query<?>> queries = new ConcurrentHashMap<>();
-    final Map<Class<? extends Command>,IQueryCallback<?>> commandCallbacks = new ConcurrentHashMap<>();
+    final Map<Class<? extends Command>, IQueryCallback<?>> commandCallbacks = new ConcurrentHashMap<>();
     private DatagramSocket socket;
     private final ScheduledExecutorService executorService;
     private final int localPort;
@@ -44,6 +43,8 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     private String username;
     @Setter
     private String password;
+    private boolean shutdown;
+    private Future<?> receiveFuture;
 
     public <T extends Command> void registerCallback(Class<T> command, IQueryCallback<T> callback) {
         commandCallbacks.put(command, callback);
@@ -66,7 +67,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             Logger.getGlobal().severe(STR."Failed to resolve host \{e.getMessage()}");
             return false;
         }
-        executorService.execute(new Receive(this));
+        receiveFuture = executorService.submit(new Receive(this));
         isInitialized = true;
         return true;
     }
@@ -121,7 +122,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             if (queries.isEmpty()) {
                 QueryId.reset();
             }
-            queueLogout();
+            queueLogout(false);
             return;
         }
         if (logoutFuture != null) {
@@ -200,9 +201,13 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
                     session = null;
                     Logger.getGlobal().info("Logged out");
                     loginStatus = LoginStatus.LOGGED_OUT;
+                    if (shutdown) {
+                        shutdown();
+                        return;
+                    }
                 }
             }
-        }else  {
+        } else {
             if (commandCallbacks.containsKey(query.getCommand().getClass())) {
                 commandCallbacks.get(query.getCommand().getClass()).invoke(query);
             } else {
@@ -223,7 +228,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         }
     }
 
-    private void queueLogout() {
+    private void queueLogout(boolean now) {
         if (loginStatus != LoginStatus.LOGGED_IN) {
             Logger.getGlobal().warning("Not logged in, not logging out");
             return;
@@ -232,7 +237,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         if (logoutFuture != null) {
             logoutFuture.cancel(false);
         }
-        logoutFuture = executorService.schedule(new Send(this, LogoutCommand.Create(), aniDbIp, aniDbPort), UdpApiConfiguration.LOGOUT_AFTER.toMillis(), TimeUnit.MILLISECONDS);
+        logoutFuture = executorService.schedule(new Send(this, LogoutCommand.Create(), aniDbIp, aniDbPort), now ? 0 : UdpApiConfiguration.LOGOUT_AFTER.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -283,6 +288,26 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     public void onSent() {
         lastSentDate = new Date();
         isSendScheduled = false;
+    }
+
+    public void queueShutdown() {
+        if (loginStatus == LoginStatus.LOGGED_OUT) {
+            shutdown();
+            return;
+        }
+        queueLogout(true);
+        shutdown = true;
+    }
+
+    private void shutdown() {
+        isInitialized = false;
+        if (receiveFuture != null) {
+            receiveFuture.cancel(true);
+        }
+        if (socket != null) {
+            socket.close();
+        }
+        executorService.shutdownNow();
     }
 
     private enum LoginStatus {
