@@ -6,12 +6,14 @@ import java.util.logging.Logger;
 
 import aniAdd.misc.ICallBack;
 import lombok.Getter;
+import lombok.extern.java.Log;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import fileprocessor.FileProcessor;
 import processing.Mod_EpProcessing;
 import udpapi2.UdpApi;
 
+@Log
 public class AniAdd implements IAniAdd {
     @NotNull
     @Getter
@@ -24,7 +26,6 @@ public class AniAdd implements IAniAdd {
     private final Mod_EpProcessing processing;
     @NotNull
     private final ICallBack<Void> onShutdown;
-    private final Logger logger = Logger.getLogger(AniAdd.class.getName());
 
     public AniAdd(@NotNull AniConfiguration configuration, @NotNull UdpApi api, boolean exitOnTermination, @NotNull FileProcessor fileProcessor, @NotNull Mod_EpProcessing processing, @NotNull ICallBack<Void> onShutdown) {
         this.configuration = configuration;
@@ -34,19 +35,19 @@ public class AniAdd implements IAniAdd {
         this.fileProcessor.AddCallback(event -> {
             if (event == FileProcessor.EventType.NothingToProcess) {
                 if (exitOnTermination) {
-                    logger.info("File processing nothing to process");
+                    log.info("File processing nothing to process");
                     Stop();
                 }
             } else {
-                logger.info(STR."File processing \{event}");
+                log.fine(STR."File processing \{event}");
             }
         });
         this.processing = processing;
         this.processing.addListener(event -> {
             if (event == Mod_EpProcessing.ProcessingEvent.Done) {
-                logger.info("File moving done");
+                log.info("File moving done");
                 if (exitOnTermination) {
-                    logger.info("Shutting down");
+                    log.info("Shutting down");
                     Stop();
                 }
             }
@@ -72,7 +73,7 @@ public class AniAdd implements IAniAdd {
     }
 
     public void Stop() {
-        logger.info("Terminate AniAdd");
+        log.info("Terminate AniAdd");
         processing.Terminate();
         api.queueShutdown(_ -> onShutdown.invoke(null));
     }

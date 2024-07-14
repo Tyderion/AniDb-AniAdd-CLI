@@ -1,5 +1,6 @@
 package aniAdd.config;
 
+import lombok.extern.java.Log;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
@@ -11,9 +12,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * Created by Archie on 23.12.2015.
- */
+@Log
 public class ConfigFileParser<T> {
 
     private final Class<T> mClazz;
@@ -61,7 +60,7 @@ public class ConfigFileParser<T> {
     public void saveToFile(T configuration, String path) throws IOException {
         File file = new File(path);
         Writer writer = new BufferedWriter(new FileWriter(file));
-        Logger.getGlobal().log(Level.INFO, "Saving config to file: " + file.getAbsolutePath());
+        log.info( "Saving config to file: " + file.getAbsolutePath());
         mYaml.dump(configuration, writer);
     }
 }

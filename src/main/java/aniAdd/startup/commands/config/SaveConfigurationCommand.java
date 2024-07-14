@@ -2,13 +2,13 @@ package aniAdd.startup.commands.config;
 
 import aniAdd.config.AniConfiguration;
 import aniAdd.config.ConfigFileParser;
+import lombok.extern.java.Log;
 import picocli.CommandLine;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
+@Log
 @CommandLine.Command(name = "save", mixinStandardHelpOptions = true, version = "1.0",
         description = "Save the options to a new file which then can be edited (manually) and loaded by using -c")
 public class SaveConfigurationCommand implements Callable<Integer> {
@@ -26,9 +26,9 @@ public class SaveConfigurationCommand implements Callable<Integer> {
             ConfigFileParser<AniConfiguration> configParser =
                     new ConfigFileParser<>(path, AniConfiguration.class);
             configParser.saveToFile(config);
-            Logger.getGlobal().log(Level.INFO, STR."Finished writing config to file: \{path}");
+            log.info(STR."Finished writing config to file: \{path}");
         } catch (IOException e) {
-            Logger.getGlobal().log(Level.WARNING, STR."Could not write config to file: \{path}");
+            log.warning(STR."Could not write config to file: \{path}");
         }
         return 0;
     }

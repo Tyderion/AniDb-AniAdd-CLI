@@ -1,6 +1,7 @@
 package aniAdd.startup.commands.anidb;
 
 import aniAdd.kodi.KodiNotificationSubscriber;
+import lombok.extern.java.Log;
 import lombok.val;
 import picocli.CommandLine;
 
@@ -11,6 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
+@Log
 @CommandLine.Command(name = "connect-to-kodi", mixinStandardHelpOptions = true, version = "1.0",
         description = "Connects to a kodi instance via websockets and marks watched episodes as watched on anidb as well. Filepath must contain 'anime'.")
 public class ServerCommand implements Callable<Integer> {
@@ -25,7 +27,7 @@ public class ServerCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        Logger.getGlobal().info((STR."Connecting to kodi at \{kodiUrl} on port \{port}"));
+        log.info((STR."Connecting to kodi at \{kodiUrl} on port \{port}"));
 
         try (val executorService = Executors.newScheduledThreadPool(10)) {
             val aniAdd = parent.initializeAniAdd(false, executorService);

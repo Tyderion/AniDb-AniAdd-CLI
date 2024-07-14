@@ -7,6 +7,7 @@ import java.util.Collection;
 import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
 import fileprocessor.FileProcessor;
+import lombok.extern.java.Log;
 import lombok.val;
 import processing.FileInfo.eAction;
 
@@ -24,6 +25,7 @@ import udpapi2.command.MylistAddCommand;
 import udpapi2.query.Query;
 import udpapi2.reply.ReplyStatus;
 
+@Log
 public class Mod_EpProcessing implements FileProcessor.Processor {
 
     public static String[] supportedFiles = {"avi", "ac3", "mpg", "mpeg", "rm", "rmvb", "asf", "wmv", "mov", "ogm", "mp4", "mkv", "rar", "zip", "ace", "srt", "sub", "ssa", "smi", "idx", "ass", "txt", "swf", "flv"};
@@ -31,7 +33,6 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
     private final AniConfiguration configuration;
     private final ExecutorService executorService;
     private final List<ICallBack<ProcessingEvent>> eventHandlers = new ArrayList<>();
-    private final Logger logger = Logger.getLogger(Mod_EpProcessing.class.getName());
 
     private boolean isProcessing;
     private int lastFileId = 0;
@@ -74,7 +75,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         for (FileInfo procFile : files.values()) {
             if (!procFile.Served()) {
                 procFile.Served(true);
-                logger.info(STR."Processing file \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}");
+                log.fine(STR."Processing file \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}");
 
                 while (filesBeingMoved > 0) {
                     try {
@@ -89,7 +90,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
             }
         }
         isProcessing = false;
-        logger.info("Initial Processing done");
+        log.info("Initial Processing done");
     }
 
     private void onHashComputed(Integer tag, String hash) {
@@ -100,7 +101,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
             procFile.Data().put("Ed2k", hash);
             procFile.ActionsDone().add(eAction.Process);
             procFile.ActionsTodo().remove(eAction.Process);
-            logger.info(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} has been hashed");
+            log.fine(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} has been hashed");
 
             boolean sendML = procFile.ActionsTodo().contains(eAction.MyListCmd);
             boolean sendFile = procFile.ActionsTodo().contains(eAction.FileCmd);
@@ -113,12 +114,12 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                 requestDBMyList(procFile);
             }
 
-            logger.info(STR."Requested Data for file with Id \{procFile.Id()}: SendFile: \{sendFile}, SendML: \{sendML}");
+            log.fine(STR."Requested Data for file with Id \{procFile.Id()}: SendFile: \{sendFile}, SendML: \{sendML}");
 
         } else if (procFile != null) {
             procFile.ActionsError().add(eAction.Process);
             procFile.ActionsTodo().remove(eAction.Process);
-            logger.warning(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} could not be hashed");
+            log.warning(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} could not be hashed");
         }
 
         if (isProcessing) {
@@ -157,7 +158,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                 case MULTIPLE_FILES_FOUND -> "Multiple files found";
                 default -> "Unknown error";
             };
-            logger.warning(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} returned error: \{errorMessage}");
+            log.warning(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} returned error: \{errorMessage}");
             if (replyStatus == ReplyStatus.NO_SUCH_FILE) {
                 // File not found in anidb
                 File currentFile = procFile.FileObj();
@@ -168,7 +169,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         } else {
             procFile.ActionsDone().add(eAction.FileCmd);
             query.getCommand().AddReplyToDict(procFile.Data(), query.getReply());
-            logger.info(STR."Got DB Info for file \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}");
+            log.fine(STR."Got DB Info for file \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}");
         }
 
         if (!procFile.IsFinal() && !(procFile.ActionsTodo().contains(eAction.FileCmd) || (procFile.ActionsTodo().contains(eAction.MyListCmd)))) {
@@ -193,7 +194,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                 || replyStatus == ReplyStatus.MYLIST_ENTRY_EDITED) {
             //File Added/Edited
             procFile.ActionsDone().add(eAction.MyListCmd);
-            logger.info(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} successfully added/edited on MyList");
+            log.fine(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} successfully added/edited on MyList");
 
         } else if (replyStatus == ReplyStatus.FILE_ALREADY_IN_MYLIST) {
             //File Already Added
@@ -201,18 +202,18 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
             if (configuration.isOverwriteMLEntries()) {
                 procFile.ActionsTodo().add(eAction.MyListCmd);
                 api.queueCommand(query.getCommand().WithEdit());
-                logger.info(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} already added on MyList, retrying with edit");
+                log.fine(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} already added on MyList, retrying with edit");
             } else {
-                logger.info(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} already added on MyList");
+                log.fine(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} already added on MyList");
             }
         } else {
             procFile.ActionsError().add(eAction.MyListCmd);
             if (replyStatus == ReplyStatus.NO_SUCH_FILE
                     || replyStatus == ReplyStatus.NO_SUCH_ANIME
                     || replyStatus == ReplyStatus.NO_SUCH_GROUP) {
-                logger.warning(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} returned not found status");
+                log.warning(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} returned not found status");
             } else {
-                logger.warning(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} returned error");
+                log.warning(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} returned error");
             }
         }
 
@@ -222,7 +223,6 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
     }
 
     private void finalProcessing(FileInfo procFile) {
-        System.out.println(STR."Final processing \{procFile.Id()}");
         procFile.IsFinal(true);
 
         if (procFile.ActionsTodo().contains(eAction.Rename) && procFile.ActionsDone().contains(eAction.FileCmd)) {
@@ -254,7 +254,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
             }
         }
 
-        logger.info(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} done");
+        log.fine(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} done");
         if (procFile.Id() == lastFileId - 1) {
             sendEvent(ProcessingEvent.Done);
         }
@@ -268,7 +268,6 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
 
             File folderObj = null;
 
-            System.out.println("GUI_EnableFileMove" + configuration.isEnableFileMove());
             if (configuration.isEnableFileMove()) {
                 if (configuration.isMoveTypeUseFolder()) {
                     // TODO: Remove this functionality
@@ -276,7 +275,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                 } else {
                     ts = getPathFromTagSystem(procFile);
                     if (ts == null) {
-                        logger.severe(STR."TagSystem script failed for File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}");
+                        log.severe(STR."TagSystem script failed for File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}");
                     }
 
                     String folderStr = ts.get("PathName");
@@ -289,7 +288,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                     throw new Exception("Pathname (Folder) too long");
                 }
                 if (!folderObj.isAbsolute()) {
-                    logger.warning(STR."Renaming failed for File \{procFile.FileObj().getAbsolutePath()}. Folderpath from TagSystem needs to be absolute but is \{folderObj.getPath()}");
+                    log.warning(STR."Renaming failed for File \{procFile.FileObj().getAbsolutePath()}. Folderpath from TagSystem needs to be absolute but is \{folderObj.getPath()}");
                     return false;
                 }
 
@@ -311,7 +310,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                     ts = getPathFromTagSystem(procFile);
                 }
                 if (ts == null) {
-                    logger.severe(STR."TagSystem script failed for File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}");
+                    log.severe(STR."TagSystem script failed for File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}");
                 }
 
                 filename = ts.get("FileName") + ext;
@@ -327,7 +326,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
 
             File renFile = new File(folderObj, filename);
             if (renFile.exists() && !(renFile.getParentFile().equals(procFile.FileObj().getParentFile()))) {
-                logger.info(STR."Destination for File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} already exists: \{renFile.getAbsolutePath()}");
+                log.info(STR."Destination for File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} already exists: \{renFile.getAbsolutePath()}");
                 if (configuration.isDeleteDuplicateFiles()) {
                     appendToPostProcessingScript(STR."rm \"\{procFile.FileObj().getAbsolutePath()}\"");
                 } else {
@@ -336,7 +335,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                 }
                 return false;
             } else if (renFile.getAbsolutePath().equals(procFile.FileObj().getAbsolutePath())) {
-                logger.info(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} does not need renaming.");
+                log.fine(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} does not need renaming.");
                 return true;
             } else {
                 final String oldFilenameWoExt = procFile.FileObj().getName().substring(0, procFile.FileObj().getName().lastIndexOf("."));
@@ -348,7 +347,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                 }
 
                 if (tryRenameFile(procFile.Id(), procFile.FileObj(), renFile)) {
-                    logger.info(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} renamed to \{renFile.getAbsolutePath()}");
+                    log.fine(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} renamed to \{renFile.getAbsolutePath()}");
                     if (configuration.isRenameRelatedFiles()) {
                         try {
 
@@ -367,24 +366,22 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                                 }
                             }
                             if (!accumExt.isEmpty()) {
-                                logger.info(STR."Reanmed related files for \{procFile.FileObj().getAbsolutePath()} with extensions: \{accumExt}");
+                                log.fine(STR."Reanmed related files for \{procFile.FileObj().getAbsolutePath()} with extensions: \{accumExt}");
                             }
                         } catch (Exception e) {
-                            logger.severe(STR."Failed to rename related files for \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}: \{e.getMessage()}");
+                            log.severe(STR."Failed to rename related files for \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}: \{e.getMessage()}");
                         }
                     }
 
                     procFile.FileObj(renFile);
                     return true;
 
-                } else {
-                    logger.warning(STR."Renaming for file \{procFile.FileObj().getAbsolutePath()} to \{renFile.getAbsolutePath()} failed. Will try again via shell script.");
-                    return false;
                 }
+                return false;
             }
         } catch (Exception ex) {
             ex.printStackTrace();
-            logger.severe(STR."Renaming failed for File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}: \{ex.getMessage()}");
+            log.severe(STR."Renaming failed for File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}: \{ex.getMessage()}");
             return false;
         }
     }
@@ -393,7 +390,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         if (original.renameTo(targetFile)) {
             return true;
         }
-        logger.warning(STR."Renaming for file \{original.getAbsolutePath()} to \{targetFile.getAbsolutePath()} failed. Will try again via shell script.");
+        log.warning(STR."Renaming for file \{original.getAbsolutePath()} to \{targetFile.getAbsolutePath()} failed. Will try again via shell script.");
         String command = STR."mv \"\{original.getAbsolutePath()}\" \"\{targetFile.getAbsolutePath()}\"";
         if (!targetFile.getParentFile().exists()) {
             appendToPostProcessingScript(STR."mkdir -p \{targetFile.getParentFile().getAbsolutePath()}"); // Make sure the folder exists
@@ -411,7 +408,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
             writer.append("\n");
             writer.close();
         } catch (IOException e) {
-            logger.warning(STR."Could not write to target file \{path}: \{e.getMessage()}");
+            log.warning(STR."Could not write to target file \{path}: \{e.getMessage()}");
         }
     }
 
@@ -528,13 +525,13 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
             files.put(fileInfo);
             lastFileId++;
         }
-        logger.info(STR."File Count changed to \{files.size()}");
+        log.fine(STR."File Count changed to \{files.size()}");
     }
 
     @Override
     public void start() {
         isProcessing = true;
-        logger.info("Starting processing");
+        log.info("Starting processing");
         processEps();
     }
 

@@ -26,7 +26,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     final Map<String, Query<?>> queries = new ConcurrentHashMap<>();
     final Map<Class<? extends Command>, IQueryCallback<?>> commandCallbacks = new ConcurrentHashMap<>();
 
-    private final Logger logger = Logger.getLogger(UdpApi.class.getName());
+    private static final Logger logger = Logger.getLogger(UdpApi.class.getName());
 
     private DatagramSocket socket;
     private final ScheduledExecutorService executorService;

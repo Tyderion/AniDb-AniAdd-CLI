@@ -1,5 +1,6 @@
 package udpapi2.command;
 
+import lombok.With;
 import lombok.experimental.SuperBuilder;
 import lombok.val;
 import udpapi2.QueryId;

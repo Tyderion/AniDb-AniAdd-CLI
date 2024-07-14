@@ -1,5 +1,6 @@
 package aniAdd.startup.commands.anidb;
 
+import lombok.extern.java.Log;
 import lombok.val;
 import picocli.CommandLine;
 import processing.TagSystem;
@@ -9,6 +10,7 @@ import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+@Log
 @CommandLine.Command(name = "tags",
         mixinStandardHelpOptions = true,
         version = "1.0",
@@ -30,8 +32,7 @@ public class TagsCommand implements Callable<Integer> {
         TagSystem.Evaluate(configuration.getTagSystemCode(), tags);
         val filename = tags.get("FileName");
         val pathname = tags.get("PathName");
-        Logger.getGlobal().log(Level.INFO, STR."Filename: \{filename}");
-        Logger.getGlobal().log(Level.INFO, STR."Pathname: \{pathname}");
+        log.info(STR."Filename: \{filename}, Pathname: \\{pathname}");
         return 0;
     }
 

@@ -2,15 +2,15 @@ package udpapi2;
 
 import aniAdd.misc.Misc;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.java.Log;
 import lombok.val;
 import udpapi2.reply.Reply;
 import udpapi2.reply.ReplyStatus;
 
 import java.util.Arrays;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+@Log
 @RequiredArgsConstructor
 public class ParseReply implements Runnable {
 
@@ -22,7 +22,7 @@ public class ParseReply implements Runnable {
         try {
             parseReply();
         } catch (Exception e) {
-            Logger.getGlobal().log(Level.WARNING, STR."Parse Error: \{e.toString()}");
+            log.warning(STR."Parse Error: \{e.toString()}");
             e.printStackTrace();
         }
     }
@@ -35,10 +35,10 @@ public class ParseReply implements Runnable {
 
     private void parseReply() {
         if (message == null || message.isEmpty()) {
-            Logger.getGlobal().log(Level.INFO, "Server reply is an empty string... ignoring");
+            log.warning("Server reply is an empty string... ignoring");
             return;
         }
-        Logger.getGlobal().log(Level.INFO, STR."Reply: \{message.replace("\n", " \\n ")}");
+        log.fine( STR."Reply: \{message.replace("\n", " \\n ")}");
 // LOGIN: auth-0 200 i6qdp 94.101.114.107:3333 LOGIN ACCEPTED\n
 
         val builder = Reply.builder().fullMessage(message);

@@ -1,6 +1,7 @@
 package udpapi2.receive;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.java.Log;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 
@@ -10,20 +11,20 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
+@Log
 @RequiredArgsConstructor
 public class Receive implements Runnable {
 
     @NotNull
-    final Integration integration;
+    private final Integration integration;
 
     @Override
     public void run() {
-        Logger.getGlobal().log(Level.INFO, "Receive thread started");
+        log.fine("Receive thread started");
         while (integration.isSocketConnected()) {
             try {
                 val packet = new DatagramPacket(new byte[1400], 1400);
@@ -42,15 +43,15 @@ public class Receive implements Runnable {
                 integration.onReceiveRawMessage(new String(replyBinary, 0, length, StandardCharsets.UTF_8));
 
             } catch (SocketException e) {
-                Logger.getGlobal().info("Socket was closed");
+                log.fine("Socket was closed");
                 integration.disconnect();
             } catch (Exception e) {
-                Logger.getGlobal().severe(STR."Receive Error: \{e.getMessage()}");
+                log.severe(STR."Receive Error: \{e.getMessage()}");
                 integration.disconnect();
             }
         }
 
-        Logger.getGlobal().log(Level.INFO, "Receive thread stopped");
+        log.fine( "Receive thread stopped");
     }
 
     private byte[] inflatePacket(ByteArrayInputStream stream) throws IOException {

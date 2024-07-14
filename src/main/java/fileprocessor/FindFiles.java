@@ -1,6 +1,7 @@
 package fileprocessor;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.java.Log;
 import lombok.val;
 
 import java.io.File;
@@ -11,21 +12,21 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Log
 @RequiredArgsConstructor
 public class FindFiles implements Callable<List<File>> {
 
     private final String directory;
-    private final Logger logger = Logger.getLogger(FindFiles.class.getName());
 
     @Override
     public List<File> call() throws Exception {
         File folder = new File(directory);
 
-        logger.info(STR."Folder: \{folder.getAbsolutePath()}");
+        log.fine(STR."Folder: \{folder.getAbsolutePath()}");
 
         val files = recursivelyGetFilesToScrape(folder).collect(Collectors.toList());
-        files.forEach(f -> logger.info(STR."Found file: \{f.getAbsolutePath()}"));
-        logger.info(STR."Number of found files: \{files.size()}");
+        files.forEach(f -> log.finest(STR."Found file: \{f.getAbsolutePath()}"));
+        log.info(STR."Number of found files: \{files.size()}");
         return files;
     }
 

@@ -9,6 +9,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
+import lombok.extern.java.Log;
 import lombok.val;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
@@ -16,9 +17,8 @@ import org.java_websocket.handshake.ServerHandshake;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
+@Log
 public class KodiNotificationSubscriber extends WebSocketClient {
 
     private final Gson gson = new GsonBuilder().setFieldNamingStrategy(f -> f.getName().toLowerCase()).create();
@@ -31,7 +31,7 @@ public class KodiNotificationSubscriber extends WebSocketClient {
 
     @Override
     public void onOpen(ServerHandshake handshakedata) {
-        Logger.getGlobal().log(Level.INFO, STR."Connection opened \{handshakedata.getHttpStatus()} \{handshakedata.getHttpStatusMessage()}");
+        log.fine( STR."Connection opened \{handshakedata.getHttpStatus()} \{handshakedata.getHttpStatusMessage()}");
     }
 
     @Override
@@ -49,12 +49,12 @@ public class KodiNotificationSubscriber extends WebSocketClient {
         }
         if (isResult(json, "episodedetails")) {
             val episodeDetail = gson.fromJson(json.get("result").getAsJsonObject().get("episodedetails").toString(), EpisodeDetail.class);
-            Logger.getGlobal().log(Level.INFO, STR."Episode details: \{episodeDetail}");
+            log.finest( STR."Episode details: \{episodeDetail}");
             handleEpisodeWatched(episodeDetail);
         }
         if (isResult(json, "moviedetails")) {
             val movieDetail = gson.fromJson(json.get("result").getAsJsonObject().get("moviedetails").toString(), MovieDetail.class);
-            Logger.getGlobal().log(Level.INFO, STR."Movie details: \{movieDetail}");
+            log.finest( STR."Movie details: \{movieDetail}");
             handleMovieWatched(movieDetail);
         }
     }
@@ -73,8 +73,7 @@ public class KodiNotificationSubscriber extends WebSocketClient {
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        Logger.getGlobal().log(Level.INFO, STR."Connection closed by \{remote ? "remote peer" : "us"} Code: \{code} Reason: \{reason}");
-        Logger.getGlobal().log(Level.INFO, "Will try to reconnect in 5s");
+        log.warning( STR."Connection closed by \{remote ? "remote peer" : "us"} Code: \{code} Reason: \{reason}. Will try to reconnect in 5s");
         try {
             Thread.sleep(5000);
         } catch (InterruptedException e) {
@@ -91,7 +90,7 @@ public class KodiNotificationSubscriber extends WebSocketClient {
     }
 
     private void handleVideoLibraryOnUpdate(VideoLibraryUpdateParams parameters) {
-        Logger.getGlobal().log(Level.INFO, STR."Handling video library update: \{parameters}");
+        log.fine( STR."Handling video library update: \{parameters}");
         switch (parameters.item.type) {
             case MOVIE -> sendRpcRequest(new GetMovieDetail()
                     .setMovieId(parameters.item.id)
@@ -104,17 +103,17 @@ public class KodiNotificationSubscriber extends WebSocketClient {
 
     private void sendRpcRequest(KodiJsonRpc rpc) {
         val request = rpc.getAsJsonString();
-        Logger.getGlobal().log(Level.INFO, STR."Sending request: \{request}");
+        log.finest( STR."Sending request: \{request}");
         send(request.getBytes(StandardCharsets.UTF_8));
     }
 
     private void handleEpisodeWatched(EpisodeDetail episodeDetail) {
         if (!episodeDetail.file.toLowerCase().contains("anime") && !episodeDetail.file.toLowerCase().contains("needs-metadata")) {
-            Logger.getGlobal().log(Level.INFO, STR."Not an anime episode '\{episodeDetail.file}', skipping");
+            log.finest( STR."Not an anime episode '\{episodeDetail.file}', skipping");
             return;
         }
         val localFilePath = getPath(episodeDetail.file, VideoLibraryUpdateParams.Type.EPISODE);
-        Logger.getGlobal().log(Level.INFO, STR."Episode file path: \{localFilePath}");
+        log.fine( STR."Episode file path: \{localFilePath}");
         if (episodeDetail.getPlayCount() > 0) {
             aniAdd.MarkFileAsWatched(localFilePath);
         }
@@ -122,11 +121,11 @@ public class KodiNotificationSubscriber extends WebSocketClient {
 
     private void handleMovieWatched(MovieDetail movieDetail) {
         if (!movieDetail.file.toLowerCase().contains("anime")) {
-            Logger.getGlobal().log(Level.INFO, STR."Not an anime movie '\{movieDetail.file}', skipping");
+            log.finest( STR."Not an anime movie '\{movieDetail.file}', skipping");
             return;
         }
         val localFilePath = getPath(movieDetail.file, VideoLibraryUpdateParams.Type.MOVIE);
-        Logger.getGlobal().log(Level.INFO, STR."Movie file path: \{localFilePath}");
+        log.fine( STR."Movie file path: \{localFilePath}");
         if (movieDetail.getPlayCount() > 0) {
             aniAdd.MarkFileAsWatched(localFilePath);
         }

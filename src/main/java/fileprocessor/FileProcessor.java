@@ -18,7 +18,7 @@ public class FileProcessor {
     private final Processor processor;
     private final AniConfiguration configuration;
     private final List<ICallBack<EventType>> onEvents = new ArrayList<>();
-    private final Logger logger = Logger.getLogger(FileProcessor.class.getName());
+    private static final Logger logger = Logger.getLogger(FileProcessor.class.getName());
 
     private final ExecutorService executorService;
 
