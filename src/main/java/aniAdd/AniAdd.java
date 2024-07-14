@@ -1,14 +1,10 @@
 package aniAdd;
 
-import aniAdd.Modules.IModule;
 import aniAdd.config.AniConfiguration;
 
-import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import aniAdd.misc.ICallBack;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
@@ -25,13 +21,10 @@ public class AniAdd implements IAniAdd {
     @NotNull
     private final FileProcessor fileProcessor;
     @NotNull
+    private final Mod_EpProcessing processing;
+    @NotNull
     private final ICallBack<Void> onShutdown;
     private final Logger logger = Logger.getLogger(AniAdd.class.getName());
-
-
-    private final Map<Class<? extends IModule>, IModule> modules = new HashMap<>();
-    private final EventHandler eventHandler = new EventHandler();
-    private boolean allInitialized = false;
 
     public AniAdd(@NotNull AniConfiguration configuration, @NotNull UdpApi api, boolean exitOnTermination, @NotNull FileProcessor fileProcessor, @NotNull Mod_EpProcessing processing, @NotNull ICallBack<Void> onShutdown) {
         this.configuration = configuration;
@@ -39,7 +32,7 @@ public class AniAdd implements IAniAdd {
         this.onShutdown = onShutdown;
         this.fileProcessor = fileProcessor;
         this.fileProcessor.AddCallback(event -> {
-            if (Objects.requireNonNull(event) == FileProcessor.EventType.NothingToProcess) {
+            if (event == FileProcessor.EventType.NothingToProcess) {
                 if (exitOnTermination) {
                     logger.info("File processing nothing to process");
                     Stop();
@@ -48,14 +41,21 @@ public class AniAdd implements IAniAdd {
                 logger.info(STR."File processing \{event}");
             }
         });
-        addModule(processing);
+        this.processing = processing;
+        this.processing.addListener(event -> {
+            if (event == Mod_EpProcessing.ProcessingEvent.Done) {
+                logger.info("File moving done");
+                if (exitOnTermination) {
+                    logger.info("Shutting down");
+                    Stop();
+                }
+            }
+        });
     }
 
     @Override
     public void ProcessDirectory(String directory) {
-        runCommand(_ -> {
-            fileProcessor.Scan(directory);
-        });
+        fileProcessor.Scan(directory);
     }
 
     @Override
@@ -68,117 +68,12 @@ public class AniAdd implements IAniAdd {
                 .setWatched(true)
                 .overwriteMLEntries(true)
                 .build();
-        runCommand(_ -> {
-            fileProcessor.AddFile(path, config);
-        });
-
-    }
-
-    private void runCommand(ICallBack<Void> callback) {
-        if (allInitialized) {
-            callback.invoke(null);
-        } else {
-            addComListener(comEvent -> {
-                if (comEvent.EventType() == Communication.CommunicationEvent.EventType.Information) {
-                    if (comEvent.Params(0) == IModule.eModState.Initialized) {
-                        callback.invoke(null);
-                    }
-                }
-            });
-        }
-    }
-
-    private void addModule(IModule mod) {
-        modules.put(mod.getClass(), mod);
-        eventHandler.AddEventHandler(mod);
-    }
-
-    public void Start(boolean exitOnTermination) {
-        ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Initializing));
-
-        for (IModule module : modules.values()) {
-            System.out.println("Initializing: " + module.ModuleName());
-            module.Initialize(this, configuration);
-        }
-
-        while (!allInitialized) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ignored) {
-            }
-
-            allInitialized = true;
-            for (IModule module : modules.values()) {
-                allInitialized &= module.ModState() == IModule.eModState.Initialized;
-            }
-        }
-        if (exitOnTermination) {
-            for (IModule module : modules.values()) {
-                module.addComListener(comEvent -> {
-                    if (comEvent.EventType() == CommunicationEvent.EventType.Information) {
-                        if (comEvent.ParamCount() == 2 &&
-                                comEvent.Params(0) == Mod_EpProcessing.eComType.FileEvent &&
-                                comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done) {
-                            Logger.getGlobal().log(Level.INFO, "File moving done, shutting down");
-                            Stop();
-                        }
-                    }
-                });
-            }
-        }
-        ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Initialized));
+        fileProcessor.AddFile(path, config);
     }
 
     public void Stop() {
-        ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Terminating));
-
-        for (IModule module : modules.values()) {
-            System.out.println(STR."Terminating: \{module.ModuleName()}");
-            module.Terminate();
-        }
-
-        boolean allModsTerminated = false;
-        while (!allModsTerminated) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ex) {
-            }
-
-            allModsTerminated = true;
-            for (IModule module : modules.values()) {
-                allModsTerminated &= module.ModState() == IModule.eModState.Terminated;
-            }
-        }
+        logger.info("Terminate AniAdd");
+        processing.Terminate();
         api.queueShutdown(_ -> onShutdown.invoke(null));
-        allInitialized = false;
-
-
-        ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Terminated));
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T extends IModule> T GetModule(Class<T> modName) {
-        return (T) modules.get(modName);
-    }
-
-    static class EventHandler implements ComListener {
-        public void AddEventHandler(IModule mod) {
-            mod.addComListener(this);
-        }
-
-        public void handleEvent(CommunicationEvent communicationEvent) {
-            System.out.println("Event: " + communicationEvent.toString());
-        }
-    }
-
-    private final ArrayList<ComListener> listeners = new ArrayList<ComListener>();
-
-    protected void ComFire(CommunicationEvent communicationEvent) {
-        System.out.println("AniAdd Event: " + communicationEvent.toString());
-        for (ComListener listener : listeners) listener.handleEvent(communicationEvent);
-    }
-
-    public void addComListener(ComListener comListener) {
-        listeners.add(comListener);
     }
 }

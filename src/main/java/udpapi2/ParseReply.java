@@ -1,6 +1,5 @@
 package udpapi2;
 
-import aniAdd.Communication;
 import aniAdd.misc.Misc;
 import lombok.RequiredArgsConstructor;
 import lombok.val;

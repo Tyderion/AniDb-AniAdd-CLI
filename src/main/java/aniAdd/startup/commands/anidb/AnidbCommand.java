@@ -41,9 +41,6 @@ public class AnidbCommand {
         val processing = new Mod_EpProcessing(getConfiguration(), udpApi);
         val fileProcessor = new FileProcessor(processing, getConfiguration(), executorService);
 
-        val aniAdd = new AniAdd(getConfiguration(), udpApi, terminateOnCompletion, fileProcessor, processing, _ -> executorService.shutdownNow());
-
-        aniAdd.Start(terminateOnCompletion);
-        return aniAdd;
+        return new AniAdd(getConfiguration(), udpApi, terminateOnCompletion, fileProcessor, processing, _ -> executorService.shutdownNow());
     }
 }

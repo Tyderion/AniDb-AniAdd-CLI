@@ -1,38 +1,39 @@
 package processing;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Collection;
 
-import aniAdd.Modules.BaseModule;
 import aniAdd.config.AniConfiguration;
+import aniAdd.misc.ICallBack;
 import fileprocessor.FileProcessor;
 import lombok.val;
 import processing.FileInfo.eAction;
 
-import aniAdd.IAniAdd;
-import aniAdd.misc.ICallBack;
 import aniAdd.misc.MultiKeyDict;
 import aniAdd.misc.MultiKeyDict.IKeyMapper;
 
+import java.util.List;
 import java.util.TreeMap;
+import java.util.logging.Logger;
 
 import udpapi2.UdpApi;
 import udpapi2.command.FileCommand;
-import udpapi2.command.LogoutCommand;
 import udpapi2.command.MylistAddCommand;
 import udpapi2.query.Query;
 import udpapi2.reply.ReplyStatus;
 
-public class Mod_EpProcessing extends BaseModule implements FileProcessor.Processor {
+public class Mod_EpProcessing implements FileProcessor.Processor {
 
     public static String[] supportedFiles = {"avi", "ac3", "mpg", "mpeg", "rm", "rmvb", "asf", "wmv", "mov", "ogm", "mp4", "mkv", "rar", "zip", "ace", "srt", "sub", "ssa", "smi", "idx", "ass", "txt", "swf", "flv"};
     private UdpApi api;
     private FileParser fileParser;
     private boolean isProcessing;
-    private boolean isPaused;
     private int lastFileId = 0;
     private int filesBeingMoved;
     private final AniConfiguration configuration;
+    private final List<ICallBack<ProcessingEvent>> eventHandlers = new ArrayList<>();
+    private final Logger logger = Logger.getLogger(Mod_EpProcessing.class.getName());
 
     private final MultiKeyDict<String, Object, FileInfo> files = new MultiKeyDict<>(new IKeyMapper<String, Object, FileInfo>() {
 
@@ -57,18 +58,19 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
         api.registerCallback(MylistAddCommand.class, this::aniDBMyListReply);
     }
 
-    private void processEps() {
-        while (isPaused) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ex) {
-            }
-        }
+    public void addListener(ICallBack<ProcessingEvent> handler) {
+        eventHandlers.add(handler);
+    }
 
+    private void sendEvent(ProcessingEvent event) {
+        eventHandlers.forEach(handler -> handler.invoke(event));
+    }
+
+    private void processEps() {
         for (FileInfo procFile : files.values()) {
             if (!procFile.Served()) {
                 procFile.Served(true);
-                Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.Processing, procFile.Id());
+                logger.info(STR."Processing file \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}");
 
                 while (filesBeingMoved > 0) {
                     try {
@@ -77,21 +79,16 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
                     }
                 }
 
-                fileParser = new FileParser(procFile.FileObj(), new ICallBack<FileParser>() {
-
-                    public void invoke(FileParser fileParser) {
-                        continueProcessing(fileParser);
-                    }
-                }, procFile.Id());
+                fileParser = new FileParser(procFile.FileObj(), this::onHashComputed, procFile.Id());
                 fileParser.start();
                 return;
             }
         }
         isProcessing = false;
-        Log(CommunicationEvent.EventType.Information, eComType.Status, eComSubType.Done);
+        logger.info("Initial Processing done");
     }
 
-    private void continueProcessing(FileParser fileParser) {
+    private void onHashComputed(FileParser fileParser) {
         this.fileParser = null;
 
         FileInfo procFile = files.get("Id", fileParser.Tag());
@@ -101,8 +98,7 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
             procFile.Data().put("Ed2k", fileParser.Hash());
             procFile.ActionsDone().add(eAction.Process);
             procFile.ActionsTodo().remove(eAction.Process);
-
-            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.ParsingDone, procFile.Id(), fileParser);
+            logger.info(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} has been hashed");
 
             boolean sendML = procFile.ActionsTodo().contains(eAction.MyListCmd);
             boolean sendFile = procFile.ActionsTodo().contains(eAction.FileCmd);
@@ -115,13 +111,12 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
                 requestDBMyList(procFile);
             }
 
-            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.GetDBInfo, procFile.Id(), sendFile, sendML);
+            logger.info(STR."Requested Data for file with Id \{procFile.Id()}: SendFile: \{sendFile}, SendML: \{sendML}");
 
         } else if (procFile != null) {
             procFile.ActionsError().add(eAction.Process);
             procFile.ActionsTodo().remove(eAction.Process);
-
-            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.ParsingError, procFile.Id(), fileParser);
+            logger.warning(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} could not be hashed");
         }
 
         if (isProcessing) {
@@ -143,8 +138,6 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
     }
 
     private void aniDBInfoReply(Query<FileCommand> query) {
-        //System.out.println("Got Fileinfo reply");
-
         int fileId = Integer.parseInt(query.getCommand().getTag());
         if (!files.contains("Id", fileId)) {
             return; //File not found (Todo: throw error)
@@ -156,18 +149,24 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
                 || replyStatus == ReplyStatus.ILLEGAL_INPUT_OR_ACCESS_DENIED
                 || replyStatus == ReplyStatus.MULTIPLE_FILES_FOUND) {
             procFile.ActionsError().add(eAction.FileCmd);
-            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, replyStatus == ReplyStatus.NO_SUCH_FILE ? eComSubType.FileCmd_NotFound : eComSubType.FileCmd_Error, procFile.Id());
+            val errorMessage = switch (replyStatus) {
+                case NO_SUCH_FILE -> "File not found";
+                case ILLEGAL_INPUT_OR_ACCESS_DENIED -> "Illegal input or access denied";
+                case MULTIPLE_FILES_FOUND -> "Multiple files found";
+                default -> "Unknown error";
+            };
+            logger.warning(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} returned error: \{errorMessage}");
             if (replyStatus == ReplyStatus.NO_SUCH_FILE) {
                 // File not found in anidb
                 File currentFile = procFile.FileObj();
-                String unknownFolderPath = "/unknown/" + currentFile.getParentFile().getName();
-                appendToPostProcessingScript("mkdir -p \"" + unknownFolderPath + "\"");
-                appendToPostProcessingScript("mv \"" + currentFile.getAbsolutePath() + "\" \"" + unknownFolderPath + "/" + currentFile.getName() + "\"");
+                String unknownFolderPath = STR."/unknown/\{currentFile.getParentFile().getName()}";
+                appendToPostProcessingScript(STR."mkdir -p \"\{unknownFolderPath}\"");
+                appendToPostProcessingScript(STR."mv \"\{currentFile.getAbsolutePath()}\" \"\{unknownFolderPath}/\{currentFile.getName()}\"");
             }
         } else {
             procFile.ActionsDone().add(eAction.FileCmd);
             query.getCommand().AddReplyToDict(procFile.Data(), query.getReply());
-            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.FileCmd_GotInfo, procFile.Id());
+            logger.info(STR."Got DB Info for file \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}");
         }
 
         if (!procFile.IsFinal() && !(procFile.ActionsTodo().contains(eAction.FileCmd) || (procFile.ActionsTodo().contains(eAction.MyListCmd)))) {
@@ -192,33 +191,26 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
                 || replyStatus == ReplyStatus.MYLIST_ENTRY_EDITED) {
             //File Added/Edited
             procFile.ActionsDone().add(eAction.MyListCmd);
-            /*if (procFile.ActionsTodo().remove(eAction.SetWatchedState)) {
-            procFile.ActionsDone().add(eAction.SetWatchedState);
-            }*/
-            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.MLCmd_FileAdded, procFile.Id());
+            logger.info(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} successfully added/edited on MyList");
 
         } else if (replyStatus == ReplyStatus.FILE_ALREADY_IN_MYLIST) {
             //File Already Added
 
             if (configuration.isOverwriteMLEntries()) {
                 procFile.ActionsTodo().add(eAction.MyListCmd);
-                api.queueCommand(((MylistAddCommand) query.getCommand()).WithEdit());
+                api.queueCommand(query.getCommand().WithEdit());
+                logger.info(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} already added on MyList, retrying with edit");
+            } else {
+                logger.info(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} already added on MyList");
             }
-
-            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.MLCmd_AlreadyAdded, procFile.Id());
-
         } else {
             procFile.ActionsError().add(eAction.MyListCmd);
-            /*if (procFile.ActionsTodo().remove(eAction.SetWatchedState)) {
-            procFile.ActionsError().add(eAction.SetWatchedState);
-            }*/
-
             if (replyStatus == ReplyStatus.NO_SUCH_FILE
                     || replyStatus == ReplyStatus.NO_SUCH_ANIME
                     || replyStatus == ReplyStatus.NO_SUCH_GROUP) {
-                Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.MLCmd_NotFound, procFile.Id());
+                logger.warning(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} returned not found status");
             } else {
-                Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.MLCmd_Error, procFile.Id());
+                logger.warning(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} returned error");
             }
         }
 
@@ -258,12 +250,11 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
             synchronized (this) {
                 filesBeingMoved--;
             }
-
         }
 
-        Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.Done, procFile.Id());
+        logger.info(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} done");
         if (procFile.Id() == lastFileId - 1) {
-            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.Done);
+            sendEvent(ProcessingEvent.Done);
         }
     }
 
@@ -283,7 +274,7 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
                 } else {
                     ts = getPathFromTagSystem(procFile);
                     if (ts == null) {
-                        Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "TagSystem script failed");
+                        logger.severe(STR."TagSystem script failed for File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}");
                     }
 
                     String folderStr = ts.get("PathName");
@@ -296,7 +287,7 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
                     throw new Exception("Pathname (Folder) too long");
                 }
                 if (!folderObj.isAbsolute()) {
-                    Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "Folderpath needs to be absolute.");
+                    logger.warning(STR."Renaming failed for File \{procFile.FileObj().getAbsolutePath()}. Folderpath from TagSystem needs to be absolute but is \{folderObj.getPath()}");
                     return false;
                 }
 
@@ -318,7 +309,7 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
                     ts = getPathFromTagSystem(procFile);
                 }
                 if (ts == null) {
-                    Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "TagSystem script failed");
+                    logger.severe(STR."TagSystem script failed for File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}");
                 }
 
                 filename = ts.get("FileName") + ext;
@@ -334,16 +325,16 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
 
             File renFile = new File(folderObj, filename);
             if (renFile.exists() && !(renFile.getParentFile().equals(procFile.FileObj().getParentFile()))) {
-                Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), "Destination filename already exists.");
+                logger.info(STR."Destination for File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} already exists: \{renFile.getAbsolutePath()}");
                 if (configuration.isDeleteDuplicateFiles()) {
-                    appendToPostProcessingScript("rm \"" + procFile.FileObj().getAbsolutePath() + "\"");
+                    appendToPostProcessingScript(STR."rm \"\{procFile.FileObj().getAbsolutePath()}\"");
                 } else {
-                    appendToPostProcessingScript("mkdir -p \"" + "/duplicates/" + renFile.getParentFile().getName() + "\"");
-                    appendToPostProcessingScript("mv \"" + procFile.FileObj().getAbsolutePath() + "\" \"" + "/duplicates/" + renFile.getParentFile().getName() + "/" + renFile.getName() + "\"");
+                    appendToPostProcessingScript(STR."mkdir -p \"/duplicates/\{renFile.getParentFile().getName()}\"");
+                    appendToPostProcessingScript(STR."mv \"\{procFile.FileObj().getAbsolutePath()}\" \"/duplicates/\{renFile.getParentFile().getName()}/\{renFile.getName()}\"");
                 }
                 return false;
             } else if (renFile.getAbsolutePath().equals(procFile.FileObj().getAbsolutePath())) {
-                Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingNotNeeded, procFile.Id(), procFile.FileObj());
+                logger.info(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} does not need renaming.");
                 return true;
             } else {
                 final String oldFilenameWoExt = procFile.FileObj().getName().substring(0, procFile.FileObj().getName().lastIndexOf("."));
@@ -355,9 +346,8 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
                 }
 
                 if (tryRenameFile(procFile.Id(), procFile.FileObj(), renFile)) {
-                    Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.FileRenamed, procFile.Id(), renFile, truncated);
+                    logger.info(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} renamed to \{renFile.getAbsolutePath()}");
                     if (configuration.isRenameRelatedFiles()) {
-                        // <editor-fold defaultstate="collapsed" desc="Rename Related Files">
                         try {
 
                             File srcFolder = procFile.FileObj().getParentFile();
@@ -375,25 +365,24 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
                                 }
                             }
                             if (!accumExt.isEmpty()) {
-                                Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RelFilesRenamed, procFile.Id(), accumExt);
+                                logger.info(STR."Reanmed related files for \{procFile.FileObj().getAbsolutePath()} with extensions: \{accumExt}");
                             }
                         } catch (Exception e) {
-                            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RelFilesRenamingFailed, procFile.Id(), e.getMessage());
+                            logger.severe(STR."Failed to rename related files for \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}: \{e.getMessage()}");
                         }
-                        // </editor-fold>
                     }
 
                     procFile.FileObj(renFile);
                     return true;
 
                 } else {
-                    Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", procFile.Id(), procFile.FileObj(), renFile.getAbsolutePath());
+                    logger.warning(STR."Renaming for file \{procFile.FileObj().getAbsolutePath()} to \{renFile.getAbsolutePath()} failed. Will try again via shell script.");
                     return false;
                 }
             }
         } catch (Exception ex) {
             ex.printStackTrace();
-            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, procFile.Id(), procFile.FileObj(), ex.getMessage());
+            logger.severe(STR."Renaming failed for File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}: \{ex.getMessage()}");
             return false;
         }
     }
@@ -402,7 +391,7 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
         if (original.renameTo(targetFile)) {
             return true;
         }
-        Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Java Renaming Failed", id, original, targetFile.getAbsolutePath(), "Will rename aftewards via shell script.");
+        logger.warning(STR."Renaming for file \{original.getAbsolutePath()} to \{targetFile.getAbsolutePath()} failed. Will try again via shell script.");
         String command = STR."mv \"\{original.getAbsolutePath()}\" \"\{targetFile.getAbsolutePath()}\"";
         if (!targetFile.getParentFile().exists()) {
             appendToPostProcessingScript(STR."mkdir -p \{targetFile.getParentFile().getAbsolutePath()}"); // Make sure the folder exists
@@ -420,7 +409,7 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
             writer.append("\n");
             writer.close();
         } catch (IOException e) {
-            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.RenamingFailed, "Could not write to move file", e.getMessage());
+            logger.warning(STR."Could not write to target file \{path}: \{e.getMessage()}");
         }
     }
 
@@ -537,100 +526,25 @@ public class Mod_EpProcessing extends BaseModule implements FileProcessor.Proces
             files.put(fileInfo);
             lastFileId++;
         }
-
-        Log(CommunicationEvent.EventType.Information, eComType.FileCountChanged);
+        logger.info(STR."File Count changed to \{files.size()}");
     }
 
     @Override
     public void start() {
-        processing(eProcess.Start);
-    }
-
-    public void processing(eProcess proc) {
-        switch (proc) {
-            case Start:
-                //System.out.println("Processing started");
-                isProcessing = true;
-                isPaused = false;
-                Log(CommunicationEvent.EventType.Information, eComType.Status, eProcess.Start);
-                processEps();
-
-                break;
-
-            case Pause:
-                //System.out.println("Processing paused");
-                isPaused = true;
-                if (fileParser != null) {
-                    fileParser.pause();
-                }
-
-                Log(CommunicationEvent.EventType.Information, eComType.Status, eProcess.Pause);
-                break;
-
-            case Resume:
-                //System.out.println("Processing resumed");
-                if (fileParser != null) {
-                    fileParser.resume();
-                }
-
-                isPaused = false;
-                Log(CommunicationEvent.EventType.Information, eComType.Status, eProcess.Resume);
-                break;
-
-            case Stop:
-                //System.out.println("Processing stopped");
-                //Not yet supported
-                isProcessing = false;
-                isPaused = false;
-                Log(CommunicationEvent.EventType.Information, eComType.Status, eProcess.Stop);
-                break;
-
-        }
-
-
-    }
-
-    protected String modName = "EpProcessing";
-    protected eModState modState = eModState.New;
-
-    public eModState ModState() {
-        return modState;
-    }
-
-    public String ModuleName() {
-        return modName;
-    }
-
-    public void Initialize(IAniAdd aniAdd, AniConfiguration configuration) {
-        modState = eModState.Initializing;
-        lastFileId = 0;
-        modState = eModState.Initialized;
+        isProcessing = true;
+        logger.info("Starting processing");
+        processEps();
     }
 
     public void Terminate() {
-        modState = eModState.Terminating;
-
         isProcessing = false;
         if (fileParser != null) {
             fileParser.terminate();
         }
-
-        modState = eModState.Terminated;
     }
 
-    public enum eProcess {
-
-        Start, Pause, Resume, Stop
-    }
-
-    public enum eComType {
-
-        FileSettings, FileCountChanged, FileEvent, Status
-    }
-
-    public enum eComSubType {
-
-        Processing, NoWriteAccess, GotFromHistory, ParsingDone, ParsingError, GetDBInfo, FileCmd_NotFound, FileCmd_GotInfo, FileCmd_Error, MLCmd_FileAdded, MLCmd_AlreadyAdded, MLCmd_FileRemoved, MLCmd_NotFound, MLCmd_Error, VoteCmd_EpVoted, VoteCmd_EpVoteRevoked, VoteCmd_Error, RenamingFailed, FileRenamed, RenamingNotNeeded, RelFilesRenamed, RelFilesRenamingFailed, DeletedEmptyFolder, DeletetingEmptyFolderFailed, Done
+    public enum ProcessingEvent {
+        Done
     }
 
     public static Integer GetFileVersion(int state) {
