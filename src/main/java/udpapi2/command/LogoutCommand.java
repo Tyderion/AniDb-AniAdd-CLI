@@ -1,21 +1,19 @@
 package udpapi2.command;
 
+import lombok.experimental.SuperBuilder;
 import udpapi2.QueryId;
 
-public class LogoutCommand extends CommandWrapper {
+@SuperBuilder
+public class LogoutCommand extends Command {
     private static final String ACTION = "LOGOUT";
 
-    private LogoutCommand(Command command) throws IllegalArgumentException {
-        super(command);
-    }
-
     public static LogoutCommand Create() {
-        return new LogoutCommand(Command.builder()
+        return LogoutCommand.builder()
                 .action(ACTION)
                 .identifier(ACTION.toLowerCase())
                 .queryId(QueryId.Next())
                 .needsLogin(false)
                 .tag(null)
-                .build());
+                .build();
     }
 }

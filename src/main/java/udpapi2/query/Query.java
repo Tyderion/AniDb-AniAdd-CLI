@@ -2,7 +2,7 @@ package udpapi2.query;
 
 import lombok.Data;
 import lombok.val;
-import udpapi2.command.CommandWrapper;
+import udpapi2.command.Command;
 import udpapi2.reply.Reply;
 
 import java.net.DatagramPacket;
@@ -12,7 +12,7 @@ import java.util.Date;
 
 @Data
 public class Query {
-    private final CommandWrapper command;
+    private final Command command;
     private Reply reply;
     private final Date sentAt;
     private Date receivedAt;
@@ -33,7 +33,7 @@ public class Query {
 
     public DatagramPacket getBytes(String session, InetAddress ip, int port) {
         // Encoding??
-        val data =  command.getCommand().toString(session).getBytes(StandardCharsets.US_ASCII);
+        val data =  command.toString(session).getBytes(StandardCharsets.US_ASCII);
         return new DatagramPacket(data, data.length, ip, port);
     }
 

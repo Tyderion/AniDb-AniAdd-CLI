@@ -1,17 +1,15 @@
 package udpapi2.command;
 
+import lombok.experimental.SuperBuilder;
 import lombok.val;
 import udpapi2.QueryId;
 
-public class MylistAddCommand extends CommandWrapper {
+@SuperBuilder(toBuilder = true)
+public class MylistAddCommand extends Command {
     private static final String ACTION = "MYLIISTADD";
 
-    private MylistAddCommand(Command command) throws IllegalArgumentException {
-        super(command);
-    }
-
     public static MylistAddCommand Create(int fileId, long length, String ed2k, int state, boolean watched) {
-        val command = Command.builder()
+        val command = MylistAddCommand.builder()
                 .action(ACTION)
                 .identifier("mladd")
                 .queryId(QueryId.Next())
@@ -24,12 +22,12 @@ public class MylistAddCommand extends CommandWrapper {
             command.parameter("viewed", "1");
         }
 
-        return new MylistAddCommand(command.build());
+        return command.build();
     }
 
     public MylistAddCommand WithEdit() {
-        return new MylistAddCommand(this.getCommand().toBuilder()
+        return this.toBuilder()
                 .parameter("edit", "1")
-                .build());
+                .build();
     }
 }

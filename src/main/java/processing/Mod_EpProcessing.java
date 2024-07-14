@@ -52,8 +52,8 @@ public class Mod_EpProcessing extends BaseModule {
         this.configuration = configuration;
         this.api = udpApi;
 
-        api.setFileCommandCallback(this::aniDBInfoReply);
-        api.setMylistCommandCallback(this::aniDBMyListReply);
+        api.registerCallback(FileCommand.class, this::aniDBInfoReply);
+        api.registerCallback(MylistAddCommand.class, this::aniDBMyListReply);
     }
 
     private void processEps() {

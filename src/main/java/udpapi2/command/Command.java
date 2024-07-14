@@ -1,11 +1,14 @@
 package udpapi2.command;
 
 import lombok.*;
+import lombok.experimental.NonFinal;
+import lombok.experimental.SuperBuilder;
 
 import java.util.Map;
 
-@Builder(toBuilder = true)
+@SuperBuilder(toBuilder = true)
 @Value
+@NonFinal
 public class Command {
     String action;
     String identifier;

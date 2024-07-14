@@ -7,7 +7,7 @@ import aniAdd.misc.ICallBack;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
-import udpapi2.command.CommandWrapper;
+import udpapi2.command.Command;
 import udpapi2.command.FileCommand;
 import udpapi2.command.LoginCommand;
 import udpapi2.command.LogoutCommand;
@@ -66,7 +66,7 @@ public class UdpApi extends BaseModule {
 
     private boolean needsLongWait;
 
-    private final List<CommandWrapper> commandQueue = new ArrayList<>();
+    private final List<Command> commandQueue = new ArrayList<>();
     private Map<String, Query> queries = new HashMap<>();
 
 //    private Thread receiveThread = new Thread(new Receive(this));
@@ -266,7 +266,7 @@ public class UdpApi extends BaseModule {
         queries.put(query.getFullTag(), query);
     }
 
-    public CommandWrapper getNextCommand() {
+    public Command getNextCommand() {
         if (commandQueue.isEmpty()) {
             Logger.getGlobal().log(Level.INFO, "No commands in queue");
             return null;
@@ -278,7 +278,7 @@ public class UdpApi extends BaseModule {
         }
         for (int i = 0; i < commandQueue.size(); i++) {
             // Find first non-auth command
-            if (!commandQueue.get(i).getCommand().isNeedsLogin()) {
+            if (!commandQueue.get(i).isNeedsLogin()) {
                 synchronized (commandQueue) {
                     return commandQueue.remove(i);
                 }
@@ -300,12 +300,12 @@ public class UdpApi extends BaseModule {
         return pingBackoffMultiplier * PING_DELAY;
     }
 
-    public void queueCommand(CommandWrapper command) {
+    public void queueCommand(Command command) {
         connectToSocket();
         synchronized (commandQueue) {
             commandQueue.add(command);
         }
-        Log(CommunicationEvent.EventType.Debug, STR."Added \{command.getCommand().getAction()} cmd to queue");
+        Log(CommunicationEvent.EventType.Debug, STR."Added \{command.getAction()} cmd to queue");
         scheduleSend();
     }
 

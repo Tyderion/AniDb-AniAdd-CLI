@@ -1,14 +1,13 @@
 package udpapi2.command;
 
+import lombok.Builder;
+import lombok.experimental.SuperBuilder;
 import udpapi2.QueryId;
 import udpapi2.UdpApi;
 
-public class LoginCommand extends CommandWrapper {
-    public static final String ACTION = "AUTH";
-
-    private LoginCommand(Command command) throws IllegalArgumentException {
-        super(command);
-    }
+@SuperBuilder
+public class LoginCommand extends Command {
+    private static final String ACTION = "AUTH";
 
     public static LoginCommand Create(String username, String password) throws IllegalArgumentException {
         if (username == null || username.isEmpty() || username.isBlank()) {
@@ -17,7 +16,7 @@ public class LoginCommand extends CommandWrapper {
         if (password == null || password.isEmpty() || password.isBlank()) {
             throw new IllegalArgumentException("password empty");
         }
-        return new LoginCommand(Command.builder()
+        return LoginCommand.builder()
                 .action(ACTION)
                 .identifier(ACTION.toLowerCase())
                 .queryId(QueryId.Next())
@@ -31,6 +30,6 @@ public class LoginCommand extends CommandWrapper {
                 .parameter("pass", password)
                 .parameter("protover", String.valueOf(UdpApi.PROTOCOL_VERSION))
                 .parameter("user", username.toLowerCase())
-                .build());
+                .build();
     }
 }

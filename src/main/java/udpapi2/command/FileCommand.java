@@ -1,23 +1,21 @@
 package udpapi2.command;
 
 import aniAdd.misc.Misc;
+import lombok.experimental.SuperBuilder;
 import lombok.val;
 import udpapi2.QueryId;
 
 import java.util.BitSet;
 
-public class FileCommand extends CommandWrapper {
+@SuperBuilder
+public class FileCommand extends Command {
     private static final String ACTION = "FILE";
 
     private static final BitSet FILE_MASK = createFileMask();
     private static final BitSet ANIME_MASK = createAnimeMask();
 
-    private FileCommand(Command command) throws IllegalArgumentException {
-        super(command);
-    }
-
     public static FileCommand Create(int fileId, long length, String ed2k) {
-        return new FileCommand(Command.builder()
+        return FileCommand.builder()
                 .action(ACTION)
                 .identifier(ACTION.toLowerCase())
                 .queryId(QueryId.Next())
@@ -27,7 +25,7 @@ public class FileCommand extends CommandWrapper {
                 .parameter("amask", Misc.toMask(ANIME_MASK, 32))
                 .parameter("size", String.valueOf(length))
                 .parameter("ed2k", ed2k)
-                .build());
+                .build();
     }
 
     private static BitSet createAnimeMask() {

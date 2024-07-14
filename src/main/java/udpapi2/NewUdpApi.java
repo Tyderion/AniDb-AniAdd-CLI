@@ -6,10 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import udpapi2.command.CommandWrapper;
-import udpapi2.command.FileCommand;
-import udpapi2.command.LoginCommand;
-import udpapi2.command.MylistAddCommand;
+import udpapi2.command.*;
 import udpapi2.query.Query;
 import udpapi2.receive.Receive;
 import udpapi2.reply.Reply;
@@ -28,8 +25,9 @@ import java.util.logging.Logger;
 
 @RequiredArgsConstructor
 public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integration, ParseReply.Integration {
-    final Queue<CommandWrapper> commandQueue = new ConcurrentLinkedQueue<>();
+    final Queue<Command> commandQueue = new ConcurrentLinkedQueue<>();
     final Map<String, Query> queries = new ConcurrentHashMap<>();
+    final Map<Class<? extends Command>, ICallBack<Query>> commandCallbacks = new ConcurrentHashMap<>();
     private DatagramSocket socket;
     private final ScheduledExecutorService executorService;
     private final int localPort;
@@ -49,11 +47,9 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
     @Setter
     private String password;
 
-    @Setter
-    private ICallBack<Query> fileCommandCallback;
-    @Setter
-    private ICallBack<Query> mylistCommandCallback;
-
+    public void registerCallback(Class<? extends Command> command, ICallBack<Query> callback) {
+        commandCallbacks.put(command, callback);
+    }
 
     public boolean Initialize(AniConfiguration configuration) {
         if (username == null || password == null) {
@@ -78,7 +74,7 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
     }
 
 
-    public void queueCommand(CommandWrapper command) {
+    public void queueCommand(Command command) {
         commandQueue.add(command);
         if (!isSendScheduled && loginStatus != LoginStatus.LOGIN_PENDING) {
             scheduleNextCommand();
@@ -129,7 +125,7 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
             }
             return;
         }
-        if (command.getCommand().isNeedsLogin() && loginStatus != LoginStatus.LOGGED_IN) {
+        if (command.isNeedsLogin() && loginStatus != LoginStatus.LOGGED_IN) {
             if (loginStatus == LoginStatus.LOGGED_OUT) {
                 queueLogin();
             }
@@ -139,7 +135,7 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
         scheduleCommand(command, getNextSendDelay());
     }
 
-    private void scheduleCommand(@NotNull CommandWrapper command, Duration delay) {
+    private void scheduleCommand(@NotNull Command command, Duration delay) {
         Logger.getGlobal().info(STR."Scheduling command \{command.toString()} in \{delay.toMillis()} ms");
         executorService.schedule(new Send(this, command, aniDbIp, aniDbPort), delay.toMillis(), TimeUnit.MILLISECONDS);
         isSendScheduled = true;
@@ -199,36 +195,17 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
                     session = query.getReply().getResponseData().getFirst();
                     Logger.getGlobal().info(STR."Logged in with session \{session}");
                     loginStatus = LoginStatus.LOGGED_IN;
-                    return;
                 }
             }
-        }
-
-        if (query.getCommand() instanceof FileCommand) {
-            switch (query.getReply().getReplyStatus()) {
-                case NO_SUCH_FILE, FILE, MULTIPLE_FILES_FOUND -> {
-                    if (fileCommandCallback != null) {
-                        fileCommandCallback.invoke(query);
-                        return;
-                    }
-                }
-            }
-        }
-
-        if (query.getCommand() instanceof MylistAddCommand) {
-            switch (query.getReply().getReplyStatus()) {
-                case NO_SUCH_FILE, NO_SUCH_ANIME, NO_SUCH_GROUP, MYLIST_ENTRY_ADDED, FILE_ALREADY_IN_MYLIST,
-                     MULTIPLE_FILES_FOUND, MYLIST_ENTRY_EDITED, NO_SUCH_MYLIST_ENTRY -> {
-                    if (mylistCommandCallback != null) {
-                        mylistCommandCallback.invoke(query);
-                        return;
-                    }
-                }
+        } else {
+            if (commandCallbacks.containsKey(query.getCommand().getClass())) {
+                commandCallbacks.get(query.getCommand().getClass()).invoke(query);
+            } else {
+                Logger.getGlobal().warning(STR."Unhandled query reply: \{query.toString()}");
             }
         }
 
         scheduleNextCommand();
-        Logger.getGlobal().warning(STR."Unhandled query reply: \{query.toString()}");
     }
 
     private void handleQueryError(Query query) {

@@ -1,11 +1,10 @@
 package udpapi2;
 
-import aniAdd.config.AniConfiguration;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.jetbrains.annotations.Nullable;
-import udpapi2.command.CommandWrapper;
+import udpapi2.command.Command;
 import udpapi2.query.Query;
 
 import java.io.IOException;
@@ -20,14 +19,14 @@ class Send implements Runnable {
 
     final Integration integration;
     @NonNull
-    final CommandWrapper commandToSend;
+    final Command commandToSend;
     private final InetAddress aniDbIp;
     private final int port;
 
 
     @Override
     public void run() {
-        Logger.getGlobal().log(Level.INFO, STR."Send command \{commandToSend.getCommand().getIdentifier()}");
+        Logger.getGlobal().log(Level.INFO, STR."Send command \{commandToSend.getIdentifier()}");
         val query = createQuery(commandToSend);
         integration.addQuery(query);
         try {
@@ -38,7 +37,7 @@ class Send implements Runnable {
         integration.onSent();
     }
 
-    private Query createQuery(CommandWrapper command) {
+    private Query createQuery(Command command) {
         return new Query(command, new Date());
     }
 
