@@ -1,14 +1,12 @@
 package processing;
 
 import java.io.*;
-import java.util.ArrayDeque;
 import java.util.Collection;
 
 import aniAdd.Modules.BaseModule;
 import aniAdd.config.AniConfiguration;
 import lombok.val;
 import processing.FileInfo.eAction;
-import udpApi.Cmd;
 
 import aniAdd.IAniAdd;
 import aniAdd.misc.ICallBack;
@@ -17,15 +15,17 @@ import aniAdd.misc.MultiKeyDict.IKeyMapper;
 
 import java.util.TreeMap;
 
-import udpapi2.NewUdpApi;
+import udpapi2.UdpApi;
 import udpapi2.command.FileCommand;
+import udpapi2.command.LogoutCommand;
 import udpapi2.command.MylistAddCommand;
+import udpapi2.query.Query;
 import udpapi2.reply.ReplyStatus;
 
 public class Mod_EpProcessing extends BaseModule {
 
     public static String[] supportedFiles = {"avi", "ac3", "mpg", "mpeg", "rm", "rmvb", "asf", "wmv", "mov", "ogm", "mp4", "mkv", "rar", "zip", "ace", "srt", "sub", "ssa", "smi", "idx", "ass", "txt", "swf", "flv"};
-    private NewUdpApi api;
+    private UdpApi api;
     private FileParser fileParser;
     private boolean isProcessing;
     private boolean isPaused;
@@ -48,7 +48,7 @@ public class Mod_EpProcessing extends BaseModule {
         }
     });
 
-    public Mod_EpProcessing(AniConfiguration configuration, NewUdpApi udpApi) {
+    public Mod_EpProcessing(AniConfiguration configuration, UdpApi udpApi) {
         this.configuration = configuration;
         this.api = udpApi;
 
@@ -133,20 +133,15 @@ public class Mod_EpProcessing extends BaseModule {
     }
 
     private void requestDBMyList(FileInfo procFile) {
-        Cmd cmd = new Cmd("MYLISTADD", "mladd", procFile.Id().toString(), true);
-        cmd.setArgs("size", Long.toString(procFile.FileObj().length()));
-        cmd.setArgs("ed2k", (String) procFile.Data().get("Ed2k"));
-        cmd.setArgs("state", Integer.toString(procFile.MLStorage().ordinal()));
-
-        if (procFile.Watched() != null) {
-            cmd.setArgs("viewed", procFile.Watched() ? "1" : "0");
-        }
-
-//        api.queryCmd(cmd);
-        //System.out.println("Sending ML Cmd");
+        api.queueCommand(MylistAddCommand.Create(
+                procFile.Id(),
+                procFile.FileObj().length(),
+                procFile.Data().get("Ed2k"),
+                procFile.MLStorage().ordinal(),
+                procFile.Watched() != null && procFile.Watched()));
     }
 
-    private void aniDBInfoReply(udpapi2.query.Query query) {
+    private void aniDBInfoReply(Query<FileCommand> query) {
         //System.out.println("Got Fileinfo reply");
 
         int fileId = Integer.parseInt(query.getCommand().getTag());
@@ -170,46 +165,7 @@ public class Mod_EpProcessing extends BaseModule {
             }
         } else {
             procFile.ActionsDone().add(eAction.FileCmd);
-            ArrayDeque<String> df = new ArrayDeque<String>(query.getReply().getResponseData());
-            procFile.Data().put("DB_FId", df.poll());
-            procFile.Data().put("DB_AId", df.poll());
-            procFile.Data().put("DB_EId", df.poll());
-            procFile.Data().put("DB_GId", df.poll());
-            procFile.Data().put("DB_LId", df.poll());
-            procFile.Data().put("DB_OtherEps", df.poll());
-            procFile.Data().put("DB_Deprecated", df.poll());
-            procFile.Data().put("DB_State", df.poll());
-            procFile.Data().put("DB_CRC", df.poll());
-            procFile.Data().put("DB_ColorDepth", df.poll());
-            procFile.Data().put("DB_Quality", df.poll());
-            procFile.Data().put("DB_Source", df.poll());
-            procFile.Data().put("DB_AudioCodec", df.poll());
-            procFile.Data().put("DB_VideoCodec", df.poll());
-            procFile.Data().put("DB_VideoRes", df.poll());
-            procFile.Data().put("DB_FileAudioLang", df.poll());
-            procFile.Data().put("DB_FileSubLang", df.poll());
-            procFile.Data().put("DB_Duration", df.poll());
-            procFile.Data().put("DB_AirDate", df.poll());
-            procFile.Data().put("DB_FileName", df.poll());
-            procFile.Data().put("DB_IsWatched", df.poll());
-
-            procFile.Data().put("DB_EpCount", df.poll());
-            procFile.Data().put("DB_EpHiCount", df.poll());
-            procFile.Data().put("DB_Year", df.poll());
-            procFile.Data().put("DB_Type", df.poll());
-            procFile.Data().put("DB_CatList", df.poll());
-            procFile.Data().put("DB_SN_Romaji", df.poll());
-            procFile.Data().put("DB_SN_Kanji", df.poll());
-            procFile.Data().put("DB_SN_English", df.poll());
-            procFile.Data().put("DB_SN_Other", df.poll());
-            procFile.Data().put("DB_SN_Short", df.poll());
-            procFile.Data().put("DB_SN_Synonym", df.poll());
-            procFile.Data().put("DB_EpNo", df.poll());
-            procFile.Data().put("DB_EpN_English", df.poll());
-            procFile.Data().put("DB_EpN_Romaji", df.poll());
-            procFile.Data().put("DB_EpN_Kanji", df.poll());
-            procFile.Data().put("DB_Group_Long", df.poll());
-            procFile.Data().put("DB_Group_Short", df.poll());
+            query.getCommand().AddReplyToDict(procFile.Data(), query.getReply());
             Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.FileCmd_GotInfo, procFile.Id());
         }
 
@@ -218,7 +174,7 @@ public class Mod_EpProcessing extends BaseModule {
         }
     }
 
-    private void aniDBMyListReply(udpapi2.query.Query query) {
+    private void aniDBMyListReply(Query<MylistAddCommand> query) {
         //System.out.println("Got ML Reply");
         val replyStatus = query.getReply().getReplyStatus();
 
@@ -271,7 +227,7 @@ public class Mod_EpProcessing extends BaseModule {
     }
 
     private void finalProcessing(FileInfo procFile) {
-        //System.out.println("Final processing");
+        System.out.println(STR."Final processing \{procFile.Id()}");
         procFile.IsFinal(true);
 
         if (procFile.ActionsTodo().contains(eAction.Rename) && procFile.ActionsDone().contains(eAction.FileCmd)) {
@@ -305,6 +261,9 @@ public class Mod_EpProcessing extends BaseModule {
         }
 
         Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.Done, procFile.Id());
+        if (procFile.Id() == lastFileId - 1) {
+            Log(CommunicationEvent.EventType.Information, eComType.FileEvent, eComSubType.Done);
+        }
     }
 
     private boolean renameFile(FileInfo procFile) { //Todo: refractor into smaller Methods

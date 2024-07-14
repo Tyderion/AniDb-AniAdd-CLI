@@ -86,6 +86,7 @@ public class FileProcessor extends BaseModule {
         Logger.getGlobal().log(Level.INFO, STR."Number of found files: \{files.size()}");
         if (files.isEmpty()) {
             Logger.getGlobal().log(Level.WARNING, "No files found, shutting down");
+            Log(CommunicationEvent.EventType.Information, Mod_EpProcessing.eComType.Status, Mod_EpProcessing.eComSubType.Done);
         } else {
             epProc.addFiles(files);
             startFileProcessing();

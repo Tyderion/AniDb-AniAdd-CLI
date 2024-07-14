@@ -21,10 +21,10 @@ import java.util.concurrent.*;
 import java.util.logging.Logger;
 
 @RequiredArgsConstructor
-public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integration, ParseReply.Integration {
+public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integration, ParseReply.Integration {
     final Queue<Command> commandQueue = new ConcurrentLinkedQueue<>();
-    final Map<String, Query> queries = new ConcurrentHashMap<>();
-    final Map<Class<? extends Command>, ICallBack<Query>> commandCallbacks = new ConcurrentHashMap<>();
+    final Map<String, Query<?>> queries = new ConcurrentHashMap<>();
+    final Map<Class<? extends Command>,IQueryCallback<?>> commandCallbacks = new ConcurrentHashMap<>();
     private DatagramSocket socket;
     private final ScheduledExecutorService executorService;
     private final int localPort;
@@ -45,7 +45,7 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
     @Setter
     private String password;
 
-    public void registerCallback(Class<? extends Command> command, ICallBack<Query> callback) {
+    public <T extends Command> void registerCallback(Class<T> command, IQueryCallback<T> callback) {
         commandCallbacks.put(command, callback);
     }
 
@@ -289,5 +289,9 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
         LOGGED_OUT,
         LOGIN_PENDING,
         LOGGED_IN
+    }
+
+    public interface IQueryCallback<T extends Command> {
+        void invoke(Query<T> query);
     }
 }

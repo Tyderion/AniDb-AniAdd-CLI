@@ -6,7 +6,7 @@ import aniAdd.config.AniConfiguration;
 import aniAdd.startup.commands.CliCommand;
 import lombok.val;
 import picocli.CommandLine;
-import udpapi2.NewUdpApi;
+import udpapi2.UdpApi;
 
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -33,7 +33,7 @@ public class AnidbCommand {
     }
 
     IAniAdd initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService) {
-        val udpApi = new NewUdpApi(executorService, localPort);
+        val udpApi = new UdpApi(executorService, localPort);
         udpApi.setPassword(password);
         udpApi.setUsername(username);
 

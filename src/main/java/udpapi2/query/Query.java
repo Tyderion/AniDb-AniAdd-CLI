@@ -11,8 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Data
-public class Query {
-    private final Command command;
+public class Query<T extends Command> {
+    private final T command;
     private Reply reply;
     private final Date sentAt;
     private Date receivedAt;

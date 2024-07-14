@@ -11,7 +11,7 @@ import aniAdd.misc.ICallBack;
 import lombok.val;
 import processing.FileProcessor;
 import processing.Mod_EpProcessing;
-import udpapi2.NewUdpApi;
+import udpapi2.UdpApi;
 
 /**
  * @author Arokh
@@ -19,14 +19,16 @@ import udpapi2.NewUdpApi;
 public class AniAdd implements IAniAdd {
     final static int CURRENTVER = 9;
     private final AniConfiguration mConfiguration;
+    private final UdpApi api;
 
     private final Map<Class<? extends IModule>, IModule> modules = new HashMap<>();
     private final EventHandler eventHandler = new EventHandler();
     private boolean allInitialized = false;
     private boolean exitOnTermination = false;
 
-    public AniAdd(AniConfiguration configuration, NewUdpApi api) {
+    public AniAdd(AniConfiguration configuration, UdpApi api) {
         mConfiguration = configuration;
+        this.api = api;
         addModule(new Mod_EpProcessing(mConfiguration, api));
 
         addModule(new FileProcessor());
@@ -101,17 +103,18 @@ public class AniAdd implements IAniAdd {
             }
         }
         if (exitOnTermination) {
-            addComListener(comEvent -> {
-                if (comEvent.EventType() == CommunicationEvent.EventType.Information) {
-                    if (comEvent.ParamCount() == 3 &&
-                            comEvent.Params(0) == Mod_EpProcessing.eComType.FileEvent &&
-                            comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done &&
-                            comEvent.Params(2).equals(0)) {
-                        Logger.getGlobal().log(Level.INFO, "File moving done, shutting down");
-                        Stop();
+            for (IModule module : modules.values()) {
+                module.addComListener(comEvent -> {
+                    if (comEvent.EventType() == CommunicationEvent.EventType.Information) {
+                        if (comEvent.ParamCount() == 2 &&
+                                comEvent.Params(0) == Mod_EpProcessing.eComType.FileEvent &&
+                                comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done) {
+                            Logger.getGlobal().log(Level.INFO, "File moving done, shutting down");
+                            Stop();
+                        }
                     }
-                }
-            });
+                });
+            }
             addComListener(communicationEvent -> {
                 if (communicationEvent.EventType() == CommunicationEvent.EventType.Information
                         && communicationEvent.Params(0) == IModule.eModState.Terminated) {
@@ -162,7 +165,6 @@ public class AniAdd implements IAniAdd {
             System.out.println("Event: " + communicationEvent.toString());
         }
     }
-
 
     //Com System
     private final ArrayList<ComListener> listeners = new ArrayList<ComListener>();

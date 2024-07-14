@@ -109,7 +109,7 @@ public class KodiNotificationSubscriber extends WebSocketClient {
     }
 
     private void handleEpisodeWatched(EpisodeDetail episodeDetail) {
-        if (!episodeDetail.file.toLowerCase().contains("anime")) {
+        if (!episodeDetail.file.toLowerCase().contains("anime") && !episodeDetail.file.toLowerCase().contains("needs-metadata")) {
             Logger.getGlobal().log(Level.INFO, STR."Not an anime episode '\{episodeDetail.file}', skipping");
             return;
         }

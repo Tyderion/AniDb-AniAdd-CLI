@@ -4,8 +4,11 @@ import aniAdd.misc.Misc;
 import lombok.experimental.SuperBuilder;
 import lombok.val;
 import udpapi2.QueryId;
+import udpapi2.reply.Reply;
 
+import java.util.ArrayDeque;
 import java.util.BitSet;
+import java.util.Map;
 
 @SuperBuilder
 public class FileCommand extends Command {
@@ -26,6 +29,49 @@ public class FileCommand extends Command {
                 .parameter("size", String.valueOf(length))
                 .parameter("ed2k", ed2k)
                 .build();
+    }
+
+    public void AddReplyToDict(Map<String, String> map, Reply reply) {
+        ArrayDeque<String> df = new ArrayDeque<>(reply.getResponseData());
+         map.put("DB_FId", df.poll());
+         map.put("DB_AId", df.poll());
+         map.put("DB_EId", df.poll());
+         map.put("DB_GId", df.poll());
+         map.put("DB_LId", df.poll());
+         map.put("DB_OtherEps", df.poll());
+         map.put("DB_Deprecated", df.poll());
+         map.put("DB_State", df.poll());
+         map.put("DB_CRC", df.poll());
+         map.put("DB_ColorDepth", df.poll());
+         map.put("DB_Quality", df.poll());
+         map.put("DB_Source", df.poll());
+         map.put("DB_AudioCodec", df.poll());
+         map.put("DB_VideoCodec", df.poll());
+         map.put("DB_VideoRes", df.poll());
+         map.put("DB_FileAudioLang", df.poll());
+         map.put("DB_FileSubLang", df.poll());
+         map.put("DB_Duration", df.poll());
+         map.put("DB_AirDate", df.poll());
+         map.put("DB_FileName", df.poll());
+         map.put("DB_IsWatched", df.poll());
+
+         map.put("DB_EpCount", df.poll());
+         map.put("DB_EpHiCount", df.poll());
+         map.put("DB_Year", df.poll());
+         map.put("DB_Type", df.poll());
+         map.put("DB_CatList", df.poll());
+         map.put("DB_SN_Romaji", df.poll());
+         map.put("DB_SN_Kanji", df.poll());
+         map.put("DB_SN_English", df.poll());
+         map.put("DB_SN_Other", df.poll());
+         map.put("DB_SN_Short", df.poll());
+         map.put("DB_SN_Synonym", df.poll());
+         map.put("DB_EpNo", df.poll());
+         map.put("DB_EpN_English", df.poll());
+         map.put("DB_EpN_Romaji", df.poll());
+         map.put("DB_EpN_Kanji", df.poll());
+         map.put("DB_Group_Long", df.poll());
+         map.put("DB_Group_Short", df.poll());
     }
 
     private static BitSet createAnimeMask() {
