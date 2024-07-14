@@ -17,10 +17,7 @@ import java.time.Duration;
 import java.util.Date;
 import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
 
 @RequiredArgsConstructor
@@ -37,6 +34,7 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
     private String session = null;
 
     private LoginStatus loginStatus = LoginStatus.LOGGED_OUT;
+    private ScheduledFuture<?> logoutFuture;
 
     private Date lastSentDate = null;
     private boolean isSendScheduled = false;
@@ -123,7 +121,12 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
             if (queries.isEmpty()) {
                 QueryId.reset();
             }
+            queueLogout();
             return;
+        }
+        if (logoutFuture != null) {
+            logoutFuture.cancel(false);
+            logoutFuture = null;
         }
         if (command.isNeedsLogin() && loginStatus != LoginStatus.LOGGED_IN) {
             if (loginStatus == LoginStatus.LOGGED_OUT) {
@@ -197,7 +200,15 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
                     loginStatus = LoginStatus.LOGGED_IN;
                 }
             }
-        } else {
+        } else if (query.getCommand() instanceof LogoutCommand) {
+            switch (query.getReply().getReplyStatus()) {
+                case LOGGED_OUT, NOT_LOGGED_IN -> {
+                    session = null;
+                    Logger.getGlobal().info("Logged out");
+                    loginStatus = LoginStatus.LOGGED_OUT;
+                }
+            }
+        }else  {
             if (commandCallbacks.containsKey(query.getCommand().getClass())) {
                 commandCallbacks.get(query.getCommand().getClass()).invoke(query);
             } else {
@@ -216,6 +227,18 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
             Logger.getGlobal().warning(STR."Retrying query later: \{query.toString()}");
             queueCommand(query.getCommand());
         }
+    }
+
+    private void queueLogout() {
+        if (loginStatus != LoginStatus.LOGGED_IN) {
+            Logger.getGlobal().warning("Not logged in, not logging out");
+            return;
+        }
+        Logger.getGlobal().info(STR."Queuing logout at \{new Date().toInstant().plus(UdpApiConfiguration.LOGOUT_AFTER)}");
+        if (logoutFuture != null) {
+            logoutFuture.cancel(false);
+        }
+        logoutFuture = executorService.schedule(new Send(this, LogoutCommand.Create(), aniDbIp, aniDbPort), UdpApiConfiguration.LOGOUT_AFTER.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     @Override
