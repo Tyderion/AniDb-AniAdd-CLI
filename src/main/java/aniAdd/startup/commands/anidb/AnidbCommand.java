@@ -37,7 +37,7 @@ public class AnidbCommand {
         udpApi.setPassword(password);
         udpApi.setUsername(username);
 
-        val aniAdd = new AniAdd(getConfiguration(), udpApi);
+        val aniAdd = new AniAdd(getConfiguration(), udpApi, _ -> executorService.shutdownNow());
 
         udpApi.Initialize(getConfiguration());
 

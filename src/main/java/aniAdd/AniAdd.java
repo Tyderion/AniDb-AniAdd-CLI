@@ -3,13 +3,13 @@ package aniAdd;
 import aniAdd.Modules.IModule;
 import aniAdd.config.AniConfiguration;
 
-import java.io.File;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import aniAdd.misc.ICallBack;
 import lombok.val;
+import org.jetbrains.annotations.NotNull;
 import processing.FileProcessor;
 import processing.Mod_EpProcessing;
 import udpapi2.UdpApi;
@@ -18,18 +18,18 @@ import udpapi2.UdpApi;
  * @author Arokh
  */
 public class AniAdd implements IAniAdd {
-    final static int CURRENTVER = 9;
     private final AniConfiguration mConfiguration;
     private final UdpApi api;
+    private final ICallBack<Void> onShutdown;
 
     private final Map<Class<? extends IModule>, IModule> modules = new HashMap<>();
     private final EventHandler eventHandler = new EventHandler();
     private boolean allInitialized = false;
-    private boolean exitOnTermination = false;
 
-    public AniAdd(AniConfiguration configuration, UdpApi api) {
+    public AniAdd(AniConfiguration configuration, UdpApi api,@NotNull ICallBack<Void> onShutdown) {
         mConfiguration = configuration;
         this.api = api;
+        this.onShutdown = onShutdown;
         addModule(new Mod_EpProcessing(mConfiguration, api));
 
         addModule(new FileProcessor());
@@ -84,7 +84,6 @@ public class AniAdd implements IAniAdd {
     }
 
     public void Start(boolean exitOnTermination) {
-        this.exitOnTermination = exitOnTermination;
         ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Initializing));
 
         for (IModule module : modules.values()) {
@@ -121,12 +120,6 @@ public class AniAdd implements IAniAdd {
                     }
                 });
             }
-//            addComListener(communicationEvent -> {
-//                if (communicationEvent.EventType() == CommunicationEvent.EventType.Information
-//                        && communicationEvent.Params(0) == IModule.eModState.Terminated) {
-//                    System.exit(0);
-//                }
-//            });
         }
         ComFire(new CommunicationEvent(this, CommunicationEvent.EventType.Information, IModule.eModState.Initialized));
     }
@@ -151,7 +144,7 @@ public class AniAdd implements IAniAdd {
                 allModsTerminated &= module.ModState() == IModule.eModState.Terminated;
             }
         }
-        api.queueShutdown();
+        api.queueShutdown(_ -> onShutdown.invoke(null));
         allInitialized = false;
 
 
@@ -173,7 +166,6 @@ public class AniAdd implements IAniAdd {
         }
     }
 
-    //Com System
     private final ArrayList<ComListener> listeners = new ArrayList<ComListener>();
 
     protected void ComFire(CommunicationEvent communicationEvent) {
@@ -184,6 +176,4 @@ public class AniAdd implements IAniAdd {
     public void addComListener(ComListener comListener) {
         listeners.add(comListener);
     }
-
-    //Com System End
 }

@@ -1,6 +1,7 @@
 package udpapi2;
 
 import aniAdd.config.AniConfiguration;
+import aniAdd.misc.ICallBack;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.val;
@@ -45,6 +46,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     private String password;
     private boolean shutdown;
     private Future<?> receiveFuture;
+    private ICallBack<Void> onShutdownFinished;
 
     public <T extends Command> void registerCallback(Class<T> command, IQueryCallback<T> callback) {
         commandCallbacks.put(command, callback);
@@ -290,7 +292,8 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         isSendScheduled = false;
     }
 
-    public void queueShutdown() {
+    public void queueShutdown(ICallBack<Void> onShutdownFinished) {
+        this.onShutdownFinished = onShutdownFinished;
         if (loginStatus == LoginStatus.LOGGED_OUT) {
             shutdown();
             return;
@@ -307,7 +310,9 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         if (socket != null) {
             socket.close();
         }
-        executorService.shutdownNow();
+        if (this.onShutdownFinished != null) {
+            this.onShutdownFinished.invoke(null);
+        }
     }
 
     private enum LoginStatus {
