@@ -1,9 +1,8 @@
 package udpapi2.command;
 
-import lombok.Builder;
 import lombok.experimental.SuperBuilder;
 import udpapi2.QueryId;
-import udpapi2.UdpApi;
+import udpapi2.UdpApiConfiguration;
 
 @SuperBuilder
 public class LoginCommand extends Command {
@@ -22,13 +21,13 @@ public class LoginCommand extends Command {
                 .queryId(QueryId.Next())
                 .tag(null)
                 .needsLogin(false)
-                .parameter("client", UdpApi.CLIENT_TAG.toLowerCase())
-                .parameter("clientver", String.valueOf(UdpApi.CLIENT_VERSION))
+                .parameter("client", UdpApiConfiguration.ANIDB_CLIENT_TAG.toLowerCase())
+                .parameter("clientver", String.valueOf(UdpApiConfiguration.ANIDB_CLIENT_VERSION))
                 .parameter("comp", "1")
                 .parameter("enc", "UTF8")
                 .parameter("nat", "1")
                 .parameter("pass", password)
-                .parameter("protover", String.valueOf(UdpApi.PROTOCOL_VERSION))
+                .parameter("protover", String.valueOf(UdpApiConfiguration.ANIDB_PROTOCOL_VERSION))
                 .parameter("user", username.toLowerCase())
                 .build();
     }

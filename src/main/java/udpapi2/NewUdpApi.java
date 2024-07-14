@@ -182,12 +182,6 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
         if (!query.success()) {
             Logger.getGlobal().warning(STR."Query failed: \{query.toString()}");
             handleQueryError(query);
-            try {
-                Thread.sleep(1000000);
-            } catch (Exception _e) {
-
-            }
-            scheduleNextCommand();
             return;
         }
         queries.remove(query.getFullTag());

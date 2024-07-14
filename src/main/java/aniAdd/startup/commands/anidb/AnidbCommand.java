@@ -1,21 +1,17 @@
 package aniAdd.startup.commands.anidb;
 
 import aniAdd.AniAdd;
-import aniAdd.Communication;
 import aniAdd.IAniAdd;
-import aniAdd.Modules.IModule;
 import aniAdd.config.AniConfiguration;
 import aniAdd.startup.commands.CliCommand;
 import lombok.val;
 import picocli.CommandLine;
-import udpApi.Mod_UdpApi;
 import udpapi2.NewUdpApi;
-import udpapi2.UdpApi;
 
 import java.util.concurrent.ScheduledExecutorService;
 
 @CommandLine.Command(
-        subcommands = {ScanCommand.class, ServerCommand.class, TagsCommand.class, TestCommand.class},
+        subcommands = {ScanCommand.class, ServerCommand.class, TagsCommand.class},
         name = "anidb",
         mixinStandardHelpOptions = true,
         version = "1.0",
