@@ -5,6 +5,7 @@ import java.util.Collection;
 
 import aniAdd.Modules.BaseModule;
 import aniAdd.config.AniConfiguration;
+import fileprocessor.FileProcessor;
 import lombok.val;
 import processing.FileInfo.eAction;
 
@@ -22,7 +23,7 @@ import udpapi2.command.MylistAddCommand;
 import udpapi2.query.Query;
 import udpapi2.reply.ReplyStatus;
 
-public class Mod_EpProcessing extends BaseModule {
+public class Mod_EpProcessing extends BaseModule implements FileProcessor.Processor {
 
     public static String[] supportedFiles = {"avi", "ac3", "mpg", "mpeg", "rm", "rmvb", "asf", "wmv", "mov", "ogm", "mp4", "mkv", "rar", "zip", "ace", "srt", "sub", "ssa", "smi", "idx", "ass", "txt", "swf", "flv"};
     private UdpApi api;
@@ -538,6 +539,11 @@ public class Mod_EpProcessing extends BaseModule {
         }
 
         Log(CommunicationEvent.EventType.Information, eComType.FileCountChanged);
+    }
+
+    @Override
+    public void start() {
+        processing(eProcess.Start);
     }
 
     public void processing(eProcess proc) {

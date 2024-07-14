@@ -8,37 +8,52 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import aniAdd.misc.ICallBack;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import processing.FileProcessor;
+import fileprocessor.FileProcessor;
 import processing.Mod_EpProcessing;
 import udpapi2.UdpApi;
 
-/**
- * @author Arokh
- */
 public class AniAdd implements IAniAdd {
-    private final AniConfiguration mConfiguration;
+    @NotNull
+    @Getter
+    private final AniConfiguration configuration;
+    @NotNull
     private final UdpApi api;
+    @NotNull
+    private final FileProcessor fileProcessor;
+    @NotNull
     private final ICallBack<Void> onShutdown;
+    private final Logger logger = Logger.getLogger(AniAdd.class.getName());
+
 
     private final Map<Class<? extends IModule>, IModule> modules = new HashMap<>();
     private final EventHandler eventHandler = new EventHandler();
     private boolean allInitialized = false;
 
-    public AniAdd(AniConfiguration configuration, UdpApi api,@NotNull ICallBack<Void> onShutdown) {
-        mConfiguration = configuration;
+    public AniAdd(@NotNull AniConfiguration configuration, @NotNull UdpApi api, boolean exitOnTermination, @NotNull FileProcessor fileProcessor, @NotNull Mod_EpProcessing processing, @NotNull ICallBack<Void> onShutdown) {
+        this.configuration = configuration;
         this.api = api;
         this.onShutdown = onShutdown;
-        addModule(new Mod_EpProcessing(mConfiguration, api));
-
-        addModule(new FileProcessor());
+        this.fileProcessor = fileProcessor;
+        this.fileProcessor.AddCallback(event -> {
+            if (Objects.requireNonNull(event) == FileProcessor.EventType.NothingToProcess) {
+                if (exitOnTermination) {
+                    logger.info("File processing nothing to process");
+                    Stop();
+                }
+            } else {
+                logger.info(STR."File processing \{event}");
+            }
+        });
+        addModule(processing);
     }
 
     @Override
     public void ProcessDirectory(String directory) {
         runCommand(_ -> {
-            FileProcessor fileProcessor = GetModule(FileProcessor.class);
             fileProcessor.Scan(directory);
         });
     }
@@ -54,9 +69,9 @@ public class AniAdd implements IAniAdd {
                 .overwriteMLEntries(true)
                 .build();
         runCommand(_ -> {
-            val fileProcessor = GetModule(FileProcessor.class);
             fileProcessor.AddFile(path, config);
         });
+
     }
 
     private void runCommand(ICallBack<Void> callback) {
@@ -73,11 +88,6 @@ public class AniAdd implements IAniAdd {
         }
     }
 
-    @Override
-    public AniConfiguration getConfiguration() {
-        return mConfiguration;
-    }
-
     private void addModule(IModule mod) {
         modules.put(mod.getClass(), mod);
         eventHandler.AddEventHandler(mod);
@@ -88,7 +98,7 @@ public class AniAdd implements IAniAdd {
 
         for (IModule module : modules.values()) {
             System.out.println("Initializing: " + module.ModuleName());
-            module.Initialize(this, mConfiguration);
+            module.Initialize(this, configuration);
         }
 
         while (!allInitialized) {
@@ -110,11 +120,6 @@ public class AniAdd implements IAniAdd {
                                 comEvent.Params(0) == Mod_EpProcessing.eComType.FileEvent &&
                                 comEvent.Params(1) == Mod_EpProcessing.eComSubType.Done) {
                             Logger.getGlobal().log(Level.INFO, "File moving done, shutting down");
-                            Stop();
-                        } else if (comEvent.ParamCount() == 2 &&
-                                comEvent.Params(0) == FileProcessor.eComType.Status &&
-                                comEvent.Params(1) == FileProcessor.eComSubType.NothingToProcess) {
-                            Logger.getGlobal().log(Level.INFO, "No files to process, shutting down");
                             Stop();
                         }
                     }

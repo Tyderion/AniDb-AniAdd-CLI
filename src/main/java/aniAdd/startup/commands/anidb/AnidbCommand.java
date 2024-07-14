@@ -4,8 +4,10 @@ import aniAdd.AniAdd;
 import aniAdd.IAniAdd;
 import aniAdd.config.AniConfiguration;
 import aniAdd.startup.commands.CliCommand;
+import fileprocessor.FileProcessor;
 import lombok.val;
 import picocli.CommandLine;
+import processing.Mod_EpProcessing;
 import udpapi2.UdpApi;
 
 import java.util.concurrent.ScheduledExecutorService;
@@ -36,8 +38,10 @@ public class AnidbCommand {
         val udpApi = new UdpApi(executorService, localPort);
         udpApi.setPassword(password);
         udpApi.setUsername(username);
+        val processing = new Mod_EpProcessing(getConfiguration(), udpApi);
+        val fileProcessor = new FileProcessor(processing, getConfiguration(), executorService);
 
-        val aniAdd = new AniAdd(getConfiguration(), udpApi, _ -> executorService.shutdownNow());
+        val aniAdd = new AniAdd(getConfiguration(), udpApi, terminateOnCompletion, fileProcessor, processing, _ -> executorService.shutdownNow());
 
         udpApi.Initialize(getConfiguration());
 
