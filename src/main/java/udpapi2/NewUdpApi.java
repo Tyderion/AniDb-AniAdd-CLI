@@ -36,12 +36,12 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
     private InetAddress aniDbIp;
     private int aniDbPort;
     private boolean isInitialized = false;
-    private boolean isLoggedIn = false;
     private String session = null;
+
+    private LoginStatus loginStatus = LoginStatus.LOGGED_OUT;
 
     private Date lastSentDate = null;
     private boolean isSendScheduled = false;
-    private boolean isLoginScheduled = false;
     private boolean shouldWaitLong = false;
 
     @Setter
@@ -80,7 +80,7 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
 
     public void queueCommand(CommandWrapper command) {
         commandQueue.add(command);
-        if (!isSendScheduled && !isLoginScheduled) {
+        if (!isSendScheduled && loginStatus != LoginStatus.LOGIN_PENDING) {
             scheduleNextCommand();
         }
     }
@@ -94,15 +94,19 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
             Logger.getGlobal().warning("Command is scheduled, not scheduling login");
             return false;
         }
-        if (isLoginScheduled) {
+        if (loginStatus == LoginStatus.LOGIN_PENDING) {
             Logger.getGlobal().warning("Login already scheduled, not scheduling login");
+            return false;
+        }
+        if (loginStatus == LoginStatus.LOGGED_IN) {
+            Logger.getGlobal().warning("Already logged in, not scheduling login");
             return false;
         }
         try {
             val command = LoginCommand.Create(username, password);
             scheduleCommand(command, getNextSendDelay());
             isSendScheduled = true;
-            isLoginScheduled = true;
+            loginStatus = LoginStatus.LOGIN_PENDING;
             return true;
         } catch (IllegalArgumentException e) {
             Logger.getGlobal().warning(STR."Username or password is empty: \{e.getMessage()}");
@@ -125,8 +129,8 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
             }
             return;
         }
-        if (command.getCommand().isNeedsLogin() && !isLoggedIn) {
-            if (!isLoginScheduled) {
+        if (command.getCommand().isNeedsLogin() && loginStatus != LoginStatus.LOGGED_IN) {
+            if (loginStatus == LoginStatus.LOGGED_OUT) {
                 queueLogin();
             }
             queueCommand(command);
@@ -192,10 +196,9 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
         if (query.getCommand() instanceof LoginCommand) {
             switch (query.getReply().getReplyStatus()) {
                 case LOGIN_ACCEPTED, LOGIN_ACCEPTED_NEW_VERSION -> {
-                    isLoggedIn = true;
                     session = query.getReply().getResponseData().getFirst();
                     Logger.getGlobal().info(STR."Logged in with session \{session}");
-                    isLoginScheduled = false;
+                    loginStatus = LoginStatus.LOGGED_IN;
                     return;
                 }
             }
@@ -251,7 +254,7 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
     @Override
     public void disconnect() {
         shouldWaitLong = true;
-        isLoggedIn = false;
+        loginStatus = LoginStatus.LOGGED_OUT;
     }
 
     @Override
@@ -286,5 +289,11 @@ public class NewUdpApi implements AutoCloseable, Receive.Integration, Send.Integ
     public void onSent() {
         lastSentDate = new Date();
         isSendScheduled = false;
+    }
+
+    private enum LoginStatus {
+        LOGGED_OUT,
+        LOGIN_PENDING,
+        LOGGED_IN
     }
 }
