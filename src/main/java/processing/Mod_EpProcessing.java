@@ -15,6 +15,7 @@ import aniAdd.misc.MultiKeyDict.IKeyMapper;
 
 import java.util.List;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 
 import udpapi2.UdpApi;
@@ -26,14 +27,16 @@ import udpapi2.reply.ReplyStatus;
 public class Mod_EpProcessing implements FileProcessor.Processor {
 
     public static String[] supportedFiles = {"avi", "ac3", "mpg", "mpeg", "rm", "rmvb", "asf", "wmv", "mov", "ogm", "mp4", "mkv", "rar", "zip", "ace", "srt", "sub", "ssa", "smi", "idx", "ass", "txt", "swf", "flv"};
-    private UdpApi api;
-    private FileParser fileParser;
+    private final UdpApi api;
+    private final AniConfiguration configuration;
+    private final ExecutorService executorService;
+    private final List<ICallBack<ProcessingEvent>> eventHandlers = new ArrayList<>();
+    private final Logger logger = Logger.getLogger(Mod_EpProcessing.class.getName());
+
     private boolean isProcessing;
     private int lastFileId = 0;
     private int filesBeingMoved;
-    private final AniConfiguration configuration;
-    private final List<ICallBack<ProcessingEvent>> eventHandlers = new ArrayList<>();
-    private final Logger logger = Logger.getLogger(Mod_EpProcessing.class.getName());
+    private boolean shouldShutdown;
 
     private final MultiKeyDict<String, Object, FileInfo> files = new MultiKeyDict<>(new IKeyMapper<String, Object, FileInfo>() {
 
@@ -50,9 +53,10 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         }
     });
 
-    public Mod_EpProcessing(AniConfiguration configuration, UdpApi udpApi) {
+    public Mod_EpProcessing(AniConfiguration configuration, UdpApi udpApi, ExecutorService executorService) {
         this.configuration = configuration;
         this.api = udpApi;
+        this.executorService = executorService;
 
         api.registerCallback(FileCommand.class, this::aniDBInfoReply);
         api.registerCallback(MylistAddCommand.class, this::aniDBMyListReply);
@@ -79,8 +83,8 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                     }
                 }
 
-                fileParser = new FileParser(procFile.FileObj(), this::onHashComputed, procFile.Id());
-                fileParser.start();
+                executorService.execute(new FileParser(procFile.FileObj(), procFile.Id(), this::onHashComputed, () -> shouldShutdown));
+
                 return;
             }
         }
@@ -88,14 +92,12 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         logger.info("Initial Processing done");
     }
 
-    private void onHashComputed(FileParser fileParser) {
-        this.fileParser = null;
-
-        FileInfo procFile = files.get("Id", fileParser.Tag());
+    private void onHashComputed(Integer tag, String hash) {
+        FileInfo procFile = files.get("Id", tag);
 
 
-        if (procFile != null && fileParser.Hash() != null) {
-            procFile.Data().put("Ed2k", fileParser.Hash());
+        if (procFile != null && hash != null) {
+            procFile.Data().put("Ed2k", hash);
             procFile.ActionsDone().add(eAction.Process);
             procFile.ActionsTodo().remove(eAction.Process);
             logger.info(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} has been hashed");
@@ -538,9 +540,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
 
     public void Terminate() {
         isProcessing = false;
-        if (fileParser != null) {
-            fileParser.terminate();
-        }
+        shouldShutdown = true;
     }
 
     public enum ProcessingEvent {

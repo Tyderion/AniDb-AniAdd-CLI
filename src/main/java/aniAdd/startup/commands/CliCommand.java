@@ -5,10 +5,11 @@ import aniAdd.config.ConfigFileParser;
 import aniAdd.startup.commands.anidb.AnidbCommand;
 import aniAdd.startup.commands.config.ConfigCommand;
 import picocli.CommandLine;
-import util.StringHelper;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,7 +37,7 @@ public class CliCommand {
     private void loadTaggingSystem(AniConfiguration config) {
         if (taggingSystem != null) {
             try {
-                String tagSystemCode = StringHelper.readFile(taggingSystem, Charset.defaultCharset());
+                String tagSystemCode = readFile(taggingSystem, Charset.defaultCharset());
                 if (!Objects.equals(tagSystemCode, "")) {
                     config.setTagSystemCode(tagSystemCode);
                 }
@@ -54,6 +55,11 @@ public class CliCommand {
         }
         Logger.getGlobal().log(Level.WARNING, "Using default configuration");
         return new AniConfiguration();
+    }
+
+    private static String readFile(String path, Charset encoding)
+            throws IOException {
+        return String.join("\n", Files.readAllLines(Paths.get(path), encoding));
     }
 
 }
