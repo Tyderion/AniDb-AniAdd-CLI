@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutorService;
 
 import udpapi2.UdpApi;
 import udpapi2.command.FileCommand;
+import udpapi2.command.LoginCommand;
 import udpapi2.command.LogoutCommand;
 import udpapi2.command.MylistAddCommand;
 import udpapi2.query.Query;
@@ -54,6 +55,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         api.registerCallback(LogoutCommand.class, cmd -> {
             // Remove files after we automatically log out
             if (cmd.getCommand().isAutomatic()) {
+                log.info("Logged out, clearing cached files");
                 files.clear();
             }
         });

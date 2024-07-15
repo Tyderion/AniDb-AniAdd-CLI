@@ -119,7 +119,9 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             if (queries.isEmpty()) {
                 QueryId.reset();
             }
-            queueLogout(false);
+            if (loginStatus == LoginStatus.LOGGED_IN) {
+                queueLogout(false);
+            }
             return;
         }
         if (logoutFuture != null) {
@@ -176,7 +178,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         handleQueryReply(query);
     }
 
-    // TODO: Generics
+    @SuppressWarnings("rawtypes")
     private void handleQueryReply(Query query) {
         if (!query.success()) {
             logger.warning(STR."Query failed: \{query.toString()}");
@@ -185,7 +187,9 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         }
         queries.remove(query.getFullTag());
 
-        if (query.getCommand() instanceof LoginCommand) {
+        val command = query.getCommand();
+
+        if (command instanceof LoginCommand) {
             switch (query.getReply().getReplyStatus()) {
                 case LOGIN_ACCEPTED, LOGIN_ACCEPTED_NEW_VERSION -> {
                     session = query.getReply().getResponseData().getFirst();
@@ -193,7 +197,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
                     loginStatus = LoginStatus.LOGGED_IN;
                 }
             }
-        } else if (query.getCommand() instanceof LogoutCommand) {
+        } else if (command instanceof LogoutCommand) {
             switch (query.getReply().getReplyStatus()) {
                 case LOGGED_OUT, NOT_LOGGED_IN -> {
                     session = null;
@@ -206,8 +210,9 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
                 }
             }
         }
-        if (commandCallbacks.containsKey(query.getCommand().getClass())) {
-            commandCallbacks.get(query.getCommand().getClass()).invoke(query);
+        if (commandCallbacks.containsKey(command.getClass())) {
+            //noinspection unchecked
+            commandCallbacks.get(command.getClass()).invoke(query);
         } else {
             logger.warning(STR."Unhandled query reply: \{query.toString()}");
         }
