@@ -102,3 +102,8 @@ There are intellij run configs available for these commands
 2. Generate default config file (`java --enable-preview -jar AniAdd.jar -u username -p password -d /path/to/anime -save config.conf`)
 3. Edit configuration file with the editor of your choice, if you use the tagging system to move just replace it with your system
 4. run AniAdd to scan and move your files (`java -jar AniAdd.jar -u username -p password -d /path/to/anime -c config.conf`
+
+# Development
+I recommend to use IntelliJ (Community Edition is enough) to develop this project.
+Be sure to install the Lombok Plugin and enable annotation processing in the settings.
+It currently only works with Java 21, higher/lower does not work due to the usage of a preview feature (template strings)
