@@ -195,7 +195,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                 || replyStatus == ReplyStatus.MYLIST_ENTRY_EDITED) {
             //File Added/Edited
             procFile.ActionsDone().add(eAction.MyListCmd);
-            log.fine(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} successfully added/edited on MyList");
+            log.info(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} successfully added/edited on MyList");
 
         } else if (replyStatus == ReplyStatus.FILE_ALREADY_IN_MYLIST) {
             //File Already Added
