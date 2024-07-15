@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutorService;
 
 import udpapi2.UdpApi;
 import udpapi2.command.FileCommand;
+import udpapi2.command.LogoutCommand;
 import udpapi2.command.MylistAddCommand;
 import udpapi2.query.Query;
 import udpapi2.reply.ReplyStatus;
@@ -49,6 +50,13 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         this.configuration = configuration;
         this.api = udpApi;
         this.executorService = executorService;
+
+        api.registerCallback(LogoutCommand.class, cmd -> {
+            // Remove files after we automatically log out
+            if (cmd.getCommand().isAutomatic()) {
+                files.clear();
+            }
+        });
 
         api.registerCallback(FileCommand.class, this::aniDBInfoReply);
         api.registerCallback(MylistAddCommand.class, this::aniDBMyListReply);

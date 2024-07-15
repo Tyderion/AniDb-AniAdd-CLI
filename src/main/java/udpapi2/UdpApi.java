@@ -205,18 +205,17 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
                     }
                 }
             }
+        }
+        if (commandCallbacks.containsKey(query.getCommand().getClass())) {
+            commandCallbacks.get(query.getCommand().getClass()).invoke(query);
         } else {
-            if (commandCallbacks.containsKey(query.getCommand().getClass())) {
-                commandCallbacks.get(query.getCommand().getClass()).invoke(query);
-            } else {
-                logger.warning(STR."Unhandled query reply: \{query.toString()}");
-            }
+            logger.warning(STR."Unhandled query reply: \{query.toString()}");
         }
 
         scheduleNextCommand();
     }
 
-    private void handleQueryError(Query query) {
+    private void handleQueryError(Query<?> query) {
         if (query.getReply().isFatal()) {
             logger.warning(STR."Fatal api error, waiting a long time: \{query.toString()}");
             disconnect();
@@ -231,11 +230,12 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             logger.warning("Not logged in, not logging out");
             return;
         }
-        logger.info(STR."Queuing logout at \{new Date().toInstant().plus(UdpApiConfiguration.LOGOUT_AFTER)}");
+        val delay = now ? Duration.ZERO : UdpApiConfiguration.LOGOUT_AFTER;
+        logger.info(STR."Queuing logout at \{new Date().toInstant().plus(delay)}");
         if (logoutFuture != null) {
             logoutFuture.cancel(false);
         }
-        logoutFuture = executorService.schedule(new Send(this, LogoutCommand.Create(), aniDbIp, aniDbPort), now ? 0 : UdpApiConfiguration.LOGOUT_AFTER.toMillis(), TimeUnit.MILLISECONDS);
+        logoutFuture = executorService.schedule(new Send<>(this, LogoutCommand.Create(!now), aniDbIp, aniDbPort), delay.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     @Override
