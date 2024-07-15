@@ -40,6 +40,7 @@ dependencies {
 tasks.named<JavaCompile>("compileJava") {
     options.compilerArgs.add("-Aproject=${project.group}/${project.name}")
     options.compilerArgs.add("--enable-preview")
+//    options.compilerArgs.add("-Xlint:unchecked")
 }
 
 tasks.register<Jar>("fatJar") {
