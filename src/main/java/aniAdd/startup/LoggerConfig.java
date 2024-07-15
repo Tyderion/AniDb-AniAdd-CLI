@@ -29,8 +29,8 @@ public class LoggerConfig {
                         .collect(Collectors.toMap(s -> s[0], s -> Arrays.stream(s).skip(1).collect(Collectors.joining("="))));
                 LogManager.getLogManager().updateConfiguration((key) -> (oldVal, newVal) ->
                         configValues.getOrDefault(key, newVal));
-                if (configValues.containsKey(LOGGING_FORMAT_KEY)) {
-                    System.setProperty(LOGGING_FORMAT_KEY, configValues.get(LOGGING_FORMAT_KEY));
+                for (val entry : configValues.entrySet()) {
+                    System.setProperty(entry.getKey(), entry.getValue());
                 }
             }
         } catch (IOException e) {
