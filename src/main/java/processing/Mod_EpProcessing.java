@@ -141,7 +141,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
     }
 
     private void aniDBInfoReply(Query<FileCommand> query) {
-        int fileId = Integer.parseInt(query.getCommand().getTag());
+        int fileId = query.getTag();
         if (!files.contains("Id", fileId)) {
             return; //File not found (Todo: throw error)
         }
@@ -181,7 +181,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         //System.out.println("Got ML Reply");
         val replyStatus = query.getReply().getReplyStatus();
 
-        int fileId = Integer.parseInt(query.getCommand().getFullTag());
+        int fileId = query.getTag();
         if (!files.contains("Id", fileId)) {
             //System.out.println("MLCmd: Id not found");
             return; //File not found (Todo: throw error)
@@ -510,7 +510,9 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
             FileInfo fileInfo = new FileInfo(cf, lastFileId);
             fileInfo.MLStorage(FileInfo.eMLStorageState.values()[storage]);
             fileInfo.ActionsTodo().add(eAction.Process);
-            fileInfo.ActionsTodo().add(eAction.FileCmd);
+            if (configuration.isRenameFiles() || configuration.isEnableFileMove()) {
+                fileInfo.ActionsTodo().add(eAction.FileCmd);
+            }
             fileInfo.setConfiguration(configuration);
 
             if (addToMyList) {

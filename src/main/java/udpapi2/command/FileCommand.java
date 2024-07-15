@@ -23,7 +23,7 @@ public class FileCommand extends Command {
                 .identifier(ACTION.toLowerCase())
                 .queryId(QueryId.Next())
                 .needsLogin(true)
-                .tag(String.valueOf(fileId))
+                .tag(fileId)
                 .parameter("fmask", Misc.toMask(FILE_MASK, 40))
                 .parameter("amask", Misc.toMask(ANIME_MASK, 32))
                 .parameter("size", String.valueOf(length))

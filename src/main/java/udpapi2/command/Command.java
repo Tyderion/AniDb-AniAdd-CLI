@@ -13,7 +13,7 @@ import java.util.Map;
 public class Command {
     String action;
     String identifier;
-    String tag;
+    Integer tag;
     boolean needsLogin;
     @Singular
     Map<String, String> parameters;

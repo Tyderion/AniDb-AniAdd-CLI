@@ -27,7 +27,7 @@ public class Query<T extends Command> {
         return command.getFullTag();
     }
 
-    public String getTag() {
+    public Integer getTag() {
         return command.getTag();
     }
 

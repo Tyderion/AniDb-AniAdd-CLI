@@ -2,8 +2,6 @@ package aniAdd;
 
 import aniAdd.config.AniConfiguration;
 
-import java.util.logging.Logger;
-
 import aniAdd.misc.ICallBack;
 import lombok.Getter;
 import lombok.extern.java.Log;
@@ -60,7 +58,7 @@ public class AniAdd implements IAniAdd {
     }
 
     @Override
-    public void MarkFileAsWatched(String path) {
+    public void MarkFileAsWatched(@NotNull String path) {
         val config = getConfiguration().toBuilder()
                 .addToMylist(true)
                 .renameFiles(false)

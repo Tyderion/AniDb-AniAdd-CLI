@@ -3,7 +3,6 @@ package udpapi2;
 import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import udpapi2.command.*;
@@ -139,7 +138,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     private void scheduleCommand(@NotNull Command command, Duration delay) {
         logger.info(STR."Scheduling command \{command.toString()} in \{delay.toMillis()} ms");
-        executorService.schedule(new Send(this, command, aniDbIp, aniDbPort), delay.toMillis(), TimeUnit.MILLISECONDS);
+        executorService.schedule(new Send<>(this, command, aniDbIp, aniDbPort), delay.toMillis(), TimeUnit.MILLISECONDS);
         isSendScheduled = true;
     }
 
@@ -177,6 +176,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         handleQueryReply(query);
     }
 
+    // TODO: Generics
     private void handleQueryReply(Query query) {
         if (!query.success()) {
             logger.warning(STR."Query failed: \{query.toString()}");

@@ -7,7 +7,7 @@ import udpapi2.QueryId;
 
 @SuperBuilder(toBuilder = true)
 public class MylistAddCommand extends Command {
-    private static final String ACTION = "MYLIISTADD";
+    private static final String ACTION = "MYLISTADD";
 
     public static MylistAddCommand Create(int fileId, long length, String ed2k, int state, boolean watched) {
         val command = MylistAddCommand.builder()
@@ -15,7 +15,7 @@ public class MylistAddCommand extends Command {
                 .identifier("mladd")
                 .queryId(QueryId.Next())
                 .needsLogin(true)
-                .tag(String.valueOf(fileId))
+                .tag(fileId)
                 .parameter("size", String.valueOf(length))
                 .parameter("ed2k", ed2k)
                 .parameter("state", Integer.toString(state));
