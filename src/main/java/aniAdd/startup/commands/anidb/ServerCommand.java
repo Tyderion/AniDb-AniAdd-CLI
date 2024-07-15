@@ -27,7 +27,7 @@ public class ServerCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        log.info((STR."Connecting to kodi at \{kodiUrl} on port \{port}"));
+        log.info(STR."Connecting to kodi at \{kodiUrl} on port \{port}");
 
         try (val executorService = Executors.newScheduledThreadPool(10)) {
             val aniAdd = parent.initializeAniAdd(false, executorService);
