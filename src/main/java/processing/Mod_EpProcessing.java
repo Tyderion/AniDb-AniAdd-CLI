@@ -19,7 +19,6 @@ import java.util.concurrent.ExecutorService;
 
 import udpapi2.UdpApi;
 import udpapi2.command.FileCommand;
-import udpapi2.command.LoginCommand;
 import udpapi2.command.LogoutCommand;
 import udpapi2.command.MylistAddCommand;
 import udpapi2.query.Query;
@@ -109,10 +108,15 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
 
 
             if (sendFile) {
-                requestDBFileInfo(procFile);
+                api.queueCommand(FileCommand.Create(procFile.Id(), procFile.FileObj().length(), procFile.Data().get("Ed2k")));
             }
             if (sendML) {
-                requestDBMyList(procFile);
+                api.queueCommand(MylistAddCommand.Create(
+                        procFile.Id(),
+                        procFile.FileObj().length(),
+                        procFile.Data().get("Ed2k"),
+                        procFile.MLStorage().ordinal(),
+                        procFile.Watched() != null && procFile.Watched()));
             }
 
             log.fine(STR."Requested Data for file with Id \{procFile.Id()}: SendFile: \{sendFile}, SendML: \{sendML}");
@@ -126,19 +130,6 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         if (isProcessing) {
             processEps();
         }
-    }
-
-    private void requestDBFileInfo(FileInfo procFile) {
-        api.queueCommand(FileCommand.Create(procFile.Id(), procFile.FileObj().length(), procFile.Data().get("Ed2k")));
-    }
-
-    private void requestDBMyList(FileInfo procFile) {
-        api.queueCommand(MylistAddCommand.Create(
-                procFile.Id(),
-                procFile.FileObj().length(),
-                procFile.Data().get("Ed2k"),
-                procFile.MLStorage().ordinal(),
-                procFile.Watched() != null && procFile.Watched()));
     }
 
     private void aniDBInfoReply(Query<FileCommand> query) {
