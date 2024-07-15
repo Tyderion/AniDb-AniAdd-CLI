@@ -13,6 +13,7 @@ import lombok.extern.java.Log;
 import lombok.val;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+import org.jetbrains.annotations.Nullable;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -22,11 +23,13 @@ import java.nio.file.Paths;
 public class KodiNotificationSubscriber extends WebSocketClient {
 
     private final Gson gson = new GsonBuilder().setFieldNamingStrategy(f -> f.getName().toLowerCase()).create();
-    private IAniAdd aniAdd;
+    private final IAniAdd aniAdd;
+    private final String pathFilter;
 
-    public KodiNotificationSubscriber(URI serverUri, IAniAdd aniAdd) {
+    public KodiNotificationSubscriber(URI serverUri, IAniAdd aniAdd, String pathFilter) {
         super(serverUri);
         this.aniAdd = aniAdd;
+        this.pathFilter = pathFilter.toLowerCase();
     }
 
     @Override
@@ -108,11 +111,15 @@ public class KodiNotificationSubscriber extends WebSocketClient {
     }
 
     private void handleEpisodeWatched(EpisodeDetail episodeDetail) {
-        if (!episodeDetail.file.toLowerCase().contains("anime") && !episodeDetail.file.toLowerCase().contains("needs-metadata")) {
+        if (!episodeDetail.file.toLowerCase().contains(pathFilter)) {
             log.finest( STR."Not an anime episode '\{episodeDetail.file}', skipping");
             return;
         }
         val localFilePath = getPath(episodeDetail.file, VideoLibraryUpdateParams.Type.EPISODE);
+        if (localFilePath == null) {
+            log.warning( STR."Could not get path for movie '\{episodeDetail.file}', skipping");
+            return;
+        }
         log.fine( STR."Episode file path: \{localFilePath}");
         if (episodeDetail.getPlayCount() > 0) {
             aniAdd.MarkFileAsWatched(localFilePath);
@@ -125,16 +132,29 @@ public class KodiNotificationSubscriber extends WebSocketClient {
             return;
         }
         val localFilePath = getPath(movieDetail.file, VideoLibraryUpdateParams.Type.MOVIE);
+        if (localFilePath == null) {
+            log.warning( STR."Could not get path for movie '\{movieDetail.file}', skipping");
+            return;
+        }
         log.fine( STR."Movie file path: \{localFilePath}");
         if (movieDetail.getPlayCount() > 0) {
             aniAdd.MarkFileAsWatched(localFilePath);
         }
     }
 
+    @Nullable
     private String getPath(String file, VideoLibraryUpdateParams.Type type) {
         val config = aniAdd.getConfiguration();
-        val normalizedPath = Paths.get(file).normalize();
-        val relativePath = Paths.get(normalizedPath.getParent().getFileName().toString(), normalizedPath.getFileName().toString());
+        var pathParts = file.split("/");
+        if (pathParts.length == 1) {
+            // nothing was split, so we assume it's a windows path
+           pathParts = file.split("\\\\");
+        }
+        if (pathParts.length < 2) {
+            log.warning( STR."Could not split path '\{file}'");
+            return null;
+        }
+        val relativePath = Paths.get(pathParts[pathParts.length - 2], pathParts[pathParts.length - 1]);
         return type == VideoLibraryUpdateParams.Type.EPISODE ? config.getEpisodePath(relativePath.toString()) : config.getMoviePath(relativePath.toString());
     }
 

@@ -10,7 +10,6 @@ import java.net.URI;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 @Log
 @CommandLine.Command(name = "connect-to-kodi", mixinStandardHelpOptions = true, version = "1.0",
@@ -20,6 +19,8 @@ public class ServerCommand implements Callable<Integer> {
     private int port = 9090;
     @CommandLine.Option(names = {"--kodi"}, description = "The ip/hostname of the kodi server.", required = true)
     private String kodiUrl = "localhost";
+    @CommandLine.Option(names= {"--path-filter"}, description = "The path filter to use to detect anime files. Default is 'anime'. Case insensitive.", defaultValue = "anime")
+    private String pathFilter;
 
     @CommandLine.ParentCommand
     private AnidbCommand parent;
@@ -31,7 +32,7 @@ public class ServerCommand implements Callable<Integer> {
 
         try (val executorService = Executors.newScheduledThreadPool(10)) {
             val aniAdd = parent.initializeAniAdd(false, executorService);
-            val subscriber = new KodiNotificationSubscriber(new URI(STR."ws://\{kodiUrl}:\{port}/jsonrpc"), aniAdd);
+            val subscriber = new KodiNotificationSubscriber(new URI(STR."ws://\{kodiUrl}:\{port}/jsonrpc"), aniAdd, pathFilter);
             subscriber.connect();
 
             val _ = executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
