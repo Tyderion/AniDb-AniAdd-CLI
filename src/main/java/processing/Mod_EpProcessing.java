@@ -12,12 +12,10 @@ import lombok.val;
 import processing.FileInfo.eAction;
 
 import aniAdd.misc.MultiKeyDict;
-import aniAdd.misc.MultiKeyDict.IKeyMapper;
 
 import java.util.List;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
-import java.util.logging.Logger;
 
 import udpapi2.UdpApi;
 import udpapi2.command.FileCommand;
@@ -39,20 +37,13 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
     private int filesBeingMoved;
     private boolean shouldShutdown;
 
-    private final MultiKeyDict<String, Object, FileInfo> files = new MultiKeyDict<>(new IKeyMapper<String, Object, FileInfo>() {
 
-        public int count() {
-            return 2;
-        }
+    private enum KeyType {
+        Id, Path
+    }
 
-        public int getCatIndex(String category) {
-            return category.equals("Id") ? 0 : (category.equals("Path") ? 1 : -1);
-        }
-
-        public Object getKey(int index, FileInfo fileInfo) {
-            return index == 0 ? fileInfo.Id() : (index == 1 ? fileInfo.FileObj().getAbsolutePath() : null);
-        }
-    });
+    private final MultiKeyDict<KeyType, Object, FileInfo> files = new MultiKeyDict<>(KeyType.class,
+            (type, fileInfo) -> type == KeyType.Id ? fileInfo.Id() : (type == KeyType.Path ? fileInfo.FileObj().getAbsolutePath() : null));
 
     public Mod_EpProcessing(AniConfiguration configuration, UdpApi udpApi, ExecutorService executorService) {
         this.configuration = configuration;
@@ -94,7 +85,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
     }
 
     private void onHashComputed(Integer tag, String hash) {
-        FileInfo procFile = files.get("Id", tag);
+        FileInfo procFile = files.get(KeyType.Id, tag);
 
 
         if (procFile != null && hash != null) {
@@ -142,10 +133,10 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
 
     private void aniDBInfoReply(Query<FileCommand> query) {
         int fileId = query.getTag();
-        if (!files.contains("Id", fileId)) {
+        if (!files.contains(KeyType.Id, fileId)) {
             return; //File not found (Todo: throw error)
         }
-        FileInfo procFile = files.get("Id", fileId);
+        FileInfo procFile = files.get(KeyType.Id, fileId);
         procFile.ActionsTodo().remove(eAction.FileCmd);
         val replyStatus = query.getReply().getReplyStatus();
         if (replyStatus == ReplyStatus.NO_SUCH_FILE
@@ -182,11 +173,11 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         val replyStatus = query.getReply().getReplyStatus();
 
         int fileId = query.getTag();
-        if (!files.contains("Id", fileId)) {
+        if (!files.contains(KeyType.Id, fileId)) {
             //System.out.println("MLCmd: Id not found");
             return; //File not found (Todo: throw error)
         }
-        FileInfo procFile = files.get("Id", fileId);
+        FileInfo procFile = files.get(KeyType.Id, fileId);
         val configuration = procFile.getConfiguration();
         procFile.ActionsTodo().remove(eAction.MyListCmd);
 
@@ -255,6 +246,8 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         }
 
         log.fine(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} done");
+        // TODO: Remove file from list maybe?
+//        files.remove("Id", procFile.Id());
         if (procFile.Id() == lastFileId - 1) {
             sendEvent(ProcessingEvent.Done);
         }
@@ -503,7 +496,8 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         boolean addToMyList = configuration.isAddToMylist();
 
         for (File cf : newFiles) {
-            if (files.contains("Path", cf.getAbsolutePath())) {
+            if (files.contains(KeyType.Path, cf.getAbsolutePath())) {
+                log.info(STR."File \{cf.getAbsolutePath()} already in processing/processed");
                 continue;
             }
 
