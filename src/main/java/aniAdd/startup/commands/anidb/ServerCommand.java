@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 @Log
 @CommandLine.Command(name = "connect-to-kodi", mixinStandardHelpOptions = true, version = "1.0",
-        description = "Connects to a kodi instance via websockets and marks watched episodes as watched on anidb as well. Filepath must contain 'anime'.")
+        description = "Connects to a kodi instance via websockets and marks watched episodes as watched on anidb as well. Filepath must contain 'anime' (configurable)")
 public class ServerCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"--port"}, description = "The port to connect to")
     private int port = 9090;

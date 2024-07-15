@@ -6,6 +6,9 @@ Thanks for Anidb team for publishing the source of this java applet.
 This Version replaces the GUI with a CLI only version.
 Old Versions still support GUI, see Tag [v1.1.1](https://github.com/Tyderion/AniDb-AniAdd-CLI/releases/tag/1.1.1)
 
+### Environment Variables
+- `LOG_CONFIG_FILE`: Path to a properties file for logging [sample](https://github.com/Tyderion/AniDb-AniAdd-CLI/blob/feature/kodi-integration/src/main/resources/logging.properties). Will be used to update logging configuration and set log levels.
+
 The following cli commands and options are available:
 ### Scan
 ```
@@ -30,7 +33,8 @@ Scans the directory for files and adds them to AniDb
 ### Connect To Kodi
 ```
 Usage: aniadd-cli.jar anidb connect-to-kodi [-hV] [-c=<configPath>]
-       --kodi=<kodiUrl> -p=<password> [--port=<port>]
+       --kodi=<kodiUrl> [--localport=<localPort>] -p=<password>
+       [--path-filter=<pathFilter>] [--port=<port>]
        [--tagging-system=<taggingSystem>] -u=<username>
 Connects to a kodi instance via websockets and marks watched episodes as
 watched on anidb as well. Filepath must contain 'anime'.
@@ -39,8 +43,13 @@ watched on anidb as well. Filepath must contain 'anime'.
                            override values from the config file.
   -h, --help             Show this help message and exit.
       --kodi=<kodiUrl>   The ip/hostname of the kodi server.
+      --localport=<localPort>
+                         The AniDB password
   -p, --password=<password>
                          The AniDB password
+      --path-filter=<pathFilter>
+                         The path filter to use to detect anime files. Default
+                           is 'anime'. Case insensitive.
       --port=<port>      The port to connect to
       --tagging-system=<taggingSystem>
                          the path to a file containing the Tagging System
