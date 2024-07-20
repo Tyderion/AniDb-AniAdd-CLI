@@ -4,5 +4,5 @@ if [[ -z "${LOG_CONFIG_FILE}" ]]; then
 fi
 
 echo "Logging config is set to $LOG_CONFIG_FILE"
-echo "Running command: java --enable-preview -jar /app/aniadd-cli.jar" "${@:2}"
-java --enable-preview -jar /app/aniadd-cli.jar "${@:2}"
+echo "Running command: java --enable-preview -jar /app/aniadd-cli.jar" "${@:1}"
+java --enable-preview -jar /app/aniadd-cli.jar "${@:1}"
