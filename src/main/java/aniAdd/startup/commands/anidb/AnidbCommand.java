@@ -4,7 +4,9 @@ import aniAdd.AniAdd;
 import aniAdd.IAniAdd;
 import aniAdd.config.AniConfiguration;
 import aniAdd.startup.commands.CliCommand;
-import aniAdd.startup.validation.NonEmpty;
+import aniAdd.startup.validation.validators.max.Max;
+import aniAdd.startup.validation.validators.min.Min;
+import aniAdd.startup.validation.validators.nonempty.NonEmpty;
 import fileprocessor.FileProcessor;
 import lombok.extern.java.Log;
 import lombok.val;
@@ -33,6 +35,8 @@ public class AnidbCommand {
 
 
     @CommandLine.Option(names = {"--localport"}, description = "The AniDB password", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "3333")
+    @Max(65535)
+    @Min(1024)
     int localPort;
 
     @CommandLine.Option(names = {"--exit-on-ban"}, description = "Exit the application if the user is banned", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "false")

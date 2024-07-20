@@ -1,6 +1,10 @@
 package aniAdd.startup.validation;
 
-import aniAdd.startup.validation.validators.NonEmptyValidator;
+import aniAdd.startup.validation.validators.ValidationHelpers;
+import aniAdd.startup.validation.validators.max.Max;
+import aniAdd.startup.validation.validators.max.MaxValidator;
+import aniAdd.startup.validation.validators.nonempty.NonEmpty;
+import aniAdd.startup.validation.validators.nonempty.NonEmptyValidator;
 import lombok.val;
 import picocli.CommandLine;
 
@@ -13,7 +17,8 @@ public final class Validator {
         val clazz = command.getClass();
         val messages = new ArrayList<String>();
         for (Field field : clazz.getDeclaredFields()) {
-            NonEmptyValidator.validate(field, command).ifPresent(messages::add);
+            ValidationHelpers.validate(field, command, Max.class).ifPresent(messages::add);
+            ValidationHelpers.validate(field, command, NonEmpty.class).ifPresent(messages::add);
         }
         if (!messages.isEmpty()) {
             throw new CommandLine.ParameterException(spec.commandLine(), String.join(System.lineSeparator(), messages));
