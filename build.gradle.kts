@@ -92,6 +92,10 @@ tasks.register("prepareForRelease") {
             from(file(".run/noop.sh"))
             into(project.layout.buildDirectory.dir("docker").get().asFile)
         }
+        copy {
+            from(file(".run/run.sh"))
+            into(project.layout.buildDirectory.dir("docker").get().asFile)
+        }
     }
 }
 
@@ -109,6 +113,7 @@ tasks.register<Dockerfile>("createDockerfile") {
     copyFile("watch-folder.sh", "/app/watch.sh")
     copyFile("handle-kodi.sh", "/app/kodi.sh")
     copyFile("noop.sh", "/app/noop.sh")
+    copyFile("run.sh", "/app/run.sh")
     defaultCommand("/app/noop.sh")
 }
 
