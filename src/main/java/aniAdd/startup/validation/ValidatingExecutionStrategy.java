@@ -1,9 +1,8 @@
-package aniAdd.startup;
+package aniAdd.startup.validation;
 
-import aniAdd.startup.commands.IValidate;
 import picocli.CommandLine;
 
-class ValidatingExecutionStrategy implements CommandLine.IExecutionStrategy {
+public class ValidatingExecutionStrategy implements CommandLine.IExecutionStrategy {
     public int execute(CommandLine.ParseResult parseResult) {
 
         validateParseResult(parseResult);
@@ -11,9 +10,7 @@ class ValidatingExecutionStrategy implements CommandLine.IExecutionStrategy {
     }
 
     void validateParseResult(CommandLine.ParseResult parseResult) {
-        if (parseResult.commandSpec().userObject() instanceof IValidate validator) {
-            validator.validate();
-        }
+        Validator.validate(parseResult.commandSpec());
         if (parseResult.subcommand() != null) {
             validateParseResult(parseResult.subcommand());
         }

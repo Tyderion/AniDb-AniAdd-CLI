@@ -1,6 +1,7 @@
 package aniAdd.startup;
 
 import aniAdd.startup.commands.CliCommand;
+import aniAdd.startup.validation.ValidatingExecutionStrategy;
 
 public class Main {
 
