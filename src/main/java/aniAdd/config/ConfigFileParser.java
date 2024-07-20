@@ -22,6 +22,7 @@ public class ConfigFileParser<T> {
     public ConfigFileParser(String configFilePath, Class<T> clazz) {
         mConfigFilePath = configFilePath;
         mClazz = clazz;
+        // TODO: Handle upgrading from older versions of the configuration file
 
         var loaderoptions = new LoaderOptions();
         TagInspector taginspector =
