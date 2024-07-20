@@ -101,7 +101,7 @@ I suggest using a cron-job or something similar to periodically scan your downlo
 
 # Docker
 
-There is a docker image available for now: https://hub.docker.com/repository/docker/tyderion/aniadd-cli/general
+There is a docker image available for now: https://hub.docker.com/r/tyderion/aniadd-cli
 
 # Tutorial
 
