@@ -6,6 +6,8 @@ import aniAdd.startup.validation.validators.min.Min;
 import aniAdd.startup.validation.validators.min.MinValidator;
 import aniAdd.startup.validation.validators.nonempty.NonEmpty;
 import aniAdd.startup.validation.validators.nonempty.NonEmptyValidator;
+import aniAdd.startup.validation.validators.port.Port;
+import aniAdd.startup.validation.validators.port.PortValidator;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 
@@ -25,7 +27,8 @@ public final class ValidationHelpers {
     private static final Map<Class<? extends Annotation>, IValidator> validators = Map.of(
             NonEmpty.class, new NonEmptyValidator(),
             Max.class, new MaxValidator(),
-            Min.class, new MinValidator()
+            Min.class, new MinValidator(),
+            Port.class, new PortValidator()
     );
 
     @NotNull

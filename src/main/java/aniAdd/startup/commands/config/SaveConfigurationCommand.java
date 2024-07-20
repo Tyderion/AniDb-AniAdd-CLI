@@ -2,6 +2,7 @@ package aniAdd.startup.commands.config;
 
 import aniAdd.config.AniConfiguration;
 import aniAdd.config.ConfigFileParser;
+import aniAdd.startup.validation.validators.nonempty.NonEmpty;
 import lombok.extern.java.Log;
 import picocli.CommandLine;
 
@@ -14,6 +15,7 @@ import java.util.concurrent.Callable;
 public class SaveConfigurationCommand implements Callable<Integer> {
 
     @CommandLine.Parameters(index = "0", description = "The path to the file to save the configuration to.")
+    @NonEmpty
     private String path;
 
     @CommandLine.ParentCommand
