@@ -9,6 +9,8 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        new picocli.CommandLine(new CliCommand()).execute(args);
+        new picocli.CommandLine(new CliCommand())
+                .setExecutionStrategy(new ValidatingExecutionStrategy())
+                .execute(args);
     }
 }
