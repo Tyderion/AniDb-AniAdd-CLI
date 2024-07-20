@@ -23,7 +23,7 @@ public class FileRenamer implements IFileRenamer {
             Files.move(from, to, StandardCopyOption.ATOMIC_MOVE);
             return true;
         } catch (IOException e) {
-            log.warning(STR."Could not move file from \{from.toAbsolutePath()} to \{to.toAbsolutePath()}: \{e.getMessage()}. Will try to copy instead");
+            log.info(STR."Could not move file from \{from.toAbsolutePath()} to \{to.toAbsolutePath()}: \{e.getMessage()}. Will try to copy instead");
         }
         log.fine(STR."Copying file from \{from.toAbsolutePath()} to \{to.toAbsolutePath()}");
         try {
