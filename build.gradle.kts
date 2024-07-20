@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "ch.tyderion"
-version = "4.0.0-SNAPSHOT-7"
+version = "4.0.0-SNAPSHOT-8"
 
 java {
     targetCompatibility = JavaVersion.VERSION_21
@@ -96,6 +96,10 @@ tasks.register("prepareForRelease") {
             from(file(".run/run.sh"))
             into(project.layout.buildDirectory.dir("docker").get().asFile)
         }
+        copy {
+            from(file(".run/logging.properties"))
+            into(project.layout.buildDirectory.dir("docker").get().asFile)
+        }
     }
 }
 
@@ -114,6 +118,7 @@ tasks.register<Dockerfile>("createDockerfile") {
     copyFile("handle-kodi.sh", "/app/kodi.sh")
     copyFile("noop.sh", "/app/noop.sh")
     copyFile("run.sh", "/app/run.sh")
+    copyFile("logging.properties", "/app/logging.properties")
     defaultCommand("/app/noop.sh")
 }
 

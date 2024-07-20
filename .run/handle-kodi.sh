@@ -1,5 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 echo "setting up execution"
+
+if [[ -z "${LOG_CONFIG_FILE}" ]]; then
+  export LOG_CONFIG_FILE=logging.properties
+fi
 
 if [ -z "$ANIDB_USERNAME" ]
 then

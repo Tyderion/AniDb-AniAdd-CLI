@@ -1,5 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 echo "setting up execution"
+if [[ -z "${LOG_CONFIG_FILE}" ]]; then
+  export LOG_CONFIG_FILE=logging.properties
+fi
 
 if [ "$CONTINUOUS_CHECKS" = true ]; then
    if [ -z ${CHECK_WAITTIME+x} ] || [ "$CHECK_WAITTIME" -lt 600 ]; then
