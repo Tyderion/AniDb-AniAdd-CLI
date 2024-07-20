@@ -9,6 +9,7 @@ import udpapi2.command.*;
 import udpapi2.query.Query;
 import udpapi2.receive.Receive;
 import udpapi2.reply.Reply;
+import udpapi2.reply.ReplyStatus;
 
 import java.io.IOException;
 import java.net.*;
@@ -24,6 +25,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     final Queue<Command> commandQueue = new ConcurrentLinkedQueue<>();
     final Map<String, Query<?>> queries = new ConcurrentHashMap<>();
     final Map<Class<? extends Command>, IQueryCallback<?>> commandCallbacks = new ConcurrentHashMap<>();
+    final Map<ReplyStatus, IReplyStatusCallback> replyStatusCallbacks = new ConcurrentHashMap<>();
 
     private static final Logger logger = Logger.getLogger(UdpApi.class.getName());
 
@@ -50,6 +52,10 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     public <T extends Command> void registerCallback(Class<T> command, IQueryCallback<T> callback) {
         commandCallbacks.put(command, callback);
+    }
+
+    public <T extends Command> void registerCallback(ReplyStatus status, IReplyStatusCallback callback) {
+        replyStatusCallbacks.put(status, callback);
     }
 
     public boolean Initialize(AniConfiguration configuration) {
@@ -180,6 +186,9 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     @SuppressWarnings("rawtypes")
     private void handleQueryReply(Query query) {
+        if (replyStatusCallbacks.containsKey(query.getReply().getReplyStatus())) {
+            replyStatusCallbacks.get(query.getReply().getReplyStatus()).invoke(query.getReply().getReplyStatus());
+        }
         if (!query.success()) {
             logger.warning(STR."Query failed: \{query.toString()}");
             handleQueryError(query);
@@ -324,5 +333,9 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     public interface IQueryCallback<T extends Command> {
         void invoke(Query<T> query);
+    }
+
+    public interface IReplyStatusCallback {
+        void invoke(udpapi2.reply.ReplyStatus status);
     }
 }

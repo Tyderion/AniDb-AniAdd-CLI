@@ -5,13 +5,15 @@ import aniAdd.IAniAdd;
 import aniAdd.config.AniConfiguration;
 import aniAdd.startup.commands.CliCommand;
 import fileprocessor.FileProcessor;
+import lombok.extern.java.Log;
 import lombok.val;
 import picocli.CommandLine;
 import processing.Mod_EpProcessing;
 import udpapi2.UdpApi;
+import udpapi2.reply.ReplyStatus;
 
 import java.util.concurrent.ScheduledExecutorService;
-
+@Log
 @CommandLine.Command(
         subcommands = {ScanCommand.class, ServerCommand.class, TagsCommand.class},
         name = "anidb",
@@ -27,6 +29,9 @@ public class AnidbCommand {
     @CommandLine.Option(names = {"--localport"}, description = "The AniDB password", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "3333")
     int localPort;
 
+    @CommandLine.Option(names= { "--exit-on-ban" }, description = "Exit the application if the user is banned", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "false")
+    boolean exitOnBan;
+
     @CommandLine.ParentCommand
     private CliCommand parent;
 
@@ -37,6 +42,12 @@ public class AnidbCommand {
     IAniAdd initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService) {
         val udpApi = new UdpApi(executorService, localPort, username, password);
         udpApi.Initialize(getConfiguration());
+        if (exitOnBan) {
+            udpApi.registerCallback(ReplyStatus.BANNED, _ -> {
+                log.severe("User is banned. Exiting.");
+                System.exit(1);
+            });
+        }
 
         val processing = new Mod_EpProcessing(getConfiguration(), udpApi, executorService);
         val fileProcessor = new FileProcessor(processing, getConfiguration(), executorService);
