@@ -32,7 +32,7 @@ public class TagsCommand implements Callable<Integer> {
         val result = TagSystem.Evaluate(configuration.getTagSystemCode(), tags);
         val filename = result.FileName();
         val pathname =result.PathName();
-        log.info(STR."Filename: \{filename}, Pathname: \\{pathname}");
+        log.info(STR."Filename: \{filename}, Pathname: \{pathname}");
         return 0;
     }
 

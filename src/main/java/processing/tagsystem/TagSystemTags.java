@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public enum TagSystemTags {
-    BaseTvShowPath("BaseTvShowPath"),
+    BaseTvShowPath("BaseTVShowPath"),
     BaseMoviePath("BaseMoviePath"),
     SeriesNameRomaji("ATr"),
     SeriesNameEnglish("ATe"),
