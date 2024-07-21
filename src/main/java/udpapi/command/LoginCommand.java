@@ -1,12 +1,21 @@
 package udpapi.command;
 
+import lombok.Getter;
 import lombok.experimental.SuperBuilder;
 import udpapi.QueryId;
 import udpapi.UdpApiConfiguration;
 
+import java.util.Set;
+
 @SuperBuilder
 public class LoginCommand extends Command {
     private static final String ACTION = "AUTH";
+
+
+    @Override
+    protected Set<String> getSensitiveParameters() {
+        return Set.of("user", "pass");
+    }
 
     public static LoginCommand Create(String username, String password) throws IllegalArgumentException {
         if (username == null || username.isEmpty() || username.isBlank()) {
