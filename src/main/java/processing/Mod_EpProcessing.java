@@ -259,7 +259,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
 
             FileInfo fileInfo = new FileInfo(cf, lastFileId);
             fileInfo.addTodo(FileAction.Process);
-            if (configuration.isRenameFiles() || configuration.isEnableFileMove()) {
+            if (configuration.isEnableFileRenaming() || configuration.isEnableFileMove()) {
                 fileInfo.addTodo(FileAction.FileCmd);
             }
             fileInfo.setConfiguration(configuration);
@@ -267,7 +267,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
             if (configuration.isAddToMylist()) {
                 fileInfo.addTodo(FileAction.MyListCmd);
             }
-            if (configuration.isRenameFiles()) {
+            if (configuration.isEnableFileRenaming()) {
                 fileInfo.addTodo(FileAction.Rename);
             }
 

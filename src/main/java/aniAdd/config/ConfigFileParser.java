@@ -1,11 +1,13 @@
 package aniAdd.config;
 
 import lombok.extern.java.Log;
+import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.inspector.TagInspector;
 import org.yaml.snakeyaml.introspector.BeanAccess;
+import org.yaml.snakeyaml.representer.Representer;
 
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
@@ -22,14 +24,22 @@ public class ConfigFileParser<T> {
     public ConfigFileParser(String configFilePath, Class<T> clazz) {
         mConfigFilePath = configFilePath;
         mClazz = clazz;
-        // TODO: Handle upgrading from older versions of the configuration file
+        log.warning("If you upgrade from an old configuration file make sure to check the new one and adjust paths if necessary. Check the documentation of AniConfiguration.");
 
         var loaderoptions = new LoaderOptions();
         TagInspector taginspector =
-                tag -> tag.getClassName().equals(AniConfiguration.class.getName());
+                tag -> {
+                    if (tag.getClassName().equals("aniAdd.config.XBMCDefaultConfiguration")) {
+                        log.warning("Converted from old configuration file.");
+                        return true;
+                    }
+                    return tag.getClassName().equals(AniConfiguration.class.getName());
+                };
+        Representer representer = new Representer(new DumperOptions());
+        representer.getPropertyUtils().setSkipMissingProperties(true);
         loaderoptions.setTagInspector(taginspector);
 
-        mYaml = new Yaml(new Constructor(AniConfiguration.class, loaderoptions));
+        mYaml = new Yaml(new Constructor(AniConfiguration.class, loaderoptions), representer);
         mYaml.setBeanAccess(BeanAccess.FIELD);
     }
 
@@ -61,7 +71,7 @@ public class ConfigFileParser<T> {
     public void saveToFile(T configuration, String path) throws IOException {
         File file = new File(path);
         Writer writer = new BufferedWriter(new FileWriter(file));
-        log.info( "Saving config to file: " + file.getAbsolutePath());
+        log.info("Saving config to file: " + file.getAbsolutePath());
         mYaml.dump(configuration, writer);
     }
 }
