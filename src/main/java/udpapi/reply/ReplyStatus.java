@@ -1,6 +1,4 @@
-package udpapi2.reply;
-
-import java.util.logging.Logger;
+package udpapi.reply;
 
 public enum ReplyStatus {
     LOGIN_ACCEPTED(200),

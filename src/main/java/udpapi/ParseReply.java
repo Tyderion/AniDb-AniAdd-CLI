@@ -1,11 +1,11 @@
-package udpapi2;
+package udpapi;
 
 import aniAdd.misc.Misc;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 import lombok.val;
-import udpapi2.reply.Reply;
-import udpapi2.reply.ReplyStatus;
+import udpapi.reply.Reply;
+import udpapi.reply.ReplyStatus;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;

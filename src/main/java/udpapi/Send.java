@@ -1,12 +1,12 @@
-package udpapi2;
+package udpapi;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 import lombok.val;
 import org.jetbrains.annotations.Nullable;
-import udpapi2.command.Command;
-import udpapi2.query.Query;
+import udpapi.command.Command;
+import udpapi.query.Query;
 
 import java.io.IOException;
 import java.net.DatagramPacket;

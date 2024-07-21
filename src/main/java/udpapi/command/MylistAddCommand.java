@@ -1,9 +1,8 @@
-package udpapi2.command;
+package udpapi.command;
 
-import lombok.With;
 import lombok.experimental.SuperBuilder;
 import lombok.val;
-import udpapi2.QueryId;
+import udpapi.QueryId;
 
 @SuperBuilder(toBuilder = true)
 public class MylistAddCommand extends Command {

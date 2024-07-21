@@ -1,9 +1,9 @@
-package udpapi2.query;
+package udpapi.query;
 
 import lombok.Data;
 import lombok.val;
-import udpapi2.command.Command;
-import udpapi2.reply.Reply;
+import udpapi.command.Command;
+import udpapi.reply.Reply;
 
 import java.net.DatagramPacket;
 import java.net.InetAddress;

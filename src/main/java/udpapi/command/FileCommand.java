@@ -1,11 +1,11 @@
-package udpapi2.command;
+package udpapi.command;
 
 import aniAdd.misc.Misc;
 import lombok.experimental.SuperBuilder;
 import lombok.val;
 import processing.tagsystem.TagSystemTags;
-import udpapi2.QueryId;
-import udpapi2.reply.Reply;
+import udpapi.QueryId;
+import udpapi.reply.Reply;
 
 import java.util.ArrayDeque;
 import java.util.BitSet;

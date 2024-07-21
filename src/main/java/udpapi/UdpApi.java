@@ -1,15 +1,15 @@
-package udpapi2;
+package udpapi;
 
 import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import udpapi2.command.*;
-import udpapi2.query.Query;
-import udpapi2.receive.Receive;
-import udpapi2.reply.Reply;
-import udpapi2.reply.ReplyStatus;
+import udpapi.command.*;
+import udpapi.query.Query;
+import udpapi.receive.Receive;
+import udpapi.reply.Reply;
+import udpapi.reply.ReplyStatus;
 
 import java.io.IOException;
 import java.net.*;
@@ -337,6 +337,6 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     }
 
     public interface IReplyStatusCallback {
-        void invoke(udpapi2.reply.ReplyStatus status);
+        void invoke(udpapi.reply.ReplyStatus status);
     }
 }

@@ -1,4 +1,4 @@
-package udpapi2;
+package udpapi;
 
 public class QueryId {
     private static int queryId = 0;

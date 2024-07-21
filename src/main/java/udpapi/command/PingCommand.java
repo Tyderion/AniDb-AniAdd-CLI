@@ -1,7 +1,7 @@
-package udpapi2.command;
+package udpapi.command;
 
 import lombok.experimental.SuperBuilder;
-import udpapi2.QueryId;
+import udpapi.QueryId;
 
 @SuperBuilder
 public class PingCommand extends Command {

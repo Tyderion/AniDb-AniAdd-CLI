@@ -13,8 +13,8 @@ import lombok.val;
 import picocli.CommandLine;
 import processing.FileHandler;
 import processing.Mod_EpProcessing;
-import udpapi2.UdpApi;
-import udpapi2.reply.ReplyStatus;
+import udpapi.UdpApi;
+import udpapi.reply.ReplyStatus;
 
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;

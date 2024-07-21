@@ -1,4 +1,4 @@
-package udpapi2.receive;
+package udpapi.receive;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
-import java.util.logging.Logger;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 

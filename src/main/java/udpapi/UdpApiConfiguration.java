@@ -1,7 +1,6 @@
-package udpapi2;
+package udpapi;
 
 import java.time.Duration;
-import java.time.temporal.TemporalAmount;
 
 public final class UdpApiConfiguration {
     public static final String ANIDB_CLIENT_TAG = "AniAddCLI";

@@ -1,9 +1,8 @@
-package udpapi2.command;
+package udpapi.command;
 
 import lombok.*;
 import lombok.experimental.NonFinal;
 import lombok.experimental.SuperBuilder;
-import udpapi2.reply.Reply;
 
 import java.util.Map;
 

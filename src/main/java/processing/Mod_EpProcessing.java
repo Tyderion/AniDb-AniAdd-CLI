@@ -16,12 +16,12 @@ import aniAdd.misc.MultiKeyDict;
 import java.util.concurrent.ExecutorService;
 
 import processing.tagsystem.TagSystemTags;
-import udpapi2.UdpApi;
-import udpapi2.command.FileCommand;
-import udpapi2.command.LogoutCommand;
-import udpapi2.command.MylistAddCommand;
-import udpapi2.query.Query;
-import udpapi2.reply.ReplyStatus;
+import udpapi.UdpApi;
+import udpapi.command.FileCommand;
+import udpapi.command.LogoutCommand;
+import udpapi.command.MylistAddCommand;
+import udpapi.query.Query;
+import udpapi.reply.ReplyStatus;
 
 @Log
 public class Mod_EpProcessing implements FileProcessor.Processor {
