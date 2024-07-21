@@ -18,6 +18,11 @@ public class FileParser implements Runnable {
     public void run() {
         String hash = null;
 
+        if (file.isDirectory()) {
+            // We don't hash directories
+            return;
+        }
+
         try {
             Edonkey ed2k = new Edonkey();
             byte[] b = new byte[1024 * 1024 * 4];

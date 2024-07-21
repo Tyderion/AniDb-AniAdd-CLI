@@ -39,11 +39,11 @@ public class FindFiles implements Callable<List<File>> {
         return Stream.concat(files, subFolderFiles);
     }
 
-    private boolean shouldScrapeFile(File _directory, String name) {
-        return !isKodiMetadataFileOrInvalidFile(_directory, name);
+    private boolean shouldScrapeFile(File file) {
+        return !file.isDirectory() && !isKodiMetadataFileOrInvalidFile(file.getName());
     }
 
-    private boolean isKodiMetadataFileOrInvalidFile(File _directory, String name) {
+    private boolean isKodiMetadataFileOrInvalidFile(String name) {
         return name.endsWith(".jpg")
                 || name.endsWith(".nfo")
                 || name.endsWith(".srt")
