@@ -54,16 +54,24 @@ public class AnidbCommand {
     IAniAdd initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService) {
         val udpApi = new UdpApi(executorService, localPort, username, password);
         udpApi.Initialize(getConfiguration());
-        if (exitOnBan) {
-            udpApi.registerCallback(ReplyStatus.BANNED, _ -> {
-                log.severe("User is banned. Exiting.");
-                System.exit(1);
-            });
-        }
+
 
         val processing = new Mod_EpProcessing(getConfiguration(), udpApi, executorService);
         val fileProcessor = new FileProcessor(processing, getConfiguration(), executorService);
 
-        return new AniAdd(getConfiguration(), udpApi, terminateOnCompletion, fileProcessor, processing, _ -> executorService.shutdownNow());
+        val aniAdd = new AniAdd(getConfiguration(), udpApi, terminateOnCompletion, fileProcessor, processing, _ -> executorService.shutdownNow());
+        if (exitOnBan) {
+            udpApi.registerCallback(ReplyStatus.BANNED, _ -> {
+                log.severe("User is banned. Exiting.");
+                aniAdd.Stop();
+                // Make sure we shut down even if terminateOnCompletion is false
+                if (!executorService.isShutdown()) {
+                    executorService.shutdownNow();
+                }
+            });
+        }
+
+        return aniAdd;
+
     }
 }

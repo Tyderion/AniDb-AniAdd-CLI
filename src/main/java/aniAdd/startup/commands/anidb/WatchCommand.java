@@ -2,6 +2,7 @@ package aniAdd.startup.commands.anidb;
 
 import aniAdd.startup.validation.validators.min.Min;
 import aniAdd.startup.validation.validators.nonempty.NonEmpty;
+import lombok.extern.java.Log;
 import lombok.val;
 import picocli.CommandLine;
 
@@ -9,6 +10,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+@Log
 @CommandLine.Command(name = "watch", mixinStandardHelpOptions = true, version = "1.0",
         description = "Periodically scans the directory for files and adds them to AniDb")
 public class WatchCommand implements Callable<Integer> {
@@ -25,8 +27,9 @@ public class WatchCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
+        log.info(STR."Watching directory \{directory} every \{interval} minutes");
         try (val executorService = Executors.newScheduledThreadPool(10)) {
-            val aniAdd = parent.initializeAniAdd(true, executorService);
+            val aniAdd = parent.initializeAniAdd(false, executorService);
 
             executorService.scheduleAtFixedRate(() -> aniAdd.ProcessDirectory(directory), 0, interval, TimeUnit.MINUTES);
 
