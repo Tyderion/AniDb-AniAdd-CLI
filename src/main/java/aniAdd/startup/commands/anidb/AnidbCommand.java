@@ -19,7 +19,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 @Log
 @CommandLine.Command(
-        subcommands = {ScanCommand.class, ServerCommand.class, TagsCommand.class},
+        subcommands = {ScanCommand.class, KodiWatcherCommand.class, TagsCommand.class, WatchCommand.class},
         name = "anidb",
         mixinStandardHelpOptions = true,
         version = "1.0",
@@ -33,7 +33,7 @@ public class AnidbCommand {
     @NonEmpty
     String password;
 
-    @CommandLine.Option(names = {"--localport"}, description = "The AniDB password", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "3333")
+    @CommandLine.Option(names = {"--localport"}, description = "The local port to use to connect to anidb", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "3333")
     @Port
     int localPort;
 

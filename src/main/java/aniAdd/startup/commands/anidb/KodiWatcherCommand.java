@@ -1,6 +1,7 @@
 package aniAdd.startup.commands.anidb;
 
 import aniAdd.kodi.KodiNotificationSubscriber;
+import aniAdd.startup.validation.validators.nonempty.NonEmpty;
 import aniAdd.startup.validation.validators.port.Port;
 import lombok.extern.java.Log;
 import lombok.val;
@@ -15,12 +16,15 @@ import java.util.concurrent.TimeUnit;
 @Log
 @CommandLine.Command(name = "connect-to-kodi", mixinStandardHelpOptions = true, version = "1.0",
         description = "Connects to a kodi instance via websockets and marks watched episodes as watched on anidb as well. Filepath must contain 'anime' (configurable)")
-public class ServerCommand implements Callable<Integer> {
+public class KodiWatcherCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"--port"}, description = "The port to connect to")
     @Port
     private int port = 9090;
+
     @CommandLine.Option(names = {"--kodi"}, description = "The ip/hostname of the kodi server.", required = true)
+    @NonEmpty
     private String kodiUrl = "localhost";
+
     @CommandLine.Option(names= {"--path-filter"}, description = "The path filter to use to detect anime files. Default is 'anime'. Case insensitive.", defaultValue = "anime")
     private String pathFilter;
 
