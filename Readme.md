@@ -6,12 +6,13 @@ Thanks for Anidb team for publishing the source of this java applet.
 This Version replaces the GUI with a CLI only version.
 Old Versions still support GUI, see Tag [v1.1.1](https://github.com/Tyderion/AniDb-AniAdd-CLI/releases/tag/1.1.1)
 
-The following cli commands are available (check designated comamnd help `--help` for more information):
+The following cli commands are available (check designated command help `--help` for more information):
 - `tags`: Test your tag system with example data
 - `config save`: Convert old config file to new format (or generate a new default config by specifying --default)
 - `anidb scan`: Scan given folder for anime, optionally adding them to your mylist and moving the files). Shuts down after scan.
 - `anidb watch`: Watch given folder for new anime, optionally adding them to your mylist and moving the files. Will keep running until stopped.
 - `anidb connect-to-kodi`: Connect to Kodi and mark episodes as watched in your mylist after watching them.
+- `anidb watch-and-kodi`: Combine `watch` and `connect-to-kodi` commands.
 
 This version is meant to be used on headless system (like your NAS) and still have the flexibility and useability of the official applet.
 
@@ -70,6 +71,12 @@ Runs the `connect-to-kodi` command.
 #### Env Vars
 - `KODI_HOST` [required]: the ip/hostname of your kodi instance
 - `KODI_PORT` [optional, default=9090]: the websocket port of your kodi instance
+
+### Watch and Kodi
+entrypoint: `/app/watch-and-kodi.sh`
+
+Runs the `watch-and-kodi` command which combines `watch` and `connect-to-kodi`.
+
 
 ### Noop
 entrypoint: `/app/noop.sh`
