@@ -37,7 +37,7 @@ public class SaveConfigurationCommand implements Callable<Integer> {
             } catch (IOException e) {
                 log.warning(STR."Could not write config to file: \{path}");
             }
-        }, () -> log.warning("No configuration loaded"));
+        }, () -> log.severe("No configuration loaded. Either specify a config file (-c) or use --default to load an empty configuration."));
 
         return 0;
     }

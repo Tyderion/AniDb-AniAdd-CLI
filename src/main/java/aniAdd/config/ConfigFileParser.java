@@ -1,6 +1,7 @@
 package aniAdd.config;
 
 import lombok.extern.java.Log;
+import lombok.val;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -36,11 +37,14 @@ public class ConfigFileParser<T> {
                     }
                     return tag.getClassName().equals(AniConfiguration.class.getName()) || tag.getClassName().equals("aniAdd.config.AniConfiguration");
                 };
+
         Representer representer = new Representer(new DumperOptions());
         representer.getPropertyUtils().setSkipMissingProperties(true);
         loaderoptions.setTagInspector(taginspector);
-
-        mYaml = new Yaml(new Constructor(AniConfiguration.class, loaderoptions), representer);
+        val options = new DumperOptions();
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        options.setPrettyFlow(true);
+        mYaml = new Yaml(new Constructor(AniConfiguration.class, loaderoptions), representer, options);
         mYaml.setBeanAccess(BeanAccess.FIELD);
     }
 
@@ -75,7 +79,7 @@ public class ConfigFileParser<T> {
     public void saveToFile(T configuration, String path) throws IOException {
         File file = new File(path);
         Writer writer = new BufferedWriter(new FileWriter(file));
-        log.info("Saving config to file: " + file.getAbsolutePath());
+        log.info(STR."Saving config to file: \{file.getAbsolutePath()}");
         mYaml.dump(configuration, writer);
     }
 }

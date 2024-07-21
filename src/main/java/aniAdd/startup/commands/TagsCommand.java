@@ -1,5 +1,7 @@
-package aniAdd.startup.commands.anidb;
+package aniAdd.startup.commands;
 
+import aniAdd.startup.commands.anidb.AnidbCommand;
+import lombok.Setter;
 import lombok.extern.java.Log;
 import lombok.val;
 import picocli.CommandLine;
@@ -20,17 +22,20 @@ public class TagsCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"--movie"}, description = "Test movie naming", required = false)
     private boolean movie;
 
+    @CommandLine.Option(names = {"-c", "--config"}, description = "The path to the config file. Specified parameters will override values from the config file.", required = false, scope = CommandLine.ScopeType.INHERIT)
+    @Setter String configPath;
+
     @CommandLine.ParentCommand
-    private AnidbCommand parent;
+    private CliCommand parent;
 
     @Override
     public Integer call() throws Exception {
         val tags = getExampleTagData(movie);
-        val optionalConfig = parent.getConfigurationOrDefault();
+        val optionalConfig = parent.getConfiguration(true, configPath);
         if (optionalConfig.isEmpty() || optionalConfig.get().getTagSystemCode() == null
                 || optionalConfig.get().getTagSystemCode().isEmpty()
                 || optionalConfig.get().getTagSystemCode().isBlank()) {
-            log.warning("To test tags you must provide a non empty tagging system code");
+            log.severe("To test tags you must provide a non empty tagging system code");
             return 1;
         }
         val configuration = optionalConfig.get();

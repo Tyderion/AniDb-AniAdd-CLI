@@ -47,8 +47,11 @@ public final class ConfigFileLoader {
                     new ConfigFileParser<>(configPath, AniConfiguration.class);
             return configParser.loadFromFile(useDefault);
         }
-        log.warning("Using default configuration");
-        return Optional.of(new AniConfiguration());
+        if (useDefault) {
+            log.warning("Using default configuration");
+            return Optional.of(new AniConfiguration());
+        }
+        return Optional.empty();
     }
 
     private static String readFile(String path, Charset encoding)
