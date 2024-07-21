@@ -119,7 +119,6 @@ tasks.register<Dockerfile>("createDockerfile") {
 
     val fatJarTask = tasks.named<Jar>("fatJar").get()
     val jarFileName = fatJarTask.archiveFileName.get()
-    runCommand("yum install -y findutils")
     runCommand("mkdir /app")
     copyFile(jarFileName, "/app/aniadd-cli.jar")
     copyFile("watch.sh", "/app/watch.sh")
