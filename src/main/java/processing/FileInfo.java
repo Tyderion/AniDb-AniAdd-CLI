@@ -28,7 +28,7 @@ public class FileInfo {
 
     @Getter @Setter private Boolean watched;
 
-    @Getter @Setter private boolean served;
+    @Getter @Setter private boolean hashed;
 
     @Getter @Setter private boolean isFinal;
 

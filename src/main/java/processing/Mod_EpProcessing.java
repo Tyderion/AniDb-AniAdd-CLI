@@ -76,8 +76,8 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
 
     private void processEps() {
         for (FileInfo procFile : files.values()) {
-            if (!procFile.isServed()) {
-                procFile.setServed(true);
+            if (!procFile.isHashed()) {
+                procFile.setHashed(true);
                 log.fine(STR."Processing file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
 
                 while (filesBeingMoved > 0) {
@@ -88,7 +88,6 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                 }
 
                 executorService.execute(new FileParser(procFile.getFile(), procFile.getId(), this::onHashComputed, () -> shouldShutdown));
-
                 return;
             }
         }
@@ -98,7 +97,6 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
 
     private void onHashComputed(Integer tag, String hash) {
         FileInfo procFile = files.get(KeyType.Id, tag);
-
 
         if (procFile != null && hash != null) {
             procFile.getData().put(TagSystemTags.Ed2kHash, hash);
@@ -252,8 +250,6 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
 
     public void addFiles(Collection<File> newFiles, AniConfiguration configuration) {
         Boolean watched = configuration.isSetWatched() ? true : null;
-        boolean rename = configuration.isRenameFiles();
-        boolean addToMyList = configuration.isAddToMylist();
 
         for (File cf : newFiles) {
             if (files.contains(KeyType.Path, cf.getAbsolutePath())) {
@@ -268,10 +264,10 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
             }
             fileInfo.setConfiguration(configuration);
 
-            if (addToMyList) {
+            if (configuration.isAddToMylist()) {
                 fileInfo.addTodo(FileAction.MyListCmd);
             }
-            if (rename) {
+            if (configuration.isRenameFiles()) {
                 fileInfo.addTodo(FileAction.Rename);
             }
 
@@ -297,17 +293,5 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
 
     public enum ProcessingEvent {
         Done
-    }
-
-    public static Integer GetFileVersion(int state) {
-        int verFlag = (state & (4 + 8 + 16 + 32)) >> 2;
-        int version = 1;
-
-        while (verFlag != 0) {
-            version++;
-            verFlag = verFlag >> 1;
-        }
-
-        return version;
     }
 }
