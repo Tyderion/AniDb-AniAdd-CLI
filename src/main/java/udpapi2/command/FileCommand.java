@@ -82,8 +82,6 @@ public class FileCommand extends Command {
         map.put(TagSystemTags.SeriesNameKanji, df.poll());
         map.put(TagSystemTags.SeriesNameEnglish, df.poll());
         map.put(TagSystemTags.SeriesNameOther, df.poll());
-        df.poll(); // DB_SN_Short, unused
-        df.poll(); // DB_SN_Synonym, unused
         map.put(TagSystemTags.EpisodeNumber, df.poll());
         map.put(TagSystemTags.EpisodeNameEnglish, df.poll());
         map.put(TagSystemTags.EpisodeNameRomaji, df.poll());
@@ -100,8 +98,6 @@ public class FileCommand extends Command {
         binCode.set(6); //'highest EpCount
         binCode.set(7); //'epCount
 
-        binCode.set(10); //'synonym
-        binCode.set(11); //'short name
         binCode.set(12); //'other name
         binCode.set(13); //'english name
         binCode.set(14); //'kanji name
