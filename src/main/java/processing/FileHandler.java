@@ -18,6 +18,17 @@ public class FileHandler implements IFileHandler {
             return true;
         }
         log.fine(STR."Moving file from \{from.toAbsolutePath()} to \{to.toAbsolutePath()}");
+
+        if (!Files.exists(to.getParent())) {
+            log.fine(STR."Creating parent directory \{to.getParent().toAbsolutePath()}");
+            try {
+                Files.createDirectories(to.getParent());
+            } catch (IOException e) {
+                log.severe(STR."Could not create parent directory \{to.getParent().toAbsolutePath()}: \{e.getMessage()}");
+                return false;
+            }
+        }
+
         try {
             Files.move(from, to, StandardCopyOption.ATOMIC_MOVE);
             return true;

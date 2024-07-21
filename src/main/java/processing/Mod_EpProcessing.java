@@ -158,7 +158,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                 // File not found in anidb
                 File currentFile = procFile.FileObj();
                 String unknownFolderPath = STR."/unknown/\{currentFile.getParentFile().getName()}";
-                appendToPostProcessingScript(STR."mkdir -p \"\{unknownFolderPath}\"");
+//                appendToPostProcessingScript(STR."mkdir -p \"\{unknownFolderPath}\"");
                 fileRenamer.renameFile(currentFile.toPath(), Paths.get("/unknown/", currentFile.getParentFile().getName(), currentFile.getName()));
             }
         } else {
@@ -324,7 +324,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                 if (configuration.isDeleteDuplicateFiles()) {
                     fileRenamer.deleteFile(procFile.FileObj().toPath());
                 } else {
-                    appendToPostProcessingScript(STR."mkdir -p \"/duplicates/\{renFile.getParentFile().getName()}\"");
+//                    appendToPostProcessingScript(STR."mkdir -p \"/duplicates/\{renFile.getParentFile().getName()}\"");
                     fileRenamer.renameFile(procFile.FileObj().toPath(), Paths.get("/duplicates/", renFile.getParentFile().getName(), renFile.getName()));
                 }
                 return false;
