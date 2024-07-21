@@ -26,6 +26,7 @@ public class AniConfiguration {
     @Builder.Default private boolean addToMylist = false;
     private boolean advancedMode;
     private boolean moveTypeUseFolder;
+    private String moveToFolder;
     private String tagSystemCode;
     private boolean deleteDuplicateFiles;
     private String tvShowFolder;

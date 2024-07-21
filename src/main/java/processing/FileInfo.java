@@ -7,6 +7,7 @@ import lombok.Setter;
 import processing.tagsystem.TagSystemTags;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,7 +24,7 @@ public class FileInfo {
 
     @Getter private final int id;
 
-    @Getter @Setter private File renamedFile;
+    @Getter @Setter private Path renamedFile;
 
     @Getter @Setter private Boolean watched;
 

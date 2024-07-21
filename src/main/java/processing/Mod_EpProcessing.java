@@ -1,6 +1,8 @@
 package processing;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
@@ -9,6 +11,7 @@ import aniAdd.misc.ICallBack;
 import fileprocessor.FileProcessor;
 import lombok.extern.java.Log;
 import lombok.val;
+import org.apache.commons.lang3.tuple.Pair;
 import processing.FileInfo.FileAction;
 
 import aniAdd.misc.MultiKeyDict;
@@ -246,95 +249,72 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         }
     }
 
+    private Optional<String> getTargetFileName(FileInfo procFile, TagSystemResult tagSystemResult) throws Exception {
+        val configuration = procFile.getConfiguration();
+        if (!configuration.isEnableFileRenaming()) {
+            return Optional.of(procFile.getFile().getName());
+        }
+        if (configuration.isRenameTypeAniDBFileName()) {
+            return Optional.of(procFile.getData().get(TagSystemTags.FileAnidbFilename));
+        }
+        var tsResult = tagSystemResult == null ? getPathFromTagSystem(procFile) : tagSystemResult;
+        if (tsResult == null) {
+            log.severe(STR."TagSystem script failed for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}. Check your tag system code.");
+            return Optional.empty();
+        }
+
+        return Optional.of(tsResult.FileName());
+    }
+
+
     private boolean renameFile(FileInfo procFile) {
-        String filename = "";
         val configuration = procFile.getConfiguration();
         try {
-            TagSystemResult ts = null;
 
-            File folderObj = null;
+            val targetFolder = getTargetFolder(procFile);
+            val targetFileName = getTargetFileName(procFile, targetFolder.getRight());
 
-            if (configuration.isEnableFileMove()) {
-                if (configuration.isMoveTypeUseFolder()) {
-                    // TODO: Remove this functionality
-                    folderObj = new File(configuration.getMovieFolder());
-                } else {
-                    ts = getPathFromTagSystem(procFile);
-                    if (ts == null) {
-                        log.severe(STR."TagSystem script failed for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
-                        return false;
-                    }
-                    String folderStr = ts.PathName();
-                    folderObj = new File(folderStr == null ? "" : folderStr);
-                }
-
-                if (folderObj.getPath().equals("")) {
-                    folderObj = new File(procFile.getFile().getParent());
-                } else if (folderObj.getPath().length() > 240) {
-                    throw new Exception("Pathname (Folder) too long");
-                }
-                if (!folderObj.isAbsolute()) {
-                    log.warning(STR."Renaming failed for File \{procFile.getFile().getAbsolutePath()}. Folderpath from TagSystem needs to be absolute but is \{folderObj.getPath()}");
-                    return false;
-                }
-
-                if (!folderObj.isDirectory()) {
-                    folderObj.mkdirs();
-                }
-
-            } else {
-                folderObj = procFile.getFile().getParentFile();
+            if (targetFileName.isEmpty()) {
+                return false;
             }
 
-            String ext = procFile.getFile().getName().substring(procFile.getFile().getName().lastIndexOf("."));
-            if (!configuration.isEnableFileRenaming()) {
-                filename = procFile.getFile().getName();
-            } else if (configuration.isRenameTypeAniDBFileName()) {
-                filename = procFile.getData().get(TagSystemTags.FileAnidbFilename);
-            } else {
-                if (ts == null) {
-                    ts = getPathFromTagSystem(procFile);
-                }
-                if (ts == null) {
-                    log.severe(STR."TagSystem script failed for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
-                    return false;
-                }
-                filename = ts.FileName() + ext;
-
-            }
+            var filename = targetFileName.get();
             filename = filename.replaceAll("[\\\\:\"/*|<>?]", "");
 
-            if (filename.length() + folderObj.getPath().length() > 240) {
-                filename = filename.substring(0, 240 - folderObj.getPath().length() - ext.length()) + ext;
+            val extension = filename.substring(filename.lastIndexOf("."));
+            val targetFolderPath = targetFolder.getLeft();
+
+            if (targetFileName.get().length() + targetFolderPath.toString().length() > 240) {
+                filename = filename.substring(0, 240 - targetFolderPath.toString().length() - extension.length()) + extension;
             }
 
-            File renFile = new File(folderObj, filename);
-            if (renFile.exists() && !(renFile.getParentFile().equals(procFile.getFile().getParentFile()))) {
-                log.info(STR."Destination for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} already exists: \{renFile.getAbsolutePath()}");
+            val targetFilePath = targetFolderPath.resolve(filename);
+
+            if (Files.exists(targetFilePath)) {
+                log.info(STR."Destination for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} already exists: \{targetFilePath.toString()}");
                 if (configuration.isDeleteDuplicateFiles()) {
                     fileRenamer.deleteFile(procFile.getFile().toPath());
-                } else if (configuration.isMoveDuplicateFiles()){
-                    fileRenamer.renameFile(procFile.getFile().toPath(), Paths.get(configuration.getDuplicatesFolder(), renFile.getParentFile().getName(), renFile.getName()));
-                }
-                return false;
-            } else if (renFile.getAbsolutePath().equals(procFile.getFile().getAbsolutePath())) {
-                log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} does not need renaming.");
-                return true;
-            } else {
-                final String oldFilename = procFile.getFile().getName();
-
-                if (fileRenamer.renameFile(procFile.getFile().toPath(), renFile.toPath())) {
-                    log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} renamed to \{renFile.getAbsolutePath()}");
-                    if (configuration.isRenameRelatedFiles()) {
-                        renameRelatedFiles(procFile, oldFilename, renFile.getName(), renFile.getParentFile());
-                    }
-
-                    procFile.setRenamedFile(renFile);
-                    return true;
-
+                } else if (configuration.isMoveDuplicateFiles()) {
+                    fileRenamer.renameFile(procFile.getFile().toPath(), Paths.get(configuration.getDuplicatesFolder()).resolve(targetFilePath));
                 }
                 return false;
             }
+            if (targetFilePath.equals(procFile.getFile().toPath().toAbsolutePath())) {
+                log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} does not need renaming.");
+                return true;
+            }
+
+            final String oldFilename = procFile.getFile().getName();
+            if (fileRenamer.renameFile(procFile.getFile().toPath(), targetFilePath)) {
+                log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} renamed to \{targetFilePath.toString()}");
+                if (configuration.isRenameRelatedFiles()) {
+                    renameRelatedFiles(procFile, oldFilename, targetFilePath.getFileName().toString(), targetFolderPath);
+                }
+
+                procFile.setRenamedFile(targetFilePath);
+                return true;
+            }
+            return false;
         } catch (Exception ex) {
             ex.printStackTrace();
             log.severe(STR."Renaming failed for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}: \{ex.getMessage()}");
@@ -342,7 +322,42 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         }
     }
 
-    private void renameRelatedFiles(FileInfo procFile, String oldFilename, String newFilename, File folderObj) {
+    private Pair<Path, TagSystemResult> getTargetFolder(FileInfo procFile) throws Exception {
+        val configuration = procFile.getConfiguration();
+        if (!configuration.isEnableFileMove()) {
+            return Pair.of(procFile.getFile().getParentFile().toPath(), null);
+        }
+
+        if (configuration.isMoveTypeUseFolder()) {
+            val moveToFolder = configuration.getMoveToFolder();
+            return Pair.of(moveToFolder.isEmpty() ? procFile.getFile().getParentFile().toPath() : Paths.get(moveToFolder), null);
+        }
+
+        val tagSystemResult = getPathFromTagSystem(procFile);
+        if (tagSystemResult == null) {
+            log.severe(STR."TagSystem script failed for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}. Check your tag system code.");
+            return Pair.of(null, null);
+        }
+
+        val pathName = tagSystemResult.PathName();
+        if (pathName == null) {
+            return Pair.of(procFile.getFile().getParentFile().toPath(), tagSystemResult);
+        }
+
+        if (pathName.length() > 240) {
+            throw new Exception("Pathname too long");
+        }
+
+        val targetFolder = Paths.get(pathName);
+        if (!targetFolder.isAbsolute()) {
+            log.warning(STR."Folderpath for moving from TagSystem needs to be absolute but is \{targetFolder.toString()}");
+            return Pair.of(null, tagSystemResult);
+        }
+
+        return Pair.of(targetFolder, tagSystemResult);
+    }
+
+    private void renameRelatedFiles(FileInfo procFile, String oldFilename, String newFilename, Path folderPath) {
         try {
             val srcFolder = procFile.getFile().getParentFile();
             val oldFilenameWithoutExtension = oldFilename.substring(0, oldFilename.lastIndexOf("."));
@@ -354,7 +369,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
             for (File srcFile : srcFiles) {
                 val filename = srcFile.getName().substring(oldFilenameWithoutExtension.length());
                 val relatedSuffix = filename.substring(0, oldFilenameWithoutExtension.length());
-                if (fileRenamer.renameFile(srcFile.toPath(), Paths.get(folderObj.getAbsolutePath(), newFn + relatedSuffix))) {
+                if (fileRenamer.renameFile(srcFile.toPath(), folderPath.resolve(newFn + relatedSuffix))) {
                     relatedFileSuffixes.add(relatedSuffix);
                 }
             }
@@ -367,7 +382,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
     }
 
     private TagSystemResult getPathFromTagSystem(FileInfo procFile) throws Exception {
-       val tags = new HashMap<>(procFile.getData());
+        val tags = new HashMap<>(procFile.getData());
         val configuration = procFile.getConfiguration();
         tags.put(TagSystemTags.BaseTvShowPath, configuration.getTvShowFolder());
         tags.put(TagSystemTags.BaseMoviePath, configuration.getMovieFolder());
