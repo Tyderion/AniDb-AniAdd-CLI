@@ -9,108 +9,61 @@ Old Versions still support GUI, see Tag [v1.1.1](https://github.com/Tyderion/Ani
 ### Environment Variables
 - `LOG_CONFIG_FILE`: Path to a properties file for logging [sample](https://github.com/Tyderion/AniDb-AniAdd-CLI/blob/feature/kodi-integration/src/main/resources/logging.properties). Will be used to update logging configuration and set log levels.
 
-The following cli commands and options are available:
-### Scan
-```
-Usage: aniadd-cli.jar anidb scan [-hV] [-c=<configPath>] -p=<password>
-                      [--tagging-system=<taggingSystem>] -u=<username>
-                      <directory>
-Scans the directory for files and adds them to AniDb
-      <directory>   The directory to scan.
-  -c, --config=<configPath>
-                    The path to the config file. Specified parameters will
-                      override values from the config file.
-  -h, --help        Show this help message and exit.
-  -p, --password=<password>
-                    The AniDB password
-      --tagging-system=<taggingSystem>
-                    the path to a file containing the Tagging System definition
-  -u, --username=<username>
-                    The AniDB username
-  -V, --version     Print version information and exit.
-```
-
-### Connect To Kodi
-```
-Usage: aniadd-cli.jar anidb connect-to-kodi [-hV] [-c=<configPath>]
-       --kodi=<kodiUrl> [--localport=<localPort>] -p=<password>
-       [--path-filter=<pathFilter>] [--port=<port>]
-       [--tagging-system=<taggingSystem>] -u=<username>
-Connects to a kodi instance via websockets and marks watched episodes as
-watched on anidb as well. Filepath must contain 'anime'.
-  -c, --config=<configPath>
-                         The path to the config file. Specified parameters will
-                           override values from the config file.
-  -h, --help             Show this help message and exit.
-      --kodi=<kodiUrl>   The ip/hostname of the kodi server.
-      --localport=<localPort>
-                         The AniDB password
-  -p, --password=<password>
-                         The AniDB password
-      --path-filter=<pathFilter>
-                         The path filter to use to detect anime files. Default
-                           is 'anime'. Case insensitive.
-      --port=<port>      The port to connect to
-      --tagging-system=<taggingSystem>
-                         the path to a file containing the Tagging System
-                           definition
-  -u, --username=<username>
-                         The AniDB username
-  -V, --version          Print version information and exit.
-```
-
-### Config Save
-```
-Usage: aniadd-cli.jar config save [-hV] [-c=<configPath>]
-                                  [--tagging-system=<taggingSystem>] <path>
-Save the options to a new file which then can be edited (manually) and loaded
-by using -c
-      <path>      The path to the file to save the configuration to.
-  -c, --config=<configPath>
-                  The path to the config file. Specified parameters will
-                    override values from the config file.
-  -h, --help      Show this help message and exit.
-      --tagging-system=<taggingSystem>
-                  the path to a file containing the Tagging System definition
-  -V, --version   Print version information and exit.
-```
-
-### Tags
-```
-Usage: aniadd-cli.jar anidb tags [-hV] [--movie] [-c=<configPath>] -p=<password>
-                      [--tagging-system=<taggingSystem>] -u=<username>
-Test Tags
-  -c, --config=<configPath>
-                  The path to the config file. Specified parameters will
-                    override values from the config file.
-  -h, --help      Show this help message and exit.
-      --movie     Test movie naming
-  -p, --password=<password>
-                  The AniDB password
-      --tagging-system=<taggingSystem>
-                  the path to a file containing the Tagging System definition
-  -u, --username=<username>
-                  The AniDB username
-  -V, --version   Print version information and exit.
-```
-
+The following cli commands are available (check designated comamnd help `--help` for more information):
+- `tags`: Test your tag system with example data
+- `config  save`: Convert old config file to new format (or generate a new default config by specifying --default)
+- `anidb scan`: Scan given folder for anime, optionally adding them to your mylist and moving the files). Shuts down after scan.
+- `anidb watch`: Watch given folder for new anime, optionally adding them to your mylist and moving the files. Will keep running until stopped.
+- `anidb connect-to-kodi`: Connect to Kodi and mark episodes as watched in your mylist after watching them.
 
 This version is meant to be used on headless system (like your NAS) and still have the flexibility and useability of the official applet.
 
-I suggest using a cron-job or something similar to periodically scan your download folder for new anime and automatically add them to your mylist and store them in the correct folder.
-
-# Docker
-
-There is a docker image available for now: https://hub.docker.com/r/tyderion/aniadd-cli
+I suggest using a the watch command to monitor your download folder and automatically add new anime to your mylist and move them to your anime folder.
 
 # Tutorial
 
-There are intellij run configs available for these commands
-
 1. Install compatible Java (21 or higher, 8 or higher for v1.1.1 or lower)
-2. Generate default config file (`java --enable-preview -jar AniAdd.jar -u username -p password -d /path/to/anime -save config.conf`)
+2. Generate config file 
+   - new config `java --enable-preview -jar AniAddCli.jar config save config.conf --default`
+   - from old config `java --enable-preview -jar AniAddCli.jar config save config.conf -c oldconfig.conf`
 3. Edit configuration file with the editor of your choice, if you use the tagging system to move just replace it with your system
-4. run AniAdd to scan and move your files (`java -jar AniAdd.jar -u username -p password -d /path/to/anime -c config.conf`
+4. run AniAddCli to scan and move your files 
+   - scan once: `java -jar AniAddCli.jar -u username -p password -anidb -c config.conf scan /path/to/your/anime/folder`
+   - watch folder: `java -jar AniAddCli.jar -u username -p password -anidb -c config.conf watch /path/to/your/anime/folder`
+5. (optional) run AniAddCli to connect to Kodi and mark episodes as watched in your mylist after watching them
+   Make sure to enable remote access to JSON-RPC in your Kodi settings
+   - `java -jar AniAddCli.jar -u username -p password -anidb -c config.conf connect-to-kodi --kodi-url <your-kodi-ip>`.
+
+# Docker
+
+There is a docker image available : https://hub.docker.com/r/tyderion/aniadd-cli
+
+## Docker Usage
+### Any Run Configuration
+mounts:
+- `/shows`: Folder to move the files of anime shows into (configurable in settings.conf)
+- `/movies`: Folder to move the files of anime movies into (configurable in settings.conf)
+
+Env:
+- `ANIDB_USERNAME` [required]: your username
+- `ANIDB_PASSWORD` [required]: your password e
+- `ANIDB_CONF` [required]: path to your config file, [example](https://github.com/Tyderion/AniDb-AniAdd-CLI/blob/feature/docker/docker.conf), needs a corresponding mounted location of course :)
+
+## Scanning and watching 
+`/app/scan.sh` (v1.1.1+) (default command of docker image)
+`/app/watch.sh` (v4.0.0+)
+mounts:
+- `/from`: Folder containing video files to parse and handle [required], configurable via env var `SCAN_FOLDER` since v4.0.0
+- `/unknown`: Folder to move files into that anidb does not know [v4.0.0+, optional, defaults to /unknown], configurable in your settings file
+- `/duplicates`: Folder to move duplicate files to (alternatively those can be deleted, configurable in settings.conf)[v1.1.1+]
+
+env:
+- `SCAN_FOLDER` [optional, defaults to /from]: the folder to scan for new anime
+
+## Running `/app/kodi.sh` (v. 4.0.0+)
+environment vars:
+- `KODI_HOST` [required]: the ip/hostname of your kodi instance
+- `KODI_PORT` [optional, default=9090]: the websocket port of your kodi instance
 
 # Development
 I recommend to use IntelliJ (Community Edition is enough) to develop this project.

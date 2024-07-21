@@ -97,6 +97,10 @@ tasks.register("prepareForRelease") {
             into(project.layout.buildDirectory.dir("docker").get().asFile)
         }
         copy {
+            from(file(".run/scan.sh"))
+            into(project.layout.buildDirectory.dir("docker").get().asFile)
+        }
+        copy {
             from(file(".run/logging.properties"))
             into(project.layout.buildDirectory.dir("docker").get().asFile)
         }
@@ -118,8 +122,9 @@ tasks.register<Dockerfile>("createDockerfile") {
     copyFile("handle-kodi.sh", "/app/kodi.sh")
     copyFile("noop.sh", "/app/noop.sh")
     copyFile("run.sh", "/app/run.sh")
+    copyFile("scan.sh", "/app/scan.sh")
     copyFile("logging.properties", "/app/logging.properties")
-    defaultCommand("/app/noop.sh")
+    defaultCommand("/app/scan.sh")
 }
 
 tasks.register<DockerBuildImage>("buildDockerImage") {
