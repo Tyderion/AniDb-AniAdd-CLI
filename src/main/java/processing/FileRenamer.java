@@ -92,8 +92,7 @@ public class FileRenamer {
 
             val newFilenameWithoutExtension = newFilename.substring(0, newFilename.lastIndexOf("."));
             for (File srcFile : srcFiles) {
-                val filename = srcFile.getName().substring(oldFilenameWithoutExtension.length());
-                val relatedSuffix = filename.substring(0, oldFilenameWithoutExtension.length());
+                val relatedSuffix = srcFile.getName().substring(oldFilenameWithoutExtension.length());
                 if (fileHandler.renameFile(srcFile.toPath(), folderPath.resolve(newFilenameWithoutExtension + relatedSuffix))) {
                     relatedFileSuffixes.add(relatedSuffix);
                 }
