@@ -18,25 +18,26 @@ public class AniConfiguration {
     private boolean enableFileRenaming;
     private boolean overwriteMLEntries;
     private boolean recursivelyDeleteEmptyFolders;
-    @Builder.Default
-    private boolean renameFiles = false;
+    @Builder.Default private boolean renameFiles = false;
     private boolean renameRelatedFiles;
     private boolean renameTypeAniDBFileName;
-    @Builder.Default
-    private StorageType setStorageType = StorageType.UNKNOWN;
+    @Builder.Default private StorageType setStorageType = StorageType.UNKNOWN;
     private boolean setWatched;
-    @Builder.Default
-    private boolean addToMylist = false;
+    @Builder.Default private boolean addToMylist = false;
     private boolean advancedMode;
     private boolean moveTypeUseFolder;
     private String tagSystemCode;
     private boolean deleteDuplicateFiles;
     private String tvShowFolder;
     private String movieFolder;
-    @Builder.Default
-    private int anidbPort = 9000;
-    @Builder.Default
-    private String anidbHost = "api.anidb.net";
+    @Builder.Default private String unknownFolder = "/unknown/";
+    @Builder.Default private boolean moveUnknownFiles = false;
+
+    @Builder.Default private String duplicatesFolder = "/duplicates/";
+    @Builder.Default private boolean moveDuplicateFiles = false;
+
+    @Builder.Default private int anidbPort = 9000;
+    @Builder.Default private String anidbHost = "api.anidb.net";
 
     public String getEpisodePath(String relativePath) {
         return Paths.get(tvShowFolder, relativePath).toString();
@@ -51,7 +52,7 @@ public class AniConfiguration {
 
         private final int value;
 
-        private StorageType(int i) {
+        StorageType(int i) {
             value = i;
         }
 

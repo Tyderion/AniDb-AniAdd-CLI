@@ -150,12 +150,11 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                 default -> "Unknown error";
             };
             log.warning(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned error: \{errorMessage}");
-            if (replyStatus == ReplyStatus.NO_SUCH_FILE) {
+            if (replyStatus == ReplyStatus.NO_SUCH_FILE && configuration.isMoveUnknownFiles()) {
                 // File not found in anidb
                 File currentFile = procFile.getFile();
-                String unknownFolderPath = STR."/unknown/\{currentFile.getParentFile().getName()}";
-//                appendToPostProcessingScript(STR."mkdir -p \"\{unknownFolderPath}\"");
-                fileRenamer.renameFile(currentFile.toPath(), Paths.get("/unknown/", currentFile.getParentFile().getName(), currentFile.getName()));
+                val unknownTargetPath = Paths.get(configuration.getUnknownFolder(), currentFile.getParentFile().getName(), currentFile.getName());
+                fileRenamer.renameFile(currentFile.toPath(), unknownTargetPath);
             }
         } else {
             procFile.actionDone(eAction.FileCmd);
@@ -316,9 +315,8 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                 log.info(STR."Destination for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} already exists: \{renFile.getAbsolutePath()}");
                 if (configuration.isDeleteDuplicateFiles()) {
                     fileRenamer.deleteFile(procFile.getFile().toPath());
-                } else {
-//                    appendToPostProcessingScript(STR."mkdir -p \"/duplicates/\{renFile.getParentFile().getName()}\"");
-                    fileRenamer.renameFile(procFile.getFile().toPath(), Paths.get("/duplicates/", renFile.getParentFile().getName(), renFile.getName()));
+                } else if (configuration.isMoveDuplicateFiles()){
+                    fileRenamer.renameFile(procFile.getFile().toPath(), Paths.get(configuration.getDuplicatesFolder(), renFile.getParentFile().getName(), renFile.getName()));
                 }
                 return false;
             } else if (renFile.getAbsolutePath().equals(procFile.getFile().getAbsolutePath())) {
