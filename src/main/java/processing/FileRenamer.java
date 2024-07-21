@@ -49,7 +49,8 @@ public class FileRenamer {
                 if (configuration.isDeleteDuplicateFiles()) {
                     fileHandler.deleteFile(procFile.getFile().toPath());
                 } else if (configuration.isMoveDuplicateFiles()) {
-                    fileHandler.renameFile(procFile.getFile().toPath(), Paths.get(configuration.getDuplicatesFolder()).resolve(targetFilePath));
+                    val subFolderWithFile = targetFilePath.subpath(targetFilePath.getNameCount() - 2, targetFilePath.getNameCount());
+                    fileHandler.renameFile(procFile.getFile().toPath(), Paths.get(configuration.getDuplicatesFolder()).resolve(subFolderWithFile));
                 }
                 return false;
             }
@@ -93,7 +94,7 @@ public class FileRenamer {
                 }
             }
             if (!relatedFileSuffixes.isEmpty()) {
-                log.fine(STR."Reanmed related files for \{procFile.getFile().getAbsolutePath()} with suffixes: \{String.join(", ", relatedFileSuffixes)}");
+                log.fine(STR."Renamed related files for \{procFile.getFile().getAbsolutePath()} with suffixes: \{String.join(", ", relatedFileSuffixes)}");
             }
         } catch (Exception e) {
             log.severe(STR."Failed to rename related files for \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}: \{e.getMessage()}");
