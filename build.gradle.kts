@@ -81,11 +81,11 @@ tasks.register("prepareForRelease") {
             into(project.layout.buildDirectory.dir("docker").get().asFile)
         }
         copy {
-            from(file(".run/watch-folder.sh"))
+            from(file(".run/watch.sh"))
             into(project.layout.buildDirectory.dir("docker").get().asFile)
         }
         copy {
-            from(file(".run/handle-kodi.sh"))
+            from(file(".run/kodi.sh"))
             into(project.layout.buildDirectory.dir("docker").get().asFile)
         }
         copy {
@@ -118,8 +118,8 @@ tasks.register<Dockerfile>("createDockerfile") {
     runCommand("yum install -y findutils")
     runCommand("mkdir /app")
     copyFile(jarFileName, "/app/aniadd-cli.jar")
-    copyFile("watch-folder.sh", "/app/watch.sh")
-    copyFile("handle-kodi.sh", "/app/kodi.sh")
+    copyFile("watch.sh", "/app/watch.sh")
+    copyFile("kodi.sh", "/app/kodi.sh")
     copyFile("noop.sh", "/app/noop.sh")
     copyFile("run.sh", "/app/run.sh")
     copyFile("scan.sh", "/app/scan.sh")
