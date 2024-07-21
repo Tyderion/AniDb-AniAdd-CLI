@@ -36,7 +36,6 @@ I suggest using a the watch command to monitor your download folder and automati
 There is a docker image available : https://hub.docker.com/r/tyderion/aniadd-cli
 
 ## Docker Usage (v4.0.0+)
-
 ### Any Run Configuration
 mounts:
 - `/shows`: Folder to move the files of anime shows into (configurable in your settings file)
@@ -71,6 +70,11 @@ Runs the `connect-to-kodi` command.
 #### Env Vars
 - `KODI_HOST` [required]: the ip/hostname of your kodi instance
 - `KODI_PORT` [optional, default=9090]: the websocket port of your kodi instance
+
+### Noop
+entrypoint: `/app/noop.sh`
+
+Keeps container alive, so you can connect a shell and run commands manually.
 
 ### Flexible Run Configuration
 entrypoint: `/app/run.sh` 
