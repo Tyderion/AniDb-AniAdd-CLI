@@ -3,17 +3,18 @@ package aniAdd.misc;
 import lombok.val;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MultiKeyDict<C extends Enum<C>, K, V> {
 
     private final IKeyMapper<C, K, V> keyMapper;
-    private final Map<C, Map<K, V>> dict = new HashMap<>();
+    private final Map<C, Map<K, V>> dict = new ConcurrentHashMap<>();
 
     public MultiKeyDict(Class<C> category, IKeyMapper<C, K, V> keyMapper) {
         this.keyMapper = keyMapper;
 
         for (C cat : EnumSet.allOf(category)) {
-            dict.put(cat, new HashMap<>());
+            dict.put(cat, new ConcurrentHashMap<>());
         }
     }
 
