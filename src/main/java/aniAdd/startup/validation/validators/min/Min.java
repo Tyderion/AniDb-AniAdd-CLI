@@ -6,7 +6,6 @@ import java.lang.annotation.Target;
 
 /**
  * Validates that the given field is greater than or equal to the specified value
-
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({java.lang.annotation.ElementType.FIELD})

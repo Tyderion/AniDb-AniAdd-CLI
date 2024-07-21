@@ -145,7 +145,7 @@ public class FileRenamer {
         }
 
         if (pathName.length() > 240) {
-            throw new Exception("Pathname too long");
+            throw new Exception("Pathname too long. Check your tag system code or your base folders.");
         }
 
         val targetFolder = Paths.get(pathName);

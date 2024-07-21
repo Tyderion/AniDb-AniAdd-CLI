@@ -13,7 +13,7 @@ import lombok.extern.java.Log;
 import lombok.val;
 import picocli.CommandLine;
 import processing.FileHandler;
-import processing.Mod_EpProcessing;
+import processing.EpisodeProcessing;
 import udpapi.UdpApi;
 import udpapi.reply.ReplyStatus;
 
@@ -75,12 +75,12 @@ public class AnidbCommand {
         val udpApi = getUdpApi(config, executorService);
         val fileHandler = new FileHandler();
 
-        val processing = new Mod_EpProcessing(config, udpApi, executorService, fileHandler);
+        val processing = new EpisodeProcessing(config, udpApi, executorService, fileHandler);
         val fileProcessor = new FileProcessor(processing, config, executorService);
 
         if (config.isRecursivelyDeleteEmptyFolders() && inputDirectory != null) {
             processing.addListener(event -> {
-                if (event == Mod_EpProcessing.ProcessingEvent.Done) {
+                if (event == EpisodeProcessing.ProcessingEvent.Done) {
                     executorService.execute(() -> {
                         log.info("File moving done. Deleting empty directories.");
                         executorService.execute(new DeleteEmptyChildDirectoriesRecursively(Paths.get(inputDirectory)));

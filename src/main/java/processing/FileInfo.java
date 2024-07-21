@@ -19,19 +19,12 @@ public class FileInfo {
     private final EnumSet<FileAction> actionsDone = EnumSet.noneOf(FileAction.class);
     private final EnumSet<FileAction> actionsError = EnumSet.noneOf(FileAction.class);
     @Getter private final Map<TagSystemTags, String> data = new HashMap<>();
-
     @Getter private final File file;
-
     @Getter private final int id;
-
     @Getter @Setter private Path renamedFile;
-
     @Getter @Setter private Boolean watched;
-
     @Getter @Setter private boolean hashed;
-
     @Getter @Setter private boolean isFinal;
-
     @Getter @Setter private AniConfiguration configuration;
 
     public enum FileAction {Process, FileCmd, MyListCmd, VoteCmd, Rename,}
@@ -44,7 +37,7 @@ public class FileInfo {
     public boolean isActionDone(FileAction action) {
         return actionsDone.contains(action);
     }
-
+    
     public void addTodo(FileAction action) {
         actionsTodo.add(action);
     }

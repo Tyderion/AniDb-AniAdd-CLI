@@ -38,8 +38,7 @@ public class ParseReply implements Runnable {
             log.warning("Server reply is an empty string... ignoring");
             return;
         }
-        log.fine( STR."Reply: \{message.replace("\n", " \\n ")}");
-// LOGIN: auth-0 200 i6qdp 94.101.114.107:3333 LOGIN ACCEPTED\n
+        log.fine(STR."Reply: \{message.replace("\n", " \\n ")}");
 
         val builder = Reply.builder().fullMessage(message);
         val parts = message.split(" ");
@@ -54,21 +53,17 @@ public class ParseReply implements Runnable {
 
         if (lines.length == 1) {
             // No data fields, i.e. AUTH or LOGOUT
-            // auth-0 200 i6qdp 94.101.114.107:3333 LOGIN ACCEPTED\n
-            // logout-0 203 LOGGED OUT\n
             for (int i = 2; i < parts.length; i++) {
                 builder.value(parts[i]);
             }
-            api.addReply(builder.build());
-            return;
+        } else {
+            builder.responseData(
+                    Arrays.stream(lines).skip(1)
+                            .flatMap(line -> Arrays.stream(line.split("\\|")).map(ParseReply::aniDbDecode))
+                            .collect(Collectors.toList())
+            );
         }
-
-        builder.responseData(
-                Arrays.stream(lines).skip(1)
-                        .flatMap(line -> Arrays.stream(line.split("\\|")).map(ParseReply::aniDbDecode))
-                        .collect(Collectors.toList())
-        );
-
+        
         api.addReply(builder.build());
     }
 

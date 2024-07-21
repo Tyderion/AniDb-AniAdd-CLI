@@ -4,7 +4,6 @@ import picocli.CommandLine;
 
 public class ValidatingExecutionStrategy implements CommandLine.IExecutionStrategy {
     public int execute(CommandLine.ParseResult parseResult) {
-
         validateParseResult(parseResult);
         return new CommandLine.RunLast().execute(parseResult); // default execution strategy
     }

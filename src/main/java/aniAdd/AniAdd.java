@@ -8,7 +8,7 @@ import lombok.extern.java.Log;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import fileprocessor.FileProcessor;
-import processing.Mod_EpProcessing;
+import processing.EpisodeProcessing;
 import udpapi.UdpApi;
 
 @Log
@@ -16,10 +16,10 @@ public class AniAdd implements IAniAdd {
     @NotNull @Getter private final AniConfiguration configuration;
     @NotNull private final UdpApi api;
     @NotNull private final FileProcessor fileProcessor;
-    @NotNull private final Mod_EpProcessing processing;
+    @NotNull private final EpisodeProcessing processing;
     @NotNull private final ICallBack<Void> onShutdown;
 
-    public AniAdd(@NotNull AniConfiguration configuration, @NotNull UdpApi api, boolean exitOnTermination, @NotNull FileProcessor fileProcessor, @NotNull Mod_EpProcessing processing, @NotNull ICallBack<Void> onShutdown) {
+    public AniAdd(@NotNull AniConfiguration configuration, @NotNull UdpApi api, boolean exitOnTermination, @NotNull FileProcessor fileProcessor, @NotNull EpisodeProcessing processing, @NotNull ICallBack<Void> onShutdown) {
         this.configuration = configuration;
         this.api = api;
         this.onShutdown = onShutdown;
@@ -36,7 +36,7 @@ public class AniAdd implements IAniAdd {
         });
         this.processing = processing;
         this.processing.addListener(event -> {
-            if (event == Mod_EpProcessing.ProcessingEvent.Done) {
+            if (event == EpisodeProcessing.ProcessingEvent.Done) {
                 log.info("File moving done");
                 if (exitOnTermination) {
                     log.info("Shutting down");

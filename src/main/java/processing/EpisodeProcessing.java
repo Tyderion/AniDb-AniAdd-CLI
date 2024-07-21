@@ -24,7 +24,7 @@ import udpapi.query.Query;
 import udpapi.reply.ReplyStatus;
 
 @Log
-public class Mod_EpProcessing implements FileProcessor.Processor {
+public class EpisodeProcessing implements FileProcessor.Processor {
 
     public static String[] supportedFiles = {"avi", "ac3", "mpg", "mpeg", "rm", "rmvb", "asf", "wmv", "mov", "ogm", "mp4", "mkv", "rar", "zip", "ace", "srt", "sub", "ssa", "smi", "idx", "ass", "txt", "swf", "flv"};
     private final UdpApi api;
@@ -47,7 +47,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
     private final MultiKeyDict<KeyType, Object, FileInfo> files = new MultiKeyDict<>(KeyType.class,
             (type, fileInfo) -> type == KeyType.Id ? fileInfo.getId() : (type == KeyType.Path ? fileInfo.getFile().getAbsolutePath() : null));
 
-    public Mod_EpProcessing(AniConfiguration configuration, UdpApi udpApi, ExecutorService executorService, IFileHandler fileHandler) {
+    public EpisodeProcessing(AniConfiguration configuration, UdpApi udpApi, ExecutorService executorService, IFileHandler fileHandler) {
         this.configuration = configuration;
         this.api = udpApi;
         this.executorService = executorService;
@@ -180,7 +180,6 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                 || replyStatus == ReplyStatus.MYLIST_ENTRY_EDITED) {
             procFile.actionDone(FileAction.MyListCmd);
             log.info(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} successfully added/edited on MyList");
-
         } else if (replyStatus == ReplyStatus.FILE_ALREADY_IN_MYLIST) {
             if (configuration.isOverwriteMLEntries()) {
                 api.queueCommand(query.getCommand().WithEdit());
