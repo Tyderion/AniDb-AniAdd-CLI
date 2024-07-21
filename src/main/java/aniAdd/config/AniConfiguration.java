@@ -23,7 +23,7 @@ public class AniConfiguration {
     private boolean renameRelatedFiles;
     private boolean renameTypeAniDBFileName;
     @Builder.Default
-    private StorageType setStorageType = StorageType.UNKOWN;
+    private StorageType setStorageType = StorageType.UNKNOWN;
     private boolean setWatched;
     @Builder.Default
     private boolean addToMylist = false;
@@ -47,7 +47,7 @@ public class AniConfiguration {
     }
 
     public enum StorageType {
-        UNKOWN(0), INTERNAL(1), EXTERNAL(2), DELETE(3), REMOTE(4);
+        UNKNOWN(0), INTERNAL(1), EXTERNAL(2), DELETED(3), REMOTE(4);
 
         private final int value;
 

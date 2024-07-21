@@ -13,17 +13,11 @@ import udpapi2.UdpApi;
 
 @Log
 public class AniAdd implements IAniAdd {
-    @NotNull
-    @Getter
-    private final AniConfiguration configuration;
-    @NotNull
-    private final UdpApi api;
-    @NotNull
-    private final FileProcessor fileProcessor;
-    @NotNull
-    private final Mod_EpProcessing processing;
-    @NotNull
-    private final ICallBack<Void> onShutdown;
+    @NotNull @Getter private final AniConfiguration configuration;
+    @NotNull private final UdpApi api;
+    @NotNull private final FileProcessor fileProcessor;
+    @NotNull private final Mod_EpProcessing processing;
+    @NotNull private final ICallBack<Void> onShutdown;
 
     public AniAdd(@NotNull AniConfiguration configuration, @NotNull UdpApi api, boolean exitOnTermination, @NotNull FileProcessor fileProcessor, @NotNull Mod_EpProcessing processing, @NotNull ICallBack<Void> onShutdown) {
         this.configuration = configuration;

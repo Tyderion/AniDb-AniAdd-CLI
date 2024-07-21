@@ -11,8 +11,7 @@ public abstract class KodiJsonRpc {
 	public final static String PROPERTY_PARAMS = "params";
 	public final static String PROPERTY_ID = "id";
 
-	@Getter
-    private final String methodName;
+	@Getter private final String methodName;
 	private JsonObject jsonObject;
 	private JsonObject params;
 

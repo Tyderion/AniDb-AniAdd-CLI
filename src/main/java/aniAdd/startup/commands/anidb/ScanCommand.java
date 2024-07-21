@@ -12,8 +12,7 @@ import java.util.concurrent.TimeUnit;
         description = "Scans the directory for files and adds them to AniDb")
 public class ScanCommand implements Callable<Integer> {
     @CommandLine.Parameters(index = "0", description = "The directory to scan.")
-    @NonEmpty
-    private String directory;
+    @NonEmpty private String directory;
 
     @CommandLine.ParentCommand
     private AnidbCommand parent;

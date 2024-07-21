@@ -52,7 +52,6 @@ public enum TagSystemTags {
     Version("Ver"),
     Ed2kHash("Ed2k");
 
-    @Getter
-    private final String tag;
+    @Getter private final String tag;
 
 }

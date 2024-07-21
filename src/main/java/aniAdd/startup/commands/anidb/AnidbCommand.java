@@ -27,20 +27,16 @@ import java.util.concurrent.ScheduledExecutorService;
         description = "AniDb handling")
 public class AnidbCommand {
     @CommandLine.Option(names = {"-u", "--username"}, description = "The AniDB username", required = true, scope = CommandLine.ScopeType.INHERIT)
-    @NonEmpty
-    String username;
+    @NonEmpty String username;
 
     @CommandLine.Option(names = {"-p", "--password"}, description = "The AniDB password", required = true, scope = CommandLine.ScopeType.INHERIT)
-    @NonEmpty
-    String password;
+    @NonEmpty String password;
 
     @CommandLine.Option(names = {"--localport"}, description = "The local port to use to connect to anidb", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "3333")
-    @Port
-    int localPort;
+    @Port int localPort;
 
     @CommandLine.Option(names = {"--max-retries"}, description = "Maximum retriers", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "3")
-    @Min(1)
-    long maxRetries;
+    @Min(1) long maxRetries;
 
     @CommandLine.Option(names = {"--exit-on-ban"}, description = "Exit the application if the user is banned", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "false")
     boolean exitOnBan;
