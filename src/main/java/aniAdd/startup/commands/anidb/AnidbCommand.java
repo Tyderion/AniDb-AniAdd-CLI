@@ -20,7 +20,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 @Log
 @CommandLine.Command(
-        subcommands = {ScanCommand.class, KodiWatcherCommand.class, TagsCommand.class, WatchCommand.class, TestCommand.class},
+        subcommands = {ScanCommand.class, KodiWatcherCommand.class, TagsCommand.class, WatchCommand.class},
         name = "anidb",
         mixinStandardHelpOptions = true,
         version = "1.0",
