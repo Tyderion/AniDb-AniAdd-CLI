@@ -33,14 +33,14 @@ public class FileRenamer {
                 return false;
             }
 
-            var filename = targetFileName.get();
+            val fileExtension = procFile.getFile().getName().substring(procFile.getFile().getName().lastIndexOf("."));
+            var filename = targetFileName.get() + fileExtension;
             filename = filename.replaceAll("[\\\\:\"/*|<>?]", "");
 
-            val extension = filename.substring(filename.lastIndexOf("."));
             val targetFolderPath = targetFolder.getLeft();
 
             if (targetFileName.get().length() + targetFolderPath.toString().length() > 240) {
-                filename = filename.substring(0, 240 - targetFolderPath.toString().length() - extension.length()) + extension;
+                filename = filename.substring(0, 240 - targetFolderPath.toString().length() - fileExtension.length()) + fileExtension;
             }
             val targetFilePath = targetFolderPath.resolve(filename);
 
