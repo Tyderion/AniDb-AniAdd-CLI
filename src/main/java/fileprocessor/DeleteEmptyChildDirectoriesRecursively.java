@@ -17,7 +17,7 @@ public class DeleteEmptyChildDirectoriesRecursively implements Runnable{
     private final Path root;
     @Override
     public void run() {
-        try (val files = Files.walk(root, Integer.MAX_VALUE, FileVisitOption.FOLLOW_LINKS)) {
+        try (val files = Files.walk(root, Integer.MAX_VALUE)) {
             files.collect(Collectors.toCollection(ArrayDeque::new)).descendingIterator().forEachRemaining(path -> {
                 if (Files.isDirectory(path) && !path.equals(root)) {
                     try(val children = Files.list(path)) {
