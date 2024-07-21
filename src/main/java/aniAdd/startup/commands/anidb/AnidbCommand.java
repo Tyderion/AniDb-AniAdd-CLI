@@ -7,8 +7,8 @@ import aniAdd.startup.commands.CliCommand;
 import aniAdd.startup.validation.validators.min.Min;
 import aniAdd.startup.validation.validators.nonempty.NonEmpty;
 import aniAdd.startup.validation.validators.port.Port;
+import fileprocessor.DeleteEmptyChildDirectoriesRecursively;
 import fileprocessor.FileProcessor;
-import fileprocessor.FindEmptyDirectories;
 import lombok.extern.java.Log;
 import lombok.val;
 import picocli.CommandLine;
@@ -17,8 +17,8 @@ import processing.Mod_EpProcessing;
 import udpapi.UdpApi;
 import udpapi.reply.ReplyStatus;
 
+import java.nio.file.Paths;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Log
@@ -83,15 +83,8 @@ public class AnidbCommand {
                 if (event == Mod_EpProcessing.ProcessingEvent.Done) {
                     executorService.execute(() -> {
                         log.info("File moving done. Deleting empty directories.");
-                        val emptyDirectories = executorService.submit(new FindEmptyDirectories(inputDirectory));
-                        try {
-                            emptyDirectories.get().stream().filter(f -> !f.toAbsolutePath().endsWith(inputDirectory)).forEach(fileHandler::deleteFile);
-                            log.info("Deleted empty directories");
-                        } catch (InterruptedException | ExecutionException e) {
-                            throw new RuntimeException(e);
-                        }
+                        executorService.execute(new DeleteEmptyChildDirectoriesRecursively(Paths.get(inputDirectory)));
                     });
-
                 }
             });
         }
