@@ -35,7 +35,13 @@ public class KodiWatcherCommand implements Callable<Integer> {
         log.info(STR."Connecting to kodi at \{kodiUrl} on port \{port}");
 
         try (val executorService = Executors.newScheduledThreadPool(10)) {
-            val aniAdd = parent.initializeAniAdd(false, executorService);
+            val aniAddO = parent.initializeAniAdd(false, executorService);
+            if (aniAddO.isEmpty()) {
+                executorService.shutdownNow();
+                return 1;
+            }
+
+            val aniAdd = aniAddO.get();
             val subscriber = new KodiNotificationSubscriber(new URI(STR."ws://\{kodiUrl}:\{port}/jsonrpc"), aniAdd, pathFilter);
             subscriber.connect();
 

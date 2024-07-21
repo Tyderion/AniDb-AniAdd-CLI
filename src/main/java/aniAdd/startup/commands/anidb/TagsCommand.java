@@ -26,12 +26,19 @@ public class TagsCommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         val tags = getExampleTagData(movie);
-        val configuration = parent.getConfiguration();
+        val optionalConfig = parent.getConfigurationOrDefault();
+        if (optionalConfig.isEmpty() || optionalConfig.get().getTagSystemCode() == null
+                || optionalConfig.get().getTagSystemCode().isEmpty()
+                || optionalConfig.get().getTagSystemCode().isBlank()) {
+            log.warning("To test tags you must provide a non empty tagging system code");
+            return 1;
+        }
+        val configuration = optionalConfig.get();
         tags.put(TagSystemTags.BaseTvShowPath, configuration.getTvShowFolder());
         tags.put(TagSystemTags.BaseMoviePath, configuration.getMovieFolder());
         val result = TagSystem.Evaluate(configuration.getTagSystemCode(), tags);
         val filename = result.FileName();
-        val pathname =result.PathName();
+        val pathname = result.PathName();
         log.info(STR."Filename: \{filename}, Pathname: \{pathname}");
         return 0;
     }

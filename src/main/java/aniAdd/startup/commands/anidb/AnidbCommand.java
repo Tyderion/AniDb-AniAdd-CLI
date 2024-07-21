@@ -16,6 +16,7 @@ import processing.Mod_EpProcessing;
 import udpapi2.UdpApi;
 import udpapi2.reply.ReplyStatus;
 
+import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Log
@@ -41,26 +42,39 @@ public class AnidbCommand {
     @CommandLine.Option(names = {"--exit-on-ban"}, description = "Exit the application if the user is banned", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "false")
     boolean exitOnBan;
 
+    @CommandLine.Option(names = {"-c", "--config"}, description = "The path to the config file. Specified parameters will override values from the config file.", required = true, scope = CommandLine.ScopeType.INHERIT)
+    String configPath;
+
     @CommandLine.ParentCommand
     private CliCommand parent;
 
-    AniConfiguration getConfiguration() {
-        return parent.getConfiguration();
+    Optional<AniConfiguration> getConfiguration() {
+        return parent.getConfiguration(false, configPath);
     }
 
-    UdpApi getUdpApi(ScheduledExecutorService executorService) {
+    Optional<AniConfiguration> getConfigurationOrDefault() {
+        return parent.getConfiguration(true, configPath);
+    }
+
+    private UdpApi getUdpApi(AniConfiguration configuration, ScheduledExecutorService executorService) {
         val udpApi = new UdpApi(executorService, localPort, username, password);
-        udpApi.Initialize(getConfiguration());
+        udpApi.Initialize(configuration);
         return udpApi;
     }
 
-    IAniAdd initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService) {
-        val udpApi = getUdpApi(executorService);
+    public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService) {
+        val configuration = getConfiguration();
+        if (configuration.isEmpty()) {
+            log.severe(STR."No configuration loaded. Check the path to the config file. \{configPath}");
+            return Optional.empty();
+        }
 
-        val processing = new Mod_EpProcessing(getConfiguration(), udpApi, executorService, new FileHandler());
-        val fileProcessor = new FileProcessor(processing, getConfiguration(), executorService);
+        val udpApi = getUdpApi(configuration.get(), executorService);
 
-        val aniAdd = new AniAdd(getConfiguration(), udpApi, terminateOnCompletion, fileProcessor, processing, _ -> executorService.shutdownNow());
+        val processing = new Mod_EpProcessing(configuration.get(), udpApi, executorService, new FileHandler());
+        val fileProcessor = new FileProcessor(processing, configuration.get(), executorService);
+
+        val aniAdd = new AniAdd(configuration.get(), udpApi, terminateOnCompletion, fileProcessor, processing, _ -> executorService.shutdownNow());
         if (exitOnBan) {
             udpApi.registerCallback(ReplyStatus.BANNED, _ -> {
                 log.severe("User is banned. Exiting.");
@@ -72,7 +86,6 @@ public class AnidbCommand {
             });
         }
 
-        return aniAdd;
-
+        return Optional.of(aniAdd);
     }
 }

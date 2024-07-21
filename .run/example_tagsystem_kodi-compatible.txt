@@ -1,8 +1,10 @@
-# Names anime in the following format "ShowTitle - S01EX - EpisodeTitle [Group][Source][Resolution][Codec][CRC]""
+# Names anime in the following format "ShowTitle S01EXX EpisodeTitle [Group][Source][Resolution][Codec][CRC]""
 # Kodi should parse those episode numbers correctly
-BaseTVShowPath:="mnt\Anime\TV Shows\"                       #Set to your root folder for anime TV shows
-BaseMoviePath:="mnt\Anime\Movies\"                          #Set to your root folder for anime movies
-ShowTitle:=[%ATr%, %ATe%, %ATk%]
+# Contains anime with names that kodi anidb info provider cannot handle: 86
+ForceEnglishNames:=",15441," # Comma delimited list of anime IDs to force English names, start and end with , (=SEP)
+SEP:=","
+# Use Romanized show title for all except the anime in the list above
+ShowTitle:={$indexof(%ForceEnglishNames%, %SEP% %AId% %SEP%) = "-1" ? [%ATr%, %ATe%, %ATk%] : [%ATe%, %ATr%, %ATk%]}
 EpisodeTitle:=[%ETe%, %ETr%, %ETk%]
 ShowTitle:=$repl(%ShowTitle%, "\?|\s*\.+$", "_")
 ShowTitle:=$repl(%ShowTitle%, '[\\":/*|<>?]', " ")
@@ -18,7 +20,7 @@ TruncEllipse(str, len):={$len(%str%) = $len($Trunc(%str%, %len%)) ? %str% : $Tru
 EpisodeTitle:=$TruncEllipse(%EpisodeTitle%, "64")
 Regular:="S01E"
 Special:="S00E"
-Separator:=" - "
+Separator:=" "
 SpecialEp:=$repl(%EpNo%, "[1234567890]", "")
 EpNo:=$repl(%EpNo%, "[SCTPO]", "")
 Ver:={%Ver% = "1" ? "" : "v" %Ver% }

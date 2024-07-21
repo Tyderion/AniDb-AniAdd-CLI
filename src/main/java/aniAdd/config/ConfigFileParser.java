@@ -11,6 +11,7 @@ import org.yaml.snakeyaml.representer.Representer;
 
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -33,7 +34,7 @@ public class ConfigFileParser<T> {
                         log.warning("Converted from old configuration file.");
                         return true;
                     }
-                    return tag.getClassName().equals(AniConfiguration.class.getName());
+                    return tag.getClassName().equals(AniConfiguration.class.getName()) || tag.getClassName().equals("aniAdd.config.AniConfiguration");
                 };
         Representer representer = new Representer(new DumperOptions());
         representer.getPropertyUtils().setSkipMissingProperties(true);
@@ -43,24 +44,27 @@ public class ConfigFileParser<T> {
         mYaml.setBeanAccess(BeanAccess.FIELD);
     }
 
-    public T loadFromFile() {
+    public Optional<T> loadFromFile(boolean useDefault) {
         InputStream input = null;
         try {
-            input = new FileInputStream(new File(mConfigFilePath));
+            input = new FileInputStream(mConfigFilePath);
         } catch (FileNotFoundException e) {
-            Logger.getGlobal().log(Level.WARNING, "File not found");
+            log.severe(STR."File not found at: \{mConfigFilePath}");
+            if (!useDefault) {
+                return Optional.empty();
+            }
         }
         if (input != null) {
-            return mYaml.loadAs(input, mClazz);
+            return Optional.of(mYaml.loadAs(input, mClazz));
         } else {
             try {
-                Logger.getGlobal().log(Level.WARNING, "Using default configuration");
-                return mClazz.getDeclaredConstructor().newInstance();
+                log.warning("Using default configuration");
+                return Optional.of(mClazz.getDeclaredConstructor().newInstance());
             } catch (InstantiationException | IllegalAccessException | NoSuchMethodException |
                      InvocationTargetException e) {
                 e.printStackTrace();
             }
-            return null;
+            return Optional.empty();
         }
     }
 
