@@ -20,7 +20,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 @Log
 @CommandLine.Command(
-        subcommands = {ScanCommand.class, KodiWatcherCommand.class, TagsCommand.class, WatchCommand.class},
+        subcommands = {ScanCommand.class, KodiWatcherCommand.class, TagsCommand.class, WatchCommand.class, TestCommand.class},
         name = "anidb",
         mixinStandardHelpOptions = true,
         version = "1.0",
@@ -52,10 +52,14 @@ public class AnidbCommand {
         return parent.getConfiguration();
     }
 
-    IAniAdd initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService) {
+    UdpApi getUdpApi(ScheduledExecutorService executorService) {
         val udpApi = new UdpApi(executorService, localPort, username, password);
         udpApi.Initialize(getConfiguration());
+        return udpApi;
+    }
 
+    IAniAdd initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService) {
+        val udpApi = getUdpApi(executorService);
 
         val processing = new Mod_EpProcessing(getConfiguration(), udpApi, executorService, new FileHandler());
         val fileProcessor = new FileProcessor(processing, getConfiguration(), executorService);

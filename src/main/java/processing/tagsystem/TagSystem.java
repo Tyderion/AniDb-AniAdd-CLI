@@ -1,16 +1,24 @@
-package processing;
+package processing.tagsystem;
 
 import aniAdd.misc.Misc;
+import lombok.val;
+
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 public class TagSystem {
 
     private static final char[] delimiters = new char[]{',', ')', ']', '}', '=', '?', ':'};
 
-    public static void Evaluate(String sourceCode, TreeMap<String, String> vars) throws Exception {
-        Environment e = new Environment(sourceCode.split("[\n\r]"), vars, null);
+    public static TagSystemResult Evaluate(String sourceCode, Map<TagSystemTags, String> vars) throws Exception {
+        val stringVars = vars.entrySet().stream()
+                .collect(Collectors.toMap(e -> e.getKey().getTag(), Map.Entry::getValue));
+        Environment e = new Environment(sourceCode.split("[\n\r]"), stringVars, null);
         Start(e);
+        return new TagSystemResult(e.vars.get("PathName"), e.vars.get("FileName"));
     }
 
     // <editor-fold defaultstate="collapsed" desc="Evaluation">
@@ -137,7 +145,7 @@ public class TagSystem {
         //System.out.println("Function: " + funcName );
 
         try {
-            if(e.funcs.containsKey(funcName)) {
+            if (e.funcs.containsKey(funcName)) {
                 return e.funcs.get(funcName).Invoke(e, params);
             } else if (funcName.equals("pad")) {
                 e.Check(params.size() == 3, "Invalid Parameter count");
@@ -179,7 +187,7 @@ public class TagSystem {
                 e.Check(params.size() == 2 || params.size() == 3, "Invalid Parameter count");
                 String valA = params.get(0);
                 int valB = Integer.parseInt(params.get(1));
-                return params.size() == 2? valA.substring(valB) : valA.substring(valB,  Integer.parseInt(params.get(2)));
+                return params.size() == 2 ? valA.substring(valB) : valA.substring(valB, Integer.parseInt(params.get(2)));
             } else if (funcName.equals("repl")) {
                 e.Check(params.size() == 3, "Invalid Parameter count");
                 String valA = params.get(0);
@@ -190,7 +198,7 @@ public class TagSystem {
                 e.Check(params.size() == 2, "Invalid Parameter count");
                 String valA = params.get(0);
                 String valB = params.get(1);
-                return valA.matches(valB)?"1":"";
+                return valA.matches(valB) ? "1" : "";
             } else if (funcName.equals("indexof")) {
                 e.Check(params.size() == 2, "Invalid Parameter count");
                 String valA = params.get(0);
@@ -206,7 +214,7 @@ public class TagSystem {
                 return null;
             }
         } catch (Exception ex) {
-            e.Throw(ex.getMessage()==null?"Function threw an error": ex.getMessage());
+            e.Throw(ex.getMessage() == null ? "Function threw an error" : ex.getMessage());
             return null;
         }
     }
@@ -317,10 +325,10 @@ public class TagSystem {
         return name;
     }
     // </editor-fold>
-    
+
     private static class Function {
         static int depth = 0;
-        
+
         ArrayList<String> paramNames;
         String code;
 
@@ -337,7 +345,7 @@ public class TagSystem {
                 varsClone.put(paramNames.get(i), params.get(i));
             }
             Environment eFunc = new Environment(new String[]{code}, varsClone, e.funcs);
-            
+
             depth++;
             eFunc.SkipEmpty();
             e.Check(depth < 20, depth + ". function call. Aborted");
@@ -351,21 +359,21 @@ public class TagSystem {
 
     private static class Environment {
 
-        TreeMap<String, Function> funcs;
-        TreeMap<String, String> vars;
+        Map<String, Function> funcs;
+        Map<String, String> vars;
         int charIndex, lineIndex;
         String[] src;
 
-        public Environment(String[] src, TreeMap<String, String> vars, TreeMap<String, Function> funcs) {
+        public Environment(String[] src, Map<String, String> vars, Map<String, Function> funcs) {
             this.src = src;
             this.funcs = funcs;
             this.vars = vars;
 
             if (this.vars == null) {
-                this.vars = new TreeMap<String, String>();
+                this.vars = new HashMap<>();
             }
             if (this.funcs == null) {
-                this.funcs = new TreeMap<String, Function>();
+                this.funcs = new HashMap<>();
             }
         }
 
@@ -381,7 +389,7 @@ public class TagSystem {
             return srcChar;
         }
 
-        private String ReadToEnd(){
+        private String ReadToEnd() {
             String val = src[lineIndex].substring(charIndex);
             charIndex = src[lineIndex].length();
             return val;

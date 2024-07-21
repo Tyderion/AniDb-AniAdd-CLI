@@ -3,10 +3,12 @@ package processing;
 import aniAdd.config.AniConfiguration;
 import lombok.Getter;
 import lombok.Setter;
+import processing.tagsystem.TagSystemTags;
 
 import java.io.File;
 import java.util.EnumSet;
-import java.util.TreeMap;
+import java.util.HashMap;
+import java.util.Map;
 
 public class FileInfo {
 
@@ -18,7 +20,7 @@ public class FileInfo {
         actionsDone.remove(eAction.Process);
         actionsError = EnumSet.of(eAction.Process);
         actionsError.remove(eAction.Process);
-        data = new TreeMap<String, String>();
+        data = new HashMap<>();
     }
 
     private File fileObj;
@@ -27,7 +29,7 @@ public class FileInfo {
     private EnumSet<eAction> actionsDone;
     private EnumSet<eAction> actionsError;
     private eMLStorageState mlStorage;
-    private TreeMap<String, String> data;
+    private Map<TagSystemTags, String> data;
     private Boolean watched;
     private boolean served;
     private boolean isFinal;
@@ -44,7 +46,7 @@ public class FileInfo {
     public EnumSet<eAction> ActionsDone() { return actionsDone; }
     public EnumSet<eAction> ActionsError() { return actionsError; }
     public eMLStorageState MLStorage() { return mlStorage; }
-    public TreeMap<String, String> Data() { return data; }
+    public Map<TagSystemTags, String> Data() { return data; }
     public boolean Served() { return served; }
     public boolean IsFinal() { return isFinal; }
     public Boolean Watched(){ return watched; }
@@ -54,7 +56,7 @@ public class FileInfo {
     public void ActionsDone(EnumSet<eAction> actionsDone) { this.actionsDone = actionsDone; }
     public void ActionsError(EnumSet<eAction> actionsError) { this.actionsError = actionsError; }
     public void MLStorage(eMLStorageState mlStorage) { this.mlStorage = mlStorage; }
-    public void Data(TreeMap<String, String> data) { this.data = data; }
+    public void Data(Map<TagSystemTags, String> data) { this.data = data; }
     public void Served(boolean served) { this.served = served; }
     public void IsFinal(boolean isFinal) { this.isFinal = isFinal; }
     public void Watched(Boolean watched){ this.watched = watched; }

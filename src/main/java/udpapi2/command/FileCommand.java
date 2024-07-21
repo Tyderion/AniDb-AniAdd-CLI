@@ -3,12 +3,14 @@ package udpapi2.command;
 import aniAdd.misc.Misc;
 import lombok.experimental.SuperBuilder;
 import lombok.val;
+import processing.tagsystem.TagSystemTags;
 import udpapi2.QueryId;
 import udpapi2.reply.Reply;
 
 import java.util.ArrayDeque;
 import java.util.BitSet;
 import java.util.Map;
+import java.util.Objects;
 
 @SuperBuilder
 public class FileCommand extends Command {
@@ -31,47 +33,63 @@ public class FileCommand extends Command {
                 .build();
     }
 
-    public void AddReplyToDict(Map<String, String> map, Reply reply) {
+    public void AddReplyToDict(Map<TagSystemTags, String> map, Reply reply, Boolean forceWatchedState) {
         ArrayDeque<String> df = new ArrayDeque<>(reply.getResponseData());
-         map.put("DB_FId", df.poll());
-         map.put("DB_AId", df.poll());
-         map.put("DB_EId", df.poll());
-         map.put("DB_GId", df.poll());
-         map.put("DB_LId", df.poll());
-         map.put("DB_OtherEps", df.poll());
-         map.put("DB_Deprecated", df.poll());
-         map.put("DB_State", df.poll());
-         map.put("DB_CRC", df.poll());
-         map.put("DB_ColorDepth", df.poll());
-         map.put("DB_Quality", df.poll());
-         map.put("DB_Source", df.poll());
-         map.put("DB_AudioCodec", df.poll());
-         map.put("DB_VideoCodec", df.poll());
-         map.put("DB_VideoRes", df.poll());
-         map.put("DB_FileAudioLang", df.poll());
-         map.put("DB_FileSubLang", df.poll());
-         map.put("DB_Duration", df.poll());
-         map.put("DB_AirDate", df.poll());
-         map.put("DB_FileName", df.poll());
-         map.put("DB_IsWatched", df.poll());
+        map.put(TagSystemTags.FileId, df.poll());
+        map.put(TagSystemTags.AnimeId, df.poll());
+        map.put(TagSystemTags.EpisodeId, df.poll());
+        map.put(TagSystemTags.GroupId, df.poll());
+        map.put(TagSystemTags.MyListId, df.poll());
+        map.put(TagSystemTags.OtherEpisodes, df.poll());
+        map.put(TagSystemTags.Deprecated, df.poll());
 
-         map.put("DB_EpCount", df.poll());
-         map.put("DB_EpHiCount", df.poll());
-         map.put("DB_Year", df.poll());
-         map.put("DB_Type", df.poll());
-         map.put("DB_CatList", df.poll());
-         map.put("DB_SN_Romaji", df.poll());
-         map.put("DB_SN_Kanji", df.poll());
-         map.put("DB_SN_English", df.poll());
-         map.put("DB_SN_Other", df.poll());
-         map.put("DB_SN_Short", df.poll());
-         map.put("DB_SN_Synonym", df.poll());
-         map.put("DB_EpNo", df.poll());
-         map.put("DB_EpN_English", df.poll());
-         map.put("DB_EpN_Romaji", df.poll());
-         map.put("DB_EpN_Kanji", df.poll());
-         map.put("DB_Group_Long", df.poll());
-         map.put("DB_Group_Short", df.poll());
+        val state = Integer.parseInt(Objects.requireNonNull(df.poll()));
+        map.put(TagSystemTags.CrcOK, (state & 1 << 0) != 0 ? "1" : "");
+        map.put(TagSystemTags.CrcError, (state & 1 << 1) != 0 ? "1" : "");
+        map.put(TagSystemTags.Censored, (state & 1 << 7) != 0 ? "1" : "");
+        map.put(TagSystemTags.Uncensored, (state & 1 << 6) != 0 ? "1" : "");
+        map.put(TagSystemTags.Version, GetFileVersion(state).toString());
+
+
+        map.put(TagSystemTags.FileCrc, df.poll());
+        map.put(TagSystemTags.FileColorDepth, df.poll());
+        map.put(TagSystemTags.Quality, df.poll());
+        map.put(TagSystemTags.Source, df.poll());
+        map.put(TagSystemTags.FileAudioCodec, df.poll());
+        map.put(TagSystemTags.FileVideoCodec, df.poll());
+        map.put(TagSystemTags.FileVideoResolution, df.poll());
+        map.put(TagSystemTags.FileAudioLanguage, df.poll());
+        map.put(TagSystemTags.FileSubtitleLanguage, df.poll());
+        map.put(TagSystemTags.FileDuration, df.poll());
+        map.put(TagSystemTags.EpisodeAirDate, df.poll());
+        map.put(TagSystemTags.FileAnidbFilename, df.poll());
+
+        val dbIsWatched = Objects.requireNonNull(df.poll());
+        val watched = (forceWatchedState != null && forceWatchedState || forceWatchedState == null && dbIsWatched.equals("1")) ? "1" : "";
+        map.put(TagSystemTags.Watched, watched);
+
+        map.put(TagSystemTags.EpisodeCount, df.poll());
+        map.put(TagSystemTags.EpisodeHiNumber, df.poll());
+
+        String[] year = Objects.requireNonNull(df.poll()).split("-");
+        map.put(TagSystemTags.SeriesYearBegin, year[0]);
+        if (year.length == 2) {
+            map.put(TagSystemTags.SeriesYearEnd, year[1]);
+        }
+        map.put(TagSystemTags.Type, df.poll());
+        map.put(TagSystemTags.SeriesCategoryList, df.poll());
+        map.put(TagSystemTags.SeriesNameRomaji, df.poll());
+        map.put(TagSystemTags.SeriesNameKanji, df.poll());
+        map.put(TagSystemTags.SeriesNameEnglish, df.poll());
+        map.put(TagSystemTags.SeriesNameOther, df.poll());
+        df.poll(); // DB_SN_Short, unused
+        df.poll(); // DB_SN_Synonym, unused
+        map.put(TagSystemTags.EpisodeNumber, df.poll());
+        map.put(TagSystemTags.EpisodeNameEnglish, df.poll());
+        map.put(TagSystemTags.EpisodeNameRomaji, df.poll());
+        map.put(TagSystemTags.EpisodeNameKanji, df.poll());
+        map.put(TagSystemTags.GroupNameLong, df.poll());
+        map.put(TagSystemTags.GroupNameShort, df.poll());
     }
 
     private static BitSet createAnimeMask() {
@@ -127,5 +145,17 @@ public class FileCommand extends Command {
         binCode.set(37); //'watched state
 
         return binCode;
+    }
+
+    private static Integer GetFileVersion(int state) {
+        int verFlag = (state & (4 + 8 + 16 + 32)) >> 2;
+        int version = 1;
+
+        while (verFlag != 0) {
+            version++;
+            verFlag = verFlag >> 1;
+        }
+
+        return version;
     }
 }

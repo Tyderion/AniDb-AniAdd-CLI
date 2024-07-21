@@ -2,8 +2,7 @@ package processing;
 
 import java.io.*;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.*;
 
 import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
@@ -14,10 +13,11 @@ import processing.FileInfo.eAction;
 
 import aniAdd.misc.MultiKeyDict;
 
-import java.util.List;
-import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 
+import processing.tagsystem.TagSystem;
+import processing.tagsystem.TagSystemResult;
+import processing.tagsystem.TagSystemTags;
 import udpapi2.UdpApi;
 import udpapi2.command.FileCommand;
 import udpapi2.command.LogoutCommand;
@@ -101,7 +101,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
 
 
         if (procFile != null && hash != null) {
-            procFile.Data().put("Ed2k", hash);
+            procFile.Data().put(TagSystemTags.Ed2kHash, hash);
             procFile.ActionsDone().add(eAction.Process);
             procFile.ActionsTodo().remove(eAction.Process);
             log.fine(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} has been hashed");
@@ -117,7 +117,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                 api.queueCommand(MylistAddCommand.Create(
                         procFile.Id(),
                         procFile.FileObj().length(),
-                        procFile.Data().get("Ed2k"),
+                        procFile.Data().get(TagSystemTags.Ed2kHash),
                         procFile.MLStorage().ordinal(),
                         procFile.Watched() != null && procFile.Watched()));
             }
@@ -163,7 +163,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
             }
         } else {
             procFile.ActionsDone().add(eAction.FileCmd);
-            query.getCommand().AddReplyToDict(procFile.Data(), query.getReply());
+            query.getCommand().AddReplyToDict(procFile.Data(), query.getReply(), procFile.Watched());
             log.fine(STR."Got DB Info for file \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}");
         }
 
@@ -261,7 +261,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         String filename = "";
         val configuration = procFile.getConfiguration();
         try {
-            TreeMap<String, String> ts = null;
+            TagSystemResult ts = null;
 
             File folderObj = null;
 
@@ -273,9 +273,9 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                     ts = getPathFromTagSystem(procFile);
                     if (ts == null) {
                         log.severe(STR."TagSystem script failed for File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}");
+                        return false;
                     }
-
-                    String folderStr = ts.get("PathName");
+                    String folderStr = ts.PathName();
                     folderObj = new File(folderStr == null ? "" : folderStr);
                 }
 
@@ -308,9 +308,10 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                 }
                 if (ts == null) {
                     log.severe(STR."TagSystem script failed for File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}");
+                    return false;
                 }
+                filename = ts.FileName() + ext;
 
-                filename = ts.get("FileName") + ext;
             }
             filename = filename.replaceAll("[\\\\:\"/*|<>?]", "");
 
@@ -377,83 +378,19 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         }
     }
 
-    private TreeMap<String, String> getPathFromTagSystem(FileInfo procFile) throws Exception {
-        TreeMap<String, String> tags = new TreeMap<String, String>();
+    private TagSystemResult getPathFromTagSystem(FileInfo procFile) throws Exception {
+       val tags = new HashMap<>(procFile.Data());
         val configuration = procFile.getConfiguration();
-        tags.put("BaseTVShowPath", configuration.getTvShowFolder());
-        tags.put("BaseMoviePath", configuration.getMovieFolder());
-
-        tags.put("ATr", procFile.Data().get("DB_SN_Romaji"));
-        tags.put("ATe", procFile.Data().get("DB_SN_English"));
-        tags.put("ATk", procFile.Data().get("DB_SN_Kanji"));
-        tags.put("ATs", procFile.Data().get("DB_Synonym"));
-        tags.put("ATo", procFile.Data().get("DB_SN_Other"));
-
-        String[] year = procFile.Data().get("DB_Year").split("-", -1);
-        tags.put("AYearBegin", year[0]);
-        if (year.length == 2) {
-            tags.put("AYearEnd", year[1]);
-        }
-
-        tags.put("ACatList", procFile.Data().get("DB_CatList"));
-
-        tags.put("ETr", procFile.Data().get("DB_EpN_Romaji"));
-        tags.put("ETe", procFile.Data().get("DB_EpN_English"));
-        tags.put("ETk", procFile.Data().get("DB_EpN_Kanji"));
-        tags.put("EAirDate", procFile.Data().get("DB_AirDate"));
-
-        tags.put("GTs", procFile.Data().get("DB_Group_Short"));
-        tags.put("GTl", procFile.Data().get("DB_Group_Long"));
-
-        tags.put("FCrc", procFile.Data().get("DB_CRC"));
-        tags.put("FALng", procFile.Data().get("DB_FileAudioLang"));
-        tags.put("FACodec", procFile.Data().get("DB_AudioCodec"));
-        tags.put("FSLng", procFile.Data().get("DB_FileSubLang"));
-        tags.put("FVCodec", procFile.Data().get("DB_VideoCodec"));
-        tags.put("FVideoRes", procFile.Data().get("DB_VideoRes"));
-        tags.put("FColorDepth", procFile.Data().get("DB_ColorDepth"));
-        tags.put("FDuration", procFile.Data().get("DB_Duration"));
-
-        tags.put("AniDBFN", procFile.Data().get("DB_FileName"));
-        tags.put("CurrentFN", procFile.FileObj().getName());
-
-        tags.put("EpNo", procFile.Data().get("DB_EpNo"));
-        tags.put("EpHiNo", procFile.Data().get("DB_EpHiCount"));
-        tags.put("EpCount", procFile.Data().get("DB_EpCount"));
-
-        tags.put("FId", procFile.Data().get("DB_FId"));
-        tags.put("AId", procFile.Data().get("DB_AId"));
-        tags.put("EId", procFile.Data().get("DB_EId"));
-        tags.put("GId", procFile.Data().get("DB_GId"));
-        tags.put("LId", procFile.Data().get("DB_LId"));
-
-        tags.put("OtherEps", procFile.Data().get("DB_OtherEps"));
-
-        tags.put("Quality", procFile.Data().get("DB_Quality"));
-        tags.put("Source", procFile.Data().get("DB_Source"));
-        tags.put("Type", procFile.Data().get("DB_Type"));
-
-        if (procFile.ActionsDone().contains(eAction.MyListCmd)) {
-            tags.put("Watched", (procFile.Watched() != null && procFile.Watched() || procFile.Watched() == null && procFile.Data().get("DB_IsWatched").equals("1")) ? "1" : "");
-        } else {
-            tags.put("Watched", procFile.Data().get("DB_IsWatched").equals("1") ? "1" : "");
-        }
-
-        tags.put("Depr", procFile.Data().get("DB_Deprecated").equals("1") ? "1" : "");
-        tags.put("CrcOK", ((Integer.valueOf(procFile.Data().get("DB_State")) & 1 << 0) != 0 ? "1" : ""));
-        tags.put("CrcErr", ((Integer.valueOf(procFile.Data().get("DB_State")) & 1 << 1) != 0 ? "1" : ""));
-        tags.put("Cen", ((Integer.valueOf(procFile.Data().get("DB_State")) & 1 << 7) != 0 ? "1" : ""));
-        tags.put("UnCen", ((Integer.valueOf(procFile.Data().get("DB_State")) & 1 << 6) != 0 ? "1" : ""));
-        tags.put("Ver", GetFileVersion(Integer.valueOf(procFile.Data().get("DB_State"))).toString());
+        tags.put(TagSystemTags.BaseTvShowPath, configuration.getTvShowFolder());
+        tags.put(TagSystemTags.BaseMoviePath, configuration.getMovieFolder());
+        tags.put(TagSystemTags.FileCurrentFilename, procFile.FileObj().getName());
 
         String codeStr = configuration.getTagSystemCode();
         if (codeStr == null || codeStr.isEmpty()) {
             return null;
         }
 
-        TagSystem.Evaluate(codeStr, tags);
-
-        return tags;
+        return TagSystem.Evaluate(codeStr, tags);
     }
 
     public void addFiles(Collection<File> newFiles) {

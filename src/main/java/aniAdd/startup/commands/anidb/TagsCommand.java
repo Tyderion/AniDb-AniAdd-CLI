@@ -3,12 +3,12 @@ package aniAdd.startup.commands.anidb;
 import lombok.extern.java.Log;
 import lombok.val;
 import picocli.CommandLine;
-import processing.TagSystem;
+import processing.tagsystem.TagSystem;
+import processing.tagsystem.TagSystemTags;
 
-import java.util.TreeMap;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 @Log
 @CommandLine.Command(name = "tags",
@@ -27,84 +27,83 @@ public class TagsCommand implements Callable<Integer> {
     public Integer call() throws Exception {
         val tags = getExampleTagData(movie);
         val configuration = parent.getConfiguration();
-        tags.put("BaseTVShowPath", configuration.getTvShowFolder());
-        tags.put("BaseMoviePath", configuration.getMovieFolder());
-        TagSystem.Evaluate(configuration.getTagSystemCode(), tags);
-        val filename = tags.get("FileName");
-        val pathname = tags.get("PathName");
+        tags.put(TagSystemTags.BaseTvShowPath, configuration.getTvShowFolder());
+        tags.put(TagSystemTags.BaseMoviePath, configuration.getMovieFolder());
+        val result = TagSystem.Evaluate(configuration.getTagSystemCode(), tags);
+        val filename = result.FileName();
+        val pathname =result.PathName();
         log.info(STR."Filename: \{filename}, Pathname: \\{pathname}");
         return 0;
     }
 
-    static TreeMap<String, String> getExampleTagData(boolean movie) {
-        TreeMap<String, String> tags = new TreeMap<String, String>();
-        tags.put("ATr", "Suzumiya Haruhi no Yuuutsu (2009)");
-        tags.put("ATe", "The Melancholy of Haruhi Suzumiya (2009)");
-        tags.put("ATk", "涼宮ハルヒの憂鬱 (2009)");
-        tags.put("ATs", "Suzumiya Haruhi no Yuuutsu (2009) Syn");
-        tags.put("ATo", "haruhi2");
-        tags.put("AYearBegin", "2009");
-        tags.put("AYearEnd", "2010");
-        tags.put("ACatList", "Clubs'Comedy'School Life'Seinen");
+    static Map<TagSystemTags, String> getExampleTagData(boolean movie) {
+        Map<TagSystemTags, String> tags = new HashMap<>();
+        tags.put(TagSystemTags.SeriesNameRomaji, "Suzumiya Haruhi no Yuuutsu (2009)");
+        tags.put(TagSystemTags.SeriesNameEnglish, "The Melancholy of Haruhi Suzumiya (2009)");
+        tags.put(TagSystemTags.SeriesNameKanji, "涼宮ハルヒの憂鬱 (2009)");
+        tags.put(TagSystemTags.SeriesNameSynonyms, "Suzumiya Haruhi no Yuuutsu (2009) Syn");
+        tags.put(TagSystemTags.SeriesNameOther, "haruhi2");
+        tags.put(TagSystemTags.SeriesYearBegin, "2009");
+        tags.put(TagSystemTags.SeriesYearEnd, "2010");
+        tags.put(TagSystemTags.SeriesCategoryList, "Clubs'Comedy'School Life'Seinen");
 
-        tags.put("ETr", "Sasa no Ha Rhapsody");
-        tags.put("ETe", "Bamboo Leaf Rhapsody");
-        tags.put("ETk", "笹の葉ラプソディ");
-        tags.put("EAirDate", "");
+        tags.put(TagSystemTags.EpisodeNameRomaji, "Sasa no Ha Rhapsody");
+        tags.put(TagSystemTags.EpisodeNameEnglish, "Bamboo Leaf Rhapsody");
+        tags.put(TagSystemTags.EpisodeNameKanji, "笹の葉ラプソディ");
+        tags.put(TagSystemTags.EpisodeAirDate, "");
 
-        tags.put("GTs", "a.f.k.");
-        tags.put("GTl", "a.f.k. (Long)");
-
-
-        tags.put("FCrc", "4a8cbc62");
-        tags.put("FALng", "english'japanese'german");
-        tags.put("FACodec", "AC3");
-        tags.put("FSLng", "english'german");
-        tags.put("FVCodec", "H264/AVC");
-        tags.put("FVideoRes", "1920x1080");
-
-        tags.put("FColorDepth", "");
-        tags.put("FDuration", "1440");
-
-        tags.put("AniDBFN", "Suzumiya_Haruhi_no_Yuuutsu_(2009)_-_01_-_The_Melancholy_of_Suzumiya_Haruhi_Part_1_-_[a.f.k.](32f2f4ea).avi");
-        tags.put("CurrentFN", "[Chihiro]_Suzumiya_Haruhi_no_Yuutsu_(2009)_-_01_[848x480_H.264_AAC][7595C366].mkv");
+        tags.put(TagSystemTags.GroupNameShort, "a.f.k.");
+        tags.put(TagSystemTags.GroupNameLong, "a.f.k. (Long)");
 
 
-        tags.put("EpNo", "1");
+        tags.put(TagSystemTags.FileCrc, "4a8cbc62");
+        tags.put(TagSystemTags.FileAudioLanguage, "english'japanese'german");
+        tags.put(TagSystemTags.FileAudioCodec, "AC3");
+        tags.put(TagSystemTags.FileSubtitleLanguage, "english'german");
+        tags.put(TagSystemTags.FileVideoCodec, "H264/AVC");
+        tags.put(TagSystemTags.FileVideoResolution, "1920x1080");
+
+        tags.put(TagSystemTags.FileColorDepth, "");
+        tags.put(TagSystemTags.FileDuration, "1440");
+
+        tags.put(TagSystemTags.FileAnidbFilename, "Suzumiya_Haruhi_no_Yuuutsu_(2009)_-_01_-_The_Melancholy_of_Suzumiya_Haruhi_Part_1_-_[a.f.k.](32f2f4ea).avi");
+        tags.put(TagSystemTags.FileCurrentFilename, "[Chihiro]_Suzumiya_Haruhi_no_Yuutsu_(2009)_-_01_[848x480_H.264_AAC][7595C366].mkv");
+
+
+        tags.put(TagSystemTags.EpisodeNumber, "1");
         if (movie) {
-            tags.put("EpHiNo", "1");
-            tags.put("EpCount", "1");
+            tags.put(TagSystemTags.EpisodeHiNumber, "1");
+            tags.put(TagSystemTags.EpisodeCount, "1");
         } else {
-            tags.put("EpHiNo", "150");
-            tags.put("EpCount", "230");
+            tags.put(TagSystemTags.EpisodeHiNumber, "150");
+            tags.put(TagSystemTags.EpisodeCount, "230");
         }
-        tags.put("FId", "1");
-        tags.put("AId", "2");
-        tags.put("EId", "3");
-        tags.put("GId", "4");
-        tags.put("LId", "5");
+        tags.put(TagSystemTags.FileId, "1");
+        tags.put(TagSystemTags.AnimeId, "2");
+        tags.put(TagSystemTags.EpisodeId, "3");
+        tags.put(TagSystemTags.GroupId, "4");
+        tags.put(TagSystemTags.MyListId, "5");
 
-        tags.put("OtherEps", "5'7");
+        tags.put(TagSystemTags.OtherEpisodes, "5'7");
 
-        tags.put("Quality", "Very Good");
-        tags.put("Source", "DVD");
+        tags.put(TagSystemTags.Quality, "Very Good");
+        tags.put(TagSystemTags.Source, "DVD");
         if (!movie) {
-            tags.put("Type", "TV Series");
+            tags.put(TagSystemTags.Type, "TV Series");
         } else {
-            tags.put("Type", "Movie");
+            tags.put(TagSystemTags.Type, "Movie");
         }
 
-        tags.put("Watched", "1");
+        tags.put(TagSystemTags.Watched, "1");
 
-        tags.put("Depr", "");
-        tags.put("CrcOK", "1");
-        tags.put("CrcErr", "0");
-        tags.put("Depr", "");
+        tags.put(TagSystemTags.Deprecated, "");
+        tags.put(TagSystemTags.CrcOK, "1");
+        tags.put(TagSystemTags.CrcError, "0");
 
-        tags.put("Cen", "");
-        tags.put("UnCen", "1");
+        tags.put(TagSystemTags.Censored, "");
+        tags.put(TagSystemTags.Uncensored, "1");
 
-        tags.put("Ver", "1");
+        tags.put(TagSystemTags.Version, "1");
 
         return tags;
     }
