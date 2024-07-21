@@ -3,6 +3,7 @@ package aniAdd.startup.validation;
 import aniAdd.startup.validation.validators.ValidationHelpers;
 import aniAdd.startup.validation.validators.max.Max;
 import aniAdd.startup.validation.validators.max.MaxValidator;
+import aniAdd.startup.validation.validators.min.Min;
 import aniAdd.startup.validation.validators.nonempty.NonEmpty;
 import aniAdd.startup.validation.validators.nonempty.NonEmptyValidator;
 import aniAdd.startup.validation.validators.port.Port;
@@ -18,6 +19,7 @@ public final class Validator {
         val clazz = command.getClass();
         val messages = new ArrayList<String>();
         for (Field field : clazz.getDeclaredFields()) {
+            ValidationHelpers.validate(field, command, Min.class).ifPresent(messages::add);
             ValidationHelpers.validate(field, command, Max.class).ifPresent(messages::add);
             ValidationHelpers.validate(field, command, NonEmpty.class).ifPresent(messages::add);
             ValidationHelpers.validate(field, command, Port.class).ifPresent(messages::add);
