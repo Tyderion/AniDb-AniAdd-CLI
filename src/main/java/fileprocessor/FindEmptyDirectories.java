@@ -7,18 +7,12 @@ import lombok.val;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayDeque;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 @Log
 @RequiredArgsConstructor
@@ -29,30 +23,29 @@ public class FindEmptyDirectories implements Callable<List<Path>> {
     @Override
     public List<Path> call() throws Exception {
         val result = getEmptyDirectories(Paths.get(directory));
-//
-//        Iterable<Path> paths = () -> recursivelyGetEmptyDirs(Paths.get(directory)).collect(Collectors.toCollection(ArrayDeque::new))
-//                .descendingIterator();
-//        val files = StreamSupport.stream(paths.spliterator(), false).toList();
-        val files = result.getEmptyChildren();
+        val files = result.getDeletableChildren();
         files.forEach(f -> log.info(STR."Found empty directory: \{f.toAbsolutePath().toString()}"));
-        log.info(STR."Number of found files: \{files.size()}");
         return files;
     }
 
     private FindResult getEmptyDirectories(Path root) {
         try (val files = Files.find(root, 1, (path, attr) -> !path.toString().equals(root.toString()))) {
             val childFiles = files.toList();
+            // if the directory is empty, it can be deleted
             if (childFiles.isEmpty()) {
                 return new FindResult(0, List.of(root));
             }
             val emptyChildDirectories = childFiles.stream().filter(Files::isDirectory).map(this::getEmptyDirectories).toList();
             val fileCount = childFiles.stream().filter(Files::isRegularFile).count();
             val subResult = emptyChildDirectories.stream().reduce(new FindResult((int) fileCount, List.of()),
-                    (a, b) -> new FindResult(a.childrenCount + b.childrenCount + 1,
-                            Stream.concat(a.emptyChildren.stream(), b.emptyChildren.stream()).toList()));
-            if (subResult.childrenCount == subResult.getEmptyChildren().size()) {
-                return new FindResult(subResult.childrenCount + (int) fileCount,
-                        Stream.concat(subResult.getEmptyChildren().stream(), Stream.of(root)).toList());
+                    // Add up all children and their children
+                    (a, b) -> new FindResult(a.totalChildrenCount + b.totalChildrenCount + 1,
+                            Stream.concat(a.deletableChildren.stream(), b.deletableChildren.stream()).toList()));
+
+            // if all children can be deleted, the parent can be deleted as well
+            if (subResult.totalChildrenCount == subResult.getDeletableChildren().size()) {
+                return new FindResult(subResult.totalChildrenCount,
+                        Stream.concat(subResult.getDeletableChildren().stream(), Stream.of(root)).toList());
             } else {
                 return subResult;
             }
@@ -63,9 +56,9 @@ public class FindEmptyDirectories implements Callable<List<Path>> {
     }
 
     @Value
-    private class FindResult {
-        int childrenCount;
-        List<Path> emptyChildren;
+    private static class FindResult {
+        int totalChildrenCount;
+        List<Path> deletableChildren;
     }
 
     private static boolean isDirEmpty(final Path directory) {

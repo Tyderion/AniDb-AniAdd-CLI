@@ -8,6 +8,7 @@ import aniAdd.startup.validation.validators.min.Min;
 import aniAdd.startup.validation.validators.nonempty.NonEmpty;
 import aniAdd.startup.validation.validators.port.Port;
 import fileprocessor.FileProcessor;
+import fileprocessor.FindEmptyDirectories;
 import lombok.extern.java.Log;
 import lombok.val;
 import picocli.CommandLine;
@@ -17,11 +18,12 @@ import udpapi.UdpApi;
 import udpapi.reply.ReplyStatus;
 
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Log
 @CommandLine.Command(
-        subcommands = {ScanCommand.class, KodiWatcherCommand.class, WatchCommand.class, WatchAndKodiCommand.class},
+        subcommands = {ScanCommand.class, KodiWatcherCommand.class, WatchCommand.class, WatchAndKodiCommand.class, TestCommand.class},
         name = "anidb",
         mixinStandardHelpOptions = true,
         version = "1.0",
@@ -62,19 +64,43 @@ public class AnidbCommand {
         return udpApi;
     }
 
-    public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService) {
+    public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService, String inputDirectory) {
         val configuration = getConfiguration();
         if (configuration.isEmpty()) {
             log.severe(STR."No configuration loaded. Check the path to the config file. \{configPath}");
             return Optional.empty();
         }
+        val config = configuration.get();
 
-        val udpApi = getUdpApi(configuration.get(), executorService);
+        val udpApi = getUdpApi(config, executorService);
+        val fileHandler = new FileHandler();
 
-        val processing = new Mod_EpProcessing(configuration.get(), udpApi, executorService, new FileHandler());
-        val fileProcessor = new FileProcessor(processing, configuration.get(), executorService);
+        val processing = new Mod_EpProcessing(config, udpApi, executorService, fileHandler);
+        val fileProcessor = new FileProcessor(processing, config, executorService);
 
-        val aniAdd = new AniAdd(configuration.get(), udpApi, terminateOnCompletion, fileProcessor, processing, _ -> executorService.shutdownNow());
+        if (config.isRecursivelyDeleteEmptyFolders() && inputDirectory != null) {
+            processing.addListener(event -> {
+                if (event == Mod_EpProcessing.ProcessingEvent.Done) {
+                    executorService.execute(() -> {
+                        log.info("File moving done. Deleting empty directories.");
+                        val emptyDirectories = executorService.submit(new FindEmptyDirectories(inputDirectory));
+                        try {
+                            emptyDirectories.get().stream().filter(f -> !f.toAbsolutePath().endsWith(inputDirectory)).forEach(fileHandler::deleteFile);
+                            log.info("Deleted empty directories");
+                        } catch (InterruptedException | ExecutionException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+
+                }
+            });
+        }
+
+
+        val aniAdd = new AniAdd(configuration.get(), udpApi, terminateOnCompletion, fileProcessor, processing, _ -> {
+            log.info("Shutdown complete");
+            executorService.shutdownNow();
+        });
         if (exitOnBan) {
             udpApi.registerCallback(ReplyStatus.BANNED, _ -> {
                 log.severe("User is banned. Exiting.");

@@ -29,7 +29,7 @@ public class WatchCommand implements Callable<Integer> {
     public Integer call() throws Exception {
         log.info(STR."Watching directory \{directory} every \{interval} minutes");
         try (val executorService = Executors.newScheduledThreadPool(10)) {
-            val aniAddO = parent.initializeAniAdd(false, executorService);
+            val aniAddO = parent.initializeAniAdd(false, executorService, directory);
             if (aniAddO.isEmpty()) {
                 executorService.shutdownNow();
                 return 1;

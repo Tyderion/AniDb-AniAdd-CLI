@@ -20,7 +20,7 @@ public class ScanCommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         try (val executorService = Executors.newScheduledThreadPool(10)) {
-            val aniAddO = parent.initializeAniAdd(true, executorService);
+            val aniAddO = parent.initializeAniAdd(true, executorService, directory);
             if (aniAddO.isEmpty()) {
                 executorService.shutdownNow();
                 return 1;
