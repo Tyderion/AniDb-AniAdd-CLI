@@ -59,10 +59,6 @@ public final class ValidationHelpers {
             if (message.contains("{field}")) {
                 message = message.replace("{field}", fieldName);
             }
-            val methods = Arrays.stream(clazz.getDeclaredMethods())
-                    .filter(method -> !excludedMethods.contains(method.getName()))
-                    .filter(method -> Modifier.isPublic(method.getModifiers()))
-                    .toList();
             return Arrays.stream(clazz.getDeclaredMethods())
                     .filter(method -> !excludedMethods.contains(method.getName()))
                     .filter(method -> Modifier.isPublic(method.getModifiers()))
