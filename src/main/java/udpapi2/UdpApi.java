@@ -14,6 +14,7 @@ import udpapi2.reply.ReplyStatus;
 import java.io.IOException;
 import java.net.*;
 import java.time.Duration;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.Map;
 import java.util.Queue;
@@ -245,7 +246,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             return;
         }
         val delay = now ? Duration.ZERO : UdpApiConfiguration.LOGOUT_AFTER;
-        logger.info(STR."Queuing logout at \{new Date().toInstant().plus(delay)}");
+        logger.info(STR."Queuing logout at \{new Date().toInstant().plus(delay).atZone(ZoneId.systemDefault())}");
         if (logoutFuture != null) {
             logoutFuture.cancel(false);
         }
