@@ -24,6 +24,8 @@ public final class ConfigFileLoader {
     public Optional<AniConfiguration> getConfiguration(boolean useDefault) {
         val configuration = loadConfiguration(useDefault);
         configuration.ifPresent(this::loadTaggingSystem);
+        // Fix typo :(
+        configuration.ifPresent(AniConfiguration::fixStorageType);
 
         return configuration;
     }

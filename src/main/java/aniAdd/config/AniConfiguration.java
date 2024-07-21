@@ -5,9 +5,11 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.java.Log;
 
 import java.nio.file.Paths;
 
+@Log
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor
@@ -114,7 +116,7 @@ public class AniConfiguration {
     }
 
     public enum StorageType {
-        UNKNOWN(0), INTERNAL(1), EXTERNAL(2), DELETED(3), REMOTE(4);
+        UNKNOWN(0), INTERNAL(1), EXTERNAL(2), DELETED(3), REMOTE(4), @Deprecated UNKOWN(5);
 
         private final int value;
 
@@ -126,5 +128,13 @@ public class AniConfiguration {
             return value;
         }
     }
-    
+
+    public void fixStorageType() {
+        // Fix typo in original version
+        if (setStorageType == StorageType.UNKOWN) {
+            log.warning("Please update your configuration file. The storage type 'UNKOWN' is deprecated. Please use 'UNKNOWN' instead.");
+            setStorageType = StorageType.UNKNOWN;
+        }
+    }
+
 }
