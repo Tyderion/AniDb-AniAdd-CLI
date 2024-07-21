@@ -15,9 +15,7 @@ import java.io.IOException;
 import java.net.*;
 import java.time.Duration;
 import java.time.ZoneId;
-import java.util.Date;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
 
@@ -25,8 +23,8 @@ import java.util.logging.Logger;
 public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integration, ParseReply.Integration {
     final Queue<Command> commandQueue = new ConcurrentLinkedQueue<>();
     final Map<String, Query<?>> queries = new ConcurrentHashMap<>();
-    final Map<Class<? extends Command>, IQueryCallback<?>> commandCallbacks = new ConcurrentHashMap<>();
-    final Map<ReplyStatus, IReplyStatusCallback> replyStatusCallbacks = new ConcurrentHashMap<>();
+    final Map<Class<? extends Command>, List<IQueryCallback<?>>> commandCallbacks = new ConcurrentHashMap<>();
+    final Map<ReplyStatus, List<IReplyStatusCallback>> replyStatusCallbacks = new ConcurrentHashMap<>();
 
     private static final Logger logger = Logger.getLogger(UdpApi.class.getName());
 
@@ -52,14 +50,45 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     private ICallBack<Void> onShutdownFinished;
 
     public <T extends Command> void registerCallback(Class<T> command, IQueryCallback<T> callback) {
-        commandCallbacks.put(command, callback);
+        if (commandCallbacks.containsKey(command)) {
+            commandCallbacks.get(command).add(callback);
+        } else {
+            commandCallbacks.put(command, new ArrayList<>(List.of(callback)));
+        }
     }
 
     public <T extends Command> void registerCallback(ReplyStatus status, IReplyStatusCallback callback) {
-        replyStatusCallbacks.put(status, callback);
+        if (replyStatusCallbacks.containsKey(status)) {
+            replyStatusCallbacks.get(status).add(callback);
+        } else {
+            replyStatusCallbacks.put(status, new ArrayList<>(List.of(callback)));
+        }
     }
 
     public boolean Initialize(AniConfiguration configuration) {
+        registerCallback(LoginCommand.class, query -> {
+            switch (query.getReply().getReplyStatus()) {
+                case LOGIN_ACCEPTED, LOGIN_ACCEPTED_NEW_VERSION -> {
+                    session = query.getReply().getResponseData().getFirst();
+                    logger.info(STR."Logged in with session \{session}");
+                    loginStatus = LoginStatus.LOGGED_IN;
+                }
+            }
+        });
+        registerCallback(LogoutCommand.class, query -> {
+            switch (query.getReply().getReplyStatus()) {
+                case LOGGED_OUT, NOT_LOGGED_IN -> {
+                    session = null;
+                    logger.info("Logged out");
+                    loginStatus = LoginStatus.LOGGED_OUT;
+                    if (shutdown) {
+                        shutdown();
+                        return;
+                    }
+                }
+            }
+        });
+
         try {
             socket = new DatagramSocket(localPort);
             aniDbIp = InetAddress.getByName(configuration.getAnidbHost());
@@ -188,7 +217,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     @SuppressWarnings("rawtypes")
     private void handleQueryReply(Query query) {
         if (replyStatusCallbacks.containsKey(query.getReply().getReplyStatus())) {
-            replyStatusCallbacks.get(query.getReply().getReplyStatus()).invoke(query.getReply().getReplyStatus());
+            replyStatusCallbacks.get(query.getReply().getReplyStatus()).forEach(cb -> cb.invoke(query.getReply().getReplyStatus()));
         }
         if (!query.success()) {
             logger.warning(STR."Query failed: \{query.toString()}");
@@ -198,33 +227,9 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         queries.remove(query.getFullTag());
 
         val command = query.getCommand();
-
-        if (command instanceof LoginCommand) {
-            switch (query.getReply().getReplyStatus()) {
-                case LOGIN_ACCEPTED, LOGIN_ACCEPTED_NEW_VERSION -> {
-                    session = query.getReply().getResponseData().getFirst();
-                    logger.info(STR."Logged in with session \{session}");
-                    loginStatus = LoginStatus.LOGGED_IN;
-                }
-            }
-        } else if (command instanceof LogoutCommand) {
-            switch (query.getReply().getReplyStatus()) {
-                case LOGGED_OUT, NOT_LOGGED_IN -> {
-                    session = null;
-                    logger.info("Logged out");
-                    loginStatus = LoginStatus.LOGGED_OUT;
-                    if (shutdown) {
-                        shutdown();
-                        return;
-                    }
-                }
-            }
-        }
         if (commandCallbacks.containsKey(command.getClass())) {
-            //noinspection unchecked
-            commandCallbacks.get(command.getClass()).invoke(query);
+            commandCallbacks.get(command.getClass()).forEach(cb -> cb.invoke(query));
         } else {
-            // TODO: Make sure we only log that for relevant replies (i.e. not for login/logout queries)
             logger.warning(STR."Unhandled query reply: \{query.toString()}");
         }
 
