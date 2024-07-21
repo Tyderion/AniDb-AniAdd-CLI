@@ -6,9 +6,6 @@ Thanks for Anidb team for publishing the source of this java applet.
 This Version replaces the GUI with a CLI only version.
 Old Versions still support GUI, see Tag [v1.1.1](https://github.com/Tyderion/AniDb-AniAdd-CLI/releases/tag/1.1.1)
 
-### Environment Variables
-- `LOG_CONFIG_FILE`: Path to a properties file for logging [sample](https://github.com/Tyderion/AniDb-AniAdd-CLI/blob/feature/kodi-integration/src/main/resources/logging.properties). Will be used to update logging configuration and set log levels.
-
 The following cli commands are available (check designated comamnd help `--help` for more information):
 - `tags`: Test your tag system with example data
 - `config  save`: Convert old config file to new format (or generate a new default config by specifying --default)
@@ -48,6 +45,8 @@ Env:
 - `ANIDB_USERNAME` [required]: your username
 - `ANIDB_PASSWORD` [required]: your password e
 - `ANIDB_CONF` [required]: path to your config file, [example](https://github.com/Tyderion/AniDb-AniAdd-CLI/blob/feature/docker/docker.conf), needs a corresponding mounted location of course :)
+- `LOG_CONFIG_FILE`: Path to a properties file for logging [sample](https://github.com/Tyderion/AniDb-AniAdd-CLI/blob/master/.run/logging.properties). Will be used to update logging configuration and set log levels. Defaults to the linked file.
+
 
 ## Scanning and watching 
 `/app/scan.sh` (v1.1.1+) (default command of docker image)
