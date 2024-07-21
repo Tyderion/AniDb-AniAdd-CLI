@@ -57,7 +57,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         }
     }
 
-    public <T extends Command> void registerCallback(ReplyStatus status, IReplyStatusCallback callback) {
+    public void registerCallback(ReplyStatus status, IReplyStatusCallback callback) {
         if (replyStatusCallbacks.containsKey(status)) {
             replyStatusCallbacks.get(status).add(callback);
         } else {
@@ -70,7 +70,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             switch (query.getReply().getReplyStatus()) {
                 case LOGIN_ACCEPTED, LOGIN_ACCEPTED_NEW_VERSION -> {
                     session = query.getReply().getResponseData().getFirst();
-                    logger.info(STR."Logged in with session \{session}");
+                    logger.info("Successfully logged in");
                     loginStatus = LoginStatus.LOGGED_IN;
                 }
             }
