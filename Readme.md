@@ -44,7 +44,7 @@ mounts:
 Env:
 - `ANIDB_USERNAME` [required]: your username
 - `ANIDB_PASSWORD` [required]: your password e
-- `ANIDB_CONF` [required]: path to your config file, [example](https://github.com/Tyderion/AniDb-AniAdd-CLI/blob/feature/docker/docker.conf), needs a corresponding mounted location of course :)
+- `ANIDB_CONF` [required]: path to your config file, [example](https://github.com/Tyderion/AniDb-AniAdd-CLI/blob/master/.run/docker.conf), needs a corresponding mounted location of course :)
 - `LOG_CONFIG_FILE`: Path to a properties file for logging [sample](https://github.com/Tyderion/AniDb-AniAdd-CLI/blob/master/.run/logging.properties). Will be used to update logging configuration and set log levels. Defaults to the linked file.
 
 ### Scanning and watching 
