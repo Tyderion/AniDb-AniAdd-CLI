@@ -2,7 +2,7 @@ package aniAdd.startup.commands;
 
 import lombok.val;
 import picocli.CommandLine;
-import processing.FileRenamer;
+import processing.FileHandler;
 
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
@@ -22,7 +22,7 @@ public class FileMoveCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        val renamer = new FileRenamer();
+        val renamer = new FileHandler();
 
         if (renamer.renameFile(Path.of(source), Path.of(target))) {
             System.out.println("File moved successfully");

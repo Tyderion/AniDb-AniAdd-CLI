@@ -3,14 +3,13 @@ package processing;
 import lombok.extern.java.Log;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 @Log
-public class FileRenamer implements IFileRenamer {
+public class FileHandler implements IFileHandler {
 
     @Override
     public boolean renameFile(@NotNull Path from, @NotNull Path to) {
@@ -34,5 +33,15 @@ public class FileRenamer implements IFileRenamer {
             log.severe(STR."Could not move file from \{from.toAbsolutePath()} to \{to.toAbsolutePath()}: \{e.getMessage()}.");
         }
         return false;
+    }
+
+    @Override
+    public void deleteFile(@NotNull Path path) {
+        log.fine(STR."Deleting file \{path.toAbsolutePath()}");
+        try {
+            Files.delete(path);
+        } catch (IOException e) {
+            log.severe(STR."Could not delete file \{path.toAbsolutePath()}: \{e.getMessage()}");
+        }
     }
 }

@@ -1,6 +1,7 @@
 package processing;
 
 import java.io.*;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -31,6 +32,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
     private final UdpApi api;
     private final AniConfiguration configuration;
     private final ExecutorService executorService;
+    private final IFileHandler fileRenamer;
     private final List<ICallBack<ProcessingEvent>> eventHandlers = new ArrayList<>();
 
     private boolean isProcessing;
@@ -46,10 +48,11 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
     private final MultiKeyDict<KeyType, Object, FileInfo> files = new MultiKeyDict<>(KeyType.class,
             (type, fileInfo) -> type == KeyType.Id ? fileInfo.Id() : (type == KeyType.Path ? fileInfo.FileObj().getAbsolutePath() : null));
 
-    public Mod_EpProcessing(AniConfiguration configuration, UdpApi udpApi, ExecutorService executorService) {
+    public Mod_EpProcessing(AniConfiguration configuration, UdpApi udpApi, ExecutorService executorService, IFileHandler fileRenamer) {
         this.configuration = configuration;
         this.api = udpApi;
         this.executorService = executorService;
+        this.fileRenamer = fileRenamer;
 
         api.registerCallback(LogoutCommand.class, cmd -> {
             // Remove files after we automatically log out
@@ -156,7 +159,7 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
                 File currentFile = procFile.FileObj();
                 String unknownFolderPath = STR."/unknown/\{currentFile.getParentFile().getName()}";
                 appendToPostProcessingScript(STR."mkdir -p \"\{unknownFolderPath}\"");
-                appendToPostProcessingScript(STR."mv \"\{currentFile.getAbsolutePath()}\" \"\{unknownFolderPath}/\{currentFile.getName()}\"");
+                fileRenamer.renameFile(currentFile.toPath(), Paths.get("/unknown/", currentFile.getParentFile().getName(), currentFile.getName()));
             }
         } else {
             procFile.ActionsDone().add(eAction.FileCmd);
@@ -311,21 +314,18 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
             }
             filename = filename.replaceAll("[\\\\:\"/*|<>?]", "");
 
-            boolean truncated = false;
             if (filename.length() + folderObj.getPath().length() > 240) {
                 filename = filename.substring(0, 240 - folderObj.getPath().length() - ext.length()) + ext;
-                truncated = true;
             }
-
 
             File renFile = new File(folderObj, filename);
             if (renFile.exists() && !(renFile.getParentFile().equals(procFile.FileObj().getParentFile()))) {
                 log.info(STR."Destination for File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} already exists: \{renFile.getAbsolutePath()}");
                 if (configuration.isDeleteDuplicateFiles()) {
-                    appendToPostProcessingScript(STR."rm \"\{procFile.FileObj().getAbsolutePath()}\"");
+                    fileRenamer.deleteFile(procFile.FileObj().toPath());
                 } else {
                     appendToPostProcessingScript(STR."mkdir -p \"/duplicates/\{renFile.getParentFile().getName()}\"");
-                    appendToPostProcessingScript(STR."mv \"\{procFile.FileObj().getAbsolutePath()}\" \"/duplicates/\{renFile.getParentFile().getName()}/\{renFile.getName()}\"");
+                    fileRenamer.renameFile(procFile.FileObj().toPath(), Paths.get("/duplicates/", renFile.getParentFile().getName(), renFile.getName()));
                 }
                 return false;
             } else if (renFile.getAbsolutePath().equals(procFile.FileObj().getAbsolutePath())) {
@@ -334,37 +334,10 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
             } else {
                 final String oldFilenameWoExt = procFile.FileObj().getName().substring(0, procFile.FileObj().getName().lastIndexOf("."));
 
-                if (renFile.equals(procFile.FileObj())) { // yay java
-                    File tmpFile = new File(renFile.getAbsolutePath() + ".tmp");
-                    procFile.FileObj().renameTo(tmpFile);
-                    procFile.FileObj(tmpFile);
-                }
-
-                if (tryRenameFile(procFile.Id(), procFile.FileObj(), renFile)) {
+                if (fileRenamer.renameFile(procFile.FileObj().toPath(), renFile.toPath())) {
                     log.fine(STR."File \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()} renamed to \{renFile.getAbsolutePath()}");
                     if (configuration.isRenameRelatedFiles()) {
-                        try {
-
-                            File srcFolder = procFile.FileObj().getParentFile();
-
-                            File[] srcFiles = srcFolder.listFiles((dir, name) -> name.startsWith(oldFilenameWoExt) && !name.equals(oldFilenameWoExt + ext));
-
-                            String relExt, accumExt = "";
-                            String newFn = filename.substring(0, filename.lastIndexOf("."));
-                            for (File srcFile : srcFiles) {
-                                relExt = srcFile.getName().substring(oldFilenameWoExt.length());
-                                if (tryRenameFile(procFile.Id(), srcFile, new File(folderObj, newFn + relExt))) {
-                                    accumExt += relExt + " ";
-                                } else {
-                                    //Todo
-                                }
-                            }
-                            if (!accumExt.isEmpty()) {
-                                log.fine(STR."Reanmed related files for \{procFile.FileObj().getAbsolutePath()} with extensions: \{accumExt}");
-                            }
-                        } catch (Exception e) {
-                            log.severe(STR."Failed to rename related files for \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}: \{e.getMessage()}");
-                        }
+                        renameRelatedFiles(procFile, oldFilenameWoExt, ext, renFile.getName(), renFile.getParentFile());
                     }
 
                     procFile.FileObj(renFile);
@@ -380,29 +353,27 @@ public class Mod_EpProcessing implements FileProcessor.Processor {
         }
     }
 
-    private boolean tryRenameFile(int id, File original, File targetFile) {
-        if (original.renameTo(targetFile)) {
-            return true;
-        }
-        log.warning(STR."Renaming for file \{original.getAbsolutePath()} to \{targetFile.getAbsolutePath()} failed. Will try again via shell script.");
-        String command = STR."mv \"\{original.getAbsolutePath()}\" \"\{targetFile.getAbsolutePath()}\"";
-        if (!targetFile.getParentFile().exists()) {
-            appendToPostProcessingScript(STR."mkdir -p \{targetFile.getParentFile().getAbsolutePath()}"); // Make sure the folder exists
-        }
-        appendToPostProcessingScript(command);
-        return false;
-    }
-
-    private void appendToPostProcessingScript(String line) {
-        String path = "rename.sh";
+    private void renameRelatedFiles(FileInfo procFile, String oldFilenameWoExt, String ext, String filename, File folderObj) {
         try {
-            BufferedWriter writer = new BufferedWriter(new FileWriter(path, true));
 
-            writer.append(line);
-            writer.append("\n");
-            writer.close();
-        } catch (IOException e) {
-            log.warning(STR."Could not write to target file \{path}: \{e.getMessage()}");
+            File srcFolder = procFile.FileObj().getParentFile();
+            File[] srcFiles = srcFolder.listFiles((dir, name) -> name.startsWith(oldFilenameWoExt) && !name.equals(oldFilenameWoExt + ext));
+
+            String relExt, accumExt = "";
+            String newFn = filename.substring(0, filename.lastIndexOf("."));
+            for (File srcFile : srcFiles) {
+                relExt = srcFile.getName().substring(oldFilenameWoExt.length());
+                if (fileRenamer.renameFile(srcFile.toPath(), new File(folderObj, newFn + relExt).toPath())) {
+                    accumExt += relExt + " ";
+                } else {
+                    //Todo
+                }
+            }
+            if (!accumExt.isEmpty()) {
+                log.fine(STR."Reanmed related files for \{procFile.FileObj().getAbsolutePath()} with extensions: \{accumExt}");
+            }
+        } catch (Exception e) {
+            log.severe(STR."Failed to rename related files for \{procFile.FileObj().getAbsolutePath()} with Id \{procFile.Id()}: \{e.getMessage()}");
         }
     }
 

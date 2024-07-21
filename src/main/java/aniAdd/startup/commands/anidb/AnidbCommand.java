@@ -11,6 +11,7 @@ import fileprocessor.FileProcessor;
 import lombok.extern.java.Log;
 import lombok.val;
 import picocli.CommandLine;
+import processing.FileHandler;
 import processing.Mod_EpProcessing;
 import udpapi2.UdpApi;
 import udpapi2.reply.ReplyStatus;
@@ -56,7 +57,7 @@ public class AnidbCommand {
         udpApi.Initialize(getConfiguration());
 
 
-        val processing = new Mod_EpProcessing(getConfiguration(), udpApi, executorService);
+        val processing = new Mod_EpProcessing(getConfiguration(), udpApi, executorService, new FileHandler());
         val fileProcessor = new FileProcessor(processing, getConfiguration(), executorService);
 
         val aniAdd = new AniAdd(getConfiguration(), udpApi, terminateOnCompletion, fileProcessor, processing, _ -> executorService.shutdownNow());
