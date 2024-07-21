@@ -146,7 +146,6 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     }
 
     private void scheduleCommand(@NotNull Command command, Duration delay) {
-        // TODO: Make sure we don't log any sensitive data (i.e. username/password), should probably be done on a command level (exclude sensitive data from toString())
         logger.info(STR."Scheduling command \{command.toString()} in \{delay.toMillis()} ms");
         executorService.schedule(new Send<>(this, command, aniDbIp, aniDbPort), delay.toMillis(), TimeUnit.MILLISECONDS);
         isSendScheduled = true;
