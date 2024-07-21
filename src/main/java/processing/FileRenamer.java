@@ -49,8 +49,13 @@ public class FileRenamer {
                 if (configuration.isDeleteDuplicateFiles()) {
                     fileHandler.deleteFile(procFile.getFile().toPath());
                 } else if (configuration.isMoveDuplicateFiles()) {
+                    val oldFilename = procFile.getFile().getName();
                     val subFolderWithFile = targetFilePath.subpath(targetFilePath.getNameCount() - 2, targetFilePath.getNameCount());
-                    fileHandler.renameFile(procFile.getFile().toPath(), Paths.get(configuration.getDuplicatesFolder()).resolve(subFolderWithFile));
+                    val targetPath = Paths.get(configuration.getDuplicatesFolder()).resolve(subFolderWithFile);
+                    fileHandler.renameFile(procFile.getFile().toPath(), targetPath);
+                    if (configuration.isRenameRelatedFiles()) {
+                        renameRelatedFiles(procFile, oldFilename, targetPath.getFileName().toString(), targetPath.getParent());
+                    }
                 }
                 return false;
             }
