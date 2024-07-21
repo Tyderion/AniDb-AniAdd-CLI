@@ -36,7 +36,7 @@ public class AnidbCommand {
     @CommandLine.Option(names = {"--localport"}, description = "The local port to use to connect to anidb", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "3333")
     @Port int localPort;
 
-    @CommandLine.Option(names = {"--max-retries"}, description = "Maximum retriers", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "3")
+    @CommandLine.Option(names = {"--max-retries"}, description = "Maximum retries. NOT SUPPORTED YET", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "3")
     @Min(1) long maxRetries;
 
     @CommandLine.Option(names = {"--exit-on-ban"}, description = "Exit the application if the user is banned", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "false")
