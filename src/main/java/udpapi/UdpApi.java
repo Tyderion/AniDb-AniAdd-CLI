@@ -205,6 +205,9 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     @Override
     public void addReply(Reply reply) {
+        if (replyStatusCallbacks.containsKey(reply.getReplyStatus())) {
+            replyStatusCallbacks.get(reply.getReplyStatus()).forEach(cb -> cb.invoke(reply.getReplyStatus()));
+        }
         val query = queries.get(reply.getFullTag());
         if (query == null) {
             logger.warning(STR."Reply without corresponding query \{reply.toString()}");
@@ -216,9 +219,6 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     @SuppressWarnings("rawtypes")
     private void handleQueryReply(Query query) {
-        if (replyStatusCallbacks.containsKey(query.getReply().getReplyStatus())) {
-            replyStatusCallbacks.get(query.getReply().getReplyStatus()).forEach(cb -> cb.invoke(query.getReply().getReplyStatus()));
-        }
         if (!query.success()) {
             logger.warning(STR."Query failed: \{query.toString()}");
             handleQueryError(query);
