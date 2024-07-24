@@ -208,6 +208,12 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         if (replyStatusCallbacks.containsKey(reply.getReplyStatus())) {
             replyStatusCallbacks.get(reply.getReplyStatus()).forEach(cb -> cb.invoke(reply.getReplyStatus()));
         }
+        if (reply.getReplyStatus().isFatal()) {
+            disconnect();
+            logger.warning(STR."Fatal reply: \{reply.toString()}, will wait for a \{UdpApiConfiguration.LONG_WAIT_TIME.toMinutes()} minutes before trying again.");
+            scheduleNextCommand();
+            return;
+        }
         val query = queries.get(reply.getFullTag());
         if (query == null) {
             logger.warning(STR."Reply without corresponding query \{reply.toString()}");
@@ -311,7 +317,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     public void queueShutdown(ICallBack<Void> onShutdownFinished) {
         this.onShutdownFinished = onShutdownFinished;
-        if (loginStatus == LoginStatus.LOGGED_OUT) {
+        if (loginStatus != LoginStatus.LOGGED_IN) {
             shutdown();
             return;
         }
