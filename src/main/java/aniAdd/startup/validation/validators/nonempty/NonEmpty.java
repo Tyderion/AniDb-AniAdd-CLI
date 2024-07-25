@@ -1,7 +1,5 @@
 package aniAdd.startup.validation.validators.nonempty;
 
-import aniAdd.startup.validation.validators.ValidationAnnotation;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
