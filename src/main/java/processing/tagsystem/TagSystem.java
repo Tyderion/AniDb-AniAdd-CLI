@@ -15,7 +15,12 @@ public class TagSystem {
 
     public static TagSystemResult Evaluate(String sourceCode, Map<TagSystemTags, String> vars) throws Exception {
         val stringVars = vars.entrySet().stream()
-                .collect(Collectors.toMap(e -> e.getKey().getTag(), Map.Entry::getValue));
+                .collect(Collectors.toMap(e -> e.getKey().getTag(), entry -> {
+                    if (entry.getValue() == null) {
+                        return "";
+                    }
+                    return entry.getValue();
+                }));
         Environment e = new Environment(sourceCode.split("[\n\r]"), stringVars, null);
         Start(e);
         return new TagSystemResult(e.vars.get("PathName"), e.vars.get("FileName"));
