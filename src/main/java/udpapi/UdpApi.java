@@ -3,6 +3,7 @@ package udpapi;
 import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
 import lombok.RequiredArgsConstructor;
+import lombok.Synchronized;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import udpapi.command.*;
@@ -25,6 +26,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     final Map<String, Query<?>> queries = new ConcurrentHashMap<>();
     final Map<Class<? extends Command>, List<IQueryCallback<?>>> commandCallbacks = new ConcurrentHashMap<>();
     final Map<ReplyStatus, List<IReplyStatusCallback>> replyStatusCallbacks = new ConcurrentHashMap<>();
+    private Command commandInFlight = null;
 
     private static final Logger logger = Logger.getLogger(UdpApi.class.getName());
 
@@ -83,7 +85,6 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
                     loginStatus = LoginStatus.LOGGED_OUT;
                     if (shutdown) {
                         shutdown();
-                        return;
                     }
                 }
             }
@@ -111,6 +112,20 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         if (!isSendScheduled && loginStatus != LoginStatus.LOGIN_PENDING) {
             scheduleNextCommand();
         }
+    }
+
+    @Synchronized
+    private void setCommandInFlight(Command command) {
+        if (command instanceof  LoginCommand || command instanceof LogoutCommand) {
+            // We don't care about login/logout, those don't need to be rescheduled
+            return;
+        }
+        commandInFlight = command;
+    }
+
+    @Synchronized
+    private Command getCommandInFlight() {
+        return commandInFlight;
     }
 
     private boolean queueLogin() {
@@ -143,6 +158,10 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     }
 
     private void scheduleNextCommand() {
+        if (getCommandInFlight() != null) {
+            logger.fine("Command in flight, not scheduling next command");
+            return;
+        }
         if (isSendScheduled) {
             return;
         }
@@ -178,6 +197,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         logger.info(STR."Scheduling command \{command.toString()} in \{delay.toMillis()} ms");
         executorService.schedule(new Send<>(this, command, aniDbIp, aniDbPort), delay.toMillis(), TimeUnit.MILLISECONDS);
         isSendScheduled = true;
+        setCommandInFlight(command);
     }
 
     private Duration getNextSendDelay() {
@@ -211,16 +231,28 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         if (reply.getReplyStatus().isFatal()) {
             disconnect();
             logger.warning(STR."Fatal reply: \{reply.toString()}, will wait for a \{UdpApiConfiguration.LONG_WAIT_TIME.toMinutes()} minutes before trying again.");
+            rescheduleCommandInFlight();
             scheduleNextCommand();
             return;
         }
         val query = queries.get(reply.getFullTag());
         if (query == null) {
             logger.warning(STR."Reply without corresponding query \{reply.toString()}");
+            rescheduleCommandInFlight();
             return;
         }
         query.setReply(reply);
         handleQueryReply(query);
+    }
+
+    private void rescheduleCommandInFlight() {
+        val command = getCommandInFlight();
+        setCommandInFlight(null);
+        if (command == null || command instanceof  LoginCommand || command instanceof LogoutCommand) {
+            return;
+        }
+        commandQueue.add(command);
+        scheduleNextCommand();
     }
 
     @SuppressWarnings("rawtypes")
@@ -230,6 +262,8 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             handleQueryError(query);
             return;
         }
+        // Only one command is currently in flight at a time, so if we receive a response, we can safely set the command in flight to null
+        setCommandInFlight(null);
         queries.remove(query.getFullTag());
 
         val command = query.getCommand();
