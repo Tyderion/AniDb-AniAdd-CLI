@@ -4,6 +4,7 @@ import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
 import lombok.RequiredArgsConstructor;
 import lombok.Synchronized;
+import lombok.extern.java.Log;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import udpapi.command.*;
@@ -20,6 +21,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
 
+@Log
 @RequiredArgsConstructor
 public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integration, ParseReply.Integration {
     final Queue<Command> commandQueue = new ConcurrentLinkedQueue<>();
@@ -27,8 +29,6 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     final Map<Class<? extends Command>, List<IQueryCallback<?>>> commandCallbacks = new ConcurrentHashMap<>();
     final Map<ReplyStatus, List<IReplyStatusCallback>> replyStatusCallbacks = new ConcurrentHashMap<>();
     private Command commandInFlight = null;
-
-    private static final Logger logger = Logger.getLogger(UdpApi.class.getName());
 
     private DatagramSocket socket;
     private final ScheduledExecutorService executorService;
@@ -72,7 +72,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             switch (query.getReply().getReplyStatus()) {
                 case LOGIN_ACCEPTED, LOGIN_ACCEPTED_NEW_VERSION -> {
                     session = query.getReply().getResponseData().getFirst();
-                    logger.info("Successfully logged in");
+                    log.info("Successfully logged in");
                     loginStatus = LoginStatus.LOGGED_IN;
                 }
             }
@@ -81,7 +81,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             switch (query.getReply().getReplyStatus()) {
                 case LOGGED_OUT, NOT_LOGGED_IN -> {
                     session = null;
-                    logger.info("Logged out");
+                    log.info("Logged out");
                     loginStatus = LoginStatus.LOGGED_OUT;
                     if (shutdown) {
                         shutdown();
@@ -95,10 +95,10 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             aniDbIp = InetAddress.getByName(configuration.getAnidbHost());
             aniDbPort = configuration.getAnidbPort();
         } catch (SocketException e) {
-            logger.severe(STR."Failed to create socket \{e.getMessage()}");
+            log.severe(STR."Failed to create socket \{e.getMessage()}");
             return false;
         } catch (UnknownHostException e) {
-            logger.severe(STR."Failed to resolve host \{e.getMessage()}");
+            log.severe(STR."Failed to resolve host \{e.getMessage()}");
             return false;
         }
         receiveFuture = executorService.submit(new Receive(this));
@@ -130,19 +130,19 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     private boolean queueLogin() {
         if (!isInitialized) {
-            logger.warning("Must be initialized before logging in");
+            log.warning("Must be initialized before logging in");
             return false;
         }
         if (isSendScheduled) {
-            logger.warning("Command is scheduled, not scheduling login");
+            log.warning("Command is scheduled, not scheduling login");
             return false;
         }
         if (loginStatus == LoginStatus.LOGIN_PENDING) {
-            logger.warning("Login already scheduled, not scheduling login");
+            log.warning("Login already scheduled, not scheduling login");
             return false;
         }
         if (loginStatus == LoginStatus.LOGGED_IN) {
-            logger.warning("Already logged in, not scheduling login");
+            log.warning("Already logged in, not scheduling login");
             return false;
         }
         try {
@@ -152,14 +152,14 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             loginStatus = LoginStatus.LOGIN_PENDING;
             return true;
         } catch (IllegalArgumentException e) {
-            logger.warning(STR."Username or password is empty: \{e.getMessage()}");
+            log.warning(STR."Username or password is empty: \{e.getMessage()}");
             return false;
         }
     }
 
     private void scheduleNextCommand() {
         if (getCommandInFlight() != null) {
-            logger.fine("Command in flight, not scheduling next command");
+            log.fine("Command in flight, not scheduling next command");
             return;
         }
         if (isSendScheduled) {
@@ -194,7 +194,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     }
 
     private void scheduleCommand(@NotNull Command command, Duration delay) {
-        logger.info(STR."Scheduling command \{command.toString()} in \{delay.toMillis()} ms");
+        log.info(STR."Scheduling command \{command.toString()} in \{delay.toMillis()} ms");
         executorService.schedule(new Send<>(this, command, aniDbIp, aniDbPort), delay.toMillis(), TimeUnit.MILLISECONDS);
         isSendScheduled = true;
         setCommandInFlight(command);
@@ -230,14 +230,14 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         }
         if (reply.getReplyStatus().isFatal()) {
             disconnect();
-            logger.warning(STR."Fatal reply: \{reply.toString()}, will wait for a \{UdpApiConfiguration.LONG_WAIT_TIME.toMinutes()} minutes before trying again.");
+            log.warning(STR."Fatal reply: \{reply.toString()}, will wait for a \{UdpApiConfiguration.LONG_WAIT_TIME.toMinutes()} minutes before trying again.");
             rescheduleCommandInFlight();
             scheduleNextCommand();
             return;
         }
         val query = queries.get(reply.getFullTag());
         if (query == null) {
-            logger.warning(STR."Reply without corresponding query \{reply.toString()}");
+            log.warning(STR."Reply without corresponding query \{reply.toString()}");
             rescheduleCommandInFlight();
             return;
         }
@@ -251,6 +251,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         if (command == null || command instanceof  LoginCommand || command instanceof LogoutCommand) {
             return;
         }
+        log.info(STR."Rescheduling command: \{command}");
         commandQueue.add(command);
         scheduleNextCommand();
     }
@@ -258,7 +259,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     @SuppressWarnings("rawtypes")
     private void handleQueryReply(Query query) {
         if (!query.success()) {
-            logger.warning(STR."Query failed: \{query.toString()}");
+            log.warning(STR."Query failed: \{query.toString()}");
             handleQueryError(query);
             return;
         }
@@ -270,7 +271,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         if (commandCallbacks.containsKey(command.getClass())) {
             commandCallbacks.get(command.getClass()).forEach(cb -> cb.invoke(query));
         } else {
-            logger.warning(STR."Unhandled query reply: \{query.toString()}");
+            log.warning(STR."Unhandled query reply: \{query.toString()}");
         }
 
         scheduleNextCommand();
@@ -278,21 +279,21 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     private void handleQueryError(Query<?> query) {
         if (query.getReply().isFatal()) {
-            logger.warning(STR."Fatal api error, waiting a long time: \{query.toString()}");
+            log.warning(STR."Fatal api error, waiting a long time: \{query.toString()}");
             disconnect();
         } else {
-            logger.warning(STR."Retrying query later: \{query.toString()}");
+            log.warning(STR."Retrying query later: \{query.toString()}");
             queueCommand(query.getCommand());
         }
     }
 
     private void queueLogout(boolean now) {
         if (loginStatus != LoginStatus.LOGGED_IN) {
-            logger.warning("Not logged in, not logging out");
+            log.warning("Not logged in, not logging out");
             return;
         }
         val delay = now ? Duration.ZERO : UdpApiConfiguration.LOGOUT_AFTER;
-        logger.info(STR."Queuing logout at \{new Date().toInstant().plus(delay).atZone(ZoneId.systemDefault())}");
+        log.info(STR."Queuing logout at \{new Date().toInstant().plus(delay).atZone(ZoneId.systemDefault())}");
         if (logoutFuture != null) {
             logoutFuture.cancel(false);
         }
