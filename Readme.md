@@ -3,6 +3,8 @@
 Forked from [AniDB](https://github.com/svn2github/AniDB)
 Thanks for Anidb team for publishing the source of this java applet.
 
+Big thanks to @runecalico for testing and providing feedback.
+
 This Version replaces the GUI with a CLI only version.
 Old Versions still support GUI, see Tag [v1.1.1](https://github.com/Tyderion/AniDb-AniAdd-CLI/releases/tag/1.1.1)
 
