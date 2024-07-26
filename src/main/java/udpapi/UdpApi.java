@@ -73,7 +73,8 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
                 case LOGIN_ACCEPTED, LOGIN_ACCEPTED_NEW_VERSION -> {
                     session = query.getReply().getResponseData().getFirst();
                     log.info("Successfully logged in");
-                    loginStatus = LoginStatus.LOGGED_IN;
+                    loginStatus =  LoginStatus.LOGGED_IN;
+                    shouldWaitLong = false;
                 }
             }
         });
@@ -163,12 +164,15 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             return;
         }
         if (isSendScheduled) {
+            log.finest("Send scheduled, not scheduling next command");
             return;
         }
         if (shouldWaitLong) {
+            log.finest("Should wait long, not scheduling next command");
             queueLogin();
             return;
         }
+        log.finest(STR."\{commandQueue.size()} commands in queue. Scheduled next command");
         val command = commandQueue.poll();
         if (command == null) {
             if (queries.isEmpty()) {
@@ -184,6 +188,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             logoutFuture = null;
         }
         if (command.isNeedsLogin() && loginStatus != LoginStatus.LOGGED_IN) {
+            log.finest("Command needs login, not logged in, queueing login and command");
             if (loginStatus == LoginStatus.LOGGED_OUT) {
                 queueLogin();
             }
