@@ -42,11 +42,15 @@ public class ParseReply implements Runnable {
 
         val builder = Reply.builder().fullMessage(message);
         val parts = message.split(" ");
-        val tag = parts[0];
-        builder.fullTag(tag);
-
-        if (Misc.isNumber(parts[1])) {
-            builder.replyStatus(ReplyStatus.fromString(parts[1]));
+        val tagOrStatus = parts[0];
+        val statusOrMessage = parts[1];
+        if (tagOrStatus.matches("[0-9]{3}")) {
+            builder.replyStatus(ReplyStatus.fromString(tagOrStatus));
+        } else {
+            builder.fullTag(tagOrStatus);
+            if (statusOrMessage.matches("[0-9]{3}")) {
+                builder.replyStatus(ReplyStatus.fromString(statusOrMessage));
+            }
         }
 
         val lines = message.split("\n");
@@ -63,7 +67,7 @@ public class ParseReply implements Runnable {
                             .collect(Collectors.toList())
             );
         }
-        
+
         api.addReply(builder.build());
     }
 
