@@ -1,10 +1,7 @@
 package aniAdd.config;
 
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.extern.java.Log;
 
 import java.nio.file.Paths;
@@ -115,18 +112,11 @@ public class AniConfiguration {
         return Paths.get(movieFolder, relativePath).toString();
     }
 
+    @Getter
+    @RequiredArgsConstructor
     public enum StorageType {
         UNKNOWN(0), INTERNAL(1), EXTERNAL(2), DELETED(3), REMOTE(4), @Deprecated UNKOWN(5);
-
         private final int value;
-
-        StorageType(int i) {
-            value = i;
-        }
-
-        public int getValue() {
-            return value;
-        }
     }
 
     public void fixStorageType() {

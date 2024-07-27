@@ -1,4 +1,3 @@
-import lombok.val;
 import org.junit.jupiter.api.Test;
 import udpapi.ParseReply;
 import udpapi.reply.Reply;
