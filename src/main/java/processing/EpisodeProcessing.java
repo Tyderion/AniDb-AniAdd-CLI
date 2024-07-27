@@ -26,7 +26,6 @@ import udpapi.reply.ReplyStatus;
 @Log
 public class EpisodeProcessing implements FileProcessor.Processor {
 
-    public static String[] supportedFiles = {"avi", "ac3", "mpg", "mpeg", "rm", "rmvb", "asf", "wmv", "mov", "ogm", "mp4", "mkv", "rar", "zip", "ace", "srt", "sub", "ssa", "smi", "idx", "ass", "txt", "swf", "flv"};
     private final UdpApi api;
     private final AniConfiguration configuration;
     private final ExecutorService executorService;
@@ -238,7 +237,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         }
 
         log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} done");
-        if (procFile.getId() == lastFileId - 1) {
+        if (files.values().stream().allMatch(FileInfo::isFinal)) {
             sendEvent(ProcessingEvent.Done);
         }
     }
