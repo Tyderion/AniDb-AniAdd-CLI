@@ -25,7 +25,6 @@ repositories {
 }
 
 dependencies {
-    testImplementation("junit:junit:4.13.1")
     implementation("commons-cli:commons-cli:1.3.1")
     implementation("org.yaml:snakeyaml:2.0")
     implementation("org.jetbrains:annotations:13.0")
@@ -35,12 +34,10 @@ dependencies {
     implementation("org.apache.commons:commons-lang3:3.0")
     implementation("com.google.code.gson:gson:2.11.0")
     implementation("org.java-websocket:Java-WebSocket:1.5.6")
-}
 
-tasks.named<JavaCompile>("compileJava") {
-    options.compilerArgs.add("-Aproject=${project.group}/${project.name}")
-    options.compilerArgs.add("--enable-preview")
-    options.compilerArgs.add("-Xlint:unchecked")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.0-M2")
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.11.0-M2")
+    testImplementation("org.mockito:mockito-core:5.12.0")
 }
 
 tasks.register<Jar>("fatJar") {
@@ -169,10 +166,16 @@ tasks.register<Exec>("createGitTag") {
     }
 }
 
-
 tasks {
     withType<JavaCompile> {
         options.isDeprecation = true
+        options.compilerArgs.add("-Aproject=${project.group}/${project.name}")
+        options.compilerArgs.add("--enable-preview")
+        options.compilerArgs.add("-Xlint:unchecked")
+    }
+    withType<Test> {
+        useJUnitPlatform()
+        jvmArgs("--enable-preview")
     }
     named("dockerBuildImage") {
         enabled = false
