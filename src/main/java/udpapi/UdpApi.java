@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.net.*;
 import java.time.Duration;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
@@ -199,7 +200,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     }
 
     private void scheduleCommand(@NotNull Command command, Duration delay) {
-        log.info(STR."Scheduling command \{command.toString()} in \{delay.toMillis()} ms");
+        log.info(STR."Scheduling command \{command.toString()} in \{delay.toMillis()}ms at \{formatDelay(delay)}");
         executorService.schedule(new Send<>(this, command, aniDbIp, aniDbPort), delay.toMillis(), TimeUnit.MILLISECONDS);
         isSendScheduled = true;
         setCommandInFlight(command);
@@ -235,7 +236,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         }
         if (reply.getReplyStatus().isFatal()) {
             disconnect();
-            log.warning(STR."Fatal reply: \{reply.toString()}, will wait for a \{UdpApiConfiguration.LONG_WAIT_TIME.toMinutes()} minutes before trying again.");
+            log.warning(STR."Fatal reply: \{reply.toString()}, will wait for a \{UdpApiConfiguration.LONG_WAIT_TIME.toMinutes()} minutes until \{formatDelay(UdpApiConfiguration.LONG_WAIT_TIME)} before trying again.");
             rescheduleCommandInFlight();
             scheduleNextCommand();
             return;
@@ -298,7 +299,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             return;
         }
         val delay = now ? Duration.ZERO : UdpApiConfiguration.LOGOUT_AFTER;
-        log.info(STR."Queuing logout at \{new Date().toInstant().plus(delay).atZone(ZoneId.systemDefault())}");
+        log.info(STR."Queuing logout in \{delay.toMillis()}ms at \{formatDelay(delay)}");
         if (logoutFuture != null) {
             logoutFuture.cancel(false);
         }
@@ -390,5 +391,10 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     public interface IReplyStatusCallback {
         void invoke(udpapi.reply.ReplyStatus status);
+    }
+
+    private String formatDelay(Duration delay) {
+        val date = new Date().toInstant().plus(delay).atZone(ZoneId.systemDefault());
+        return date.format(DateTimeFormatter.ISO_DATE_TIME);
     }
 }
