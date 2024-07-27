@@ -38,7 +38,7 @@ public class ParseReply implements Runnable {
             log.warning("Server reply is an empty string... ignoring");
             return;
         }
-        log.fine(STR."Reply: \{message.replace("\n", " \\n ")}");
+        log.fine(STR."Reply: \{message.replace("\n", "\\n")}");
 
         val builder = Reply.builder().fullMessage(message);
         val parts = message.split(" ");
