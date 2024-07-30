@@ -1,54 +1,53 @@
 package processing;
 
-import java.io.File;
-import java.util.EnumSet;
-import java.util.TreeMap;
+import aniAdd.config.AniConfiguration;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import processing.tagsystem.TagSystemTags;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
+
+@RequiredArgsConstructor
 public class FileInfo {
 
-    public FileInfo(File fileObj, int id) {
-        this.fileObj = fileObj;
-        this.id = id;
-        actionsTodo = EnumSet.of(eAction.Process);
-        actionsDone = EnumSet.of(eAction.Process);
-        actionsDone.remove(eAction.Process);
-        actionsError = EnumSet.of(eAction.Process);
-        actionsError.remove(eAction.Process);
-        data = new TreeMap<String, String>();
+    private final EnumSet<FileAction> actionsTodo = EnumSet.of(FileAction.Process);
+    private final EnumSet<FileAction> actionsDone = EnumSet.noneOf(FileAction.class);
+    private final EnumSet<FileAction> actionsError = EnumSet.noneOf(FileAction.class);
+    @Getter private final Map<TagSystemTags, String> data = new HashMap<>();
+    @Getter private final File file;
+    @Getter private final int id;
+    @Getter @Setter private Path renamedFile;
+    @Getter @Setter private Boolean watched;
+    @Getter @Setter private boolean hashed;
+    @Getter @Setter private boolean isFinal;
+    @Getter @Setter private AniConfiguration configuration;
+
+    public enum FileAction {Process, FileCmd, MyListCmd, VoteCmd, Rename,}
+
+    public void actionDone(FileAction action) {
+        actionsTodo.remove(action);
+        actionsDone.add(action);
     }
 
-    private File fileObj;
-    private int id;
-    private EnumSet<eAction> actionsTodo;
-    private EnumSet<eAction> actionsDone;
-    private EnumSet<eAction> actionsError;
-    private eMLStorageState mlStorage;
-    private TreeMap<String, String> data;
-    private Boolean watched;
-    private boolean served;
-    private boolean isFinal;
+    public boolean isActionDone(FileAction action) {
+        return actionsDone.contains(action);
+    }
+    
+    public void addTodo(FileAction action) {
+        actionsTodo.add(action);
+    }
 
-    public enum eAction { Process, FileCmd, MyListCmd, VoteCmd, Rename, }
-    public enum eMLStorageState { Unknown, Internal, External, Deleted, Remote }
+    public boolean isActionTodo(FileAction action) {
+        return actionsTodo.contains(action);
+    }
 
-    public Integer Id() { return id; }
-    public File FileObj() { return fileObj; }
-    public EnumSet<eAction> ActionsTodo() { return actionsTodo; }
-    public EnumSet<eAction> ActionsDone() { return actionsDone; }
-    public EnumSet<eAction> ActionsError() { return actionsError; }
-    public eMLStorageState MLStorage() { return mlStorage; }
-    public TreeMap<String, String> Data() { return data; }
-    public boolean Served() { return served; }
-    public boolean IsFinal() { return isFinal; }
-    public Boolean Watched(){ return watched; }
-
-    public void FileObj(File fileObj) { this.fileObj = fileObj; }
-    public void ActionsTodo(EnumSet<eAction> actionsTodo) { this.actionsTodo = actionsTodo; }
-    public void ActionsDone(EnumSet<eAction> actionsDone) { this.actionsDone = actionsDone; }
-    public void ActionsError(EnumSet<eAction> actionsError) { this.actionsError = actionsError; }
-    public void MLStorage(eMLStorageState mlStorage) { this.mlStorage = mlStorage; }
-    public void Data(TreeMap<String, String> data) { this.data = data; }
-    public void Served(boolean served) { this.served = served; }
-    public void IsFinal(boolean isFinal) { this.isFinal = isFinal; }
-    public void Watched(Boolean watched){ this.watched = watched; }
+    public void actionFailed(FileAction action) {
+        actionsTodo.remove(action);
+        actionsError.add(action);
+    }
 }

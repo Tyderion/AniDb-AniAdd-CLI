@@ -1,19 +1,22 @@
 package aniAdd.config;
 
+import lombok.extern.java.Log;
+import lombok.val;
+import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.inspector.TagInspector;
 import org.yaml.snakeyaml.introspector.BeanAccess;
+import org.yaml.snakeyaml.representer.Representer;
 
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * Created by Archie on 23.12.2015.
- */
+@Log
 public class ConfigFileParser<T> {
 
     private final Class<T> mClazz;
@@ -23,34 +26,49 @@ public class ConfigFileParser<T> {
     public ConfigFileParser(String configFilePath, Class<T> clazz) {
         mConfigFilePath = configFilePath;
         mClazz = clazz;
+        log.warning("If you upgrade from an old configuration file make sure to check the new one and adjust paths if necessary. Check the documentation of AniConfiguration.");
 
         var loaderoptions = new LoaderOptions();
         TagInspector taginspector =
-                tag -> tag.getClassName().equals(AniConfiguration.class.getName());
-        loaderoptions.setTagInspector(taginspector);
+                tag -> {
+                    if (tag.getClassName().equals("aniAdd.config.XBMCDefaultConfiguration")) {
+                        log.warning("Converted from old configuration file.");
+                        return true;
+                    }
+                    return tag.getClassName().equals(AniConfiguration.class.getName()) || tag.getClassName().equals("aniAdd.config.AniConfiguration");
+                };
 
-        mYaml = new Yaml(new Constructor(AniConfiguration.class, loaderoptions));
+        Representer representer = new Representer(new DumperOptions());
+        representer.getPropertyUtils().setSkipMissingProperties(true);
+        loaderoptions.setTagInspector(taginspector);
+        val options = new DumperOptions();
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        options.setPrettyFlow(true);
+        mYaml = new Yaml(new Constructor(AniConfiguration.class, loaderoptions), representer, options);
         mYaml.setBeanAccess(BeanAccess.FIELD);
     }
 
-    public T loadFromFile() {
+    public Optional<T> loadFromFile(boolean useDefault) {
         InputStream input = null;
         try {
-            input = new FileInputStream(new File(mConfigFilePath));
+            input = new FileInputStream(mConfigFilePath);
         } catch (FileNotFoundException e) {
-            Logger.getGlobal().log(Level.WARNING, "File not found");
+            log.severe(STR."File not found at: \{mConfigFilePath}");
+            if (!useDefault) {
+                return Optional.empty();
+            }
         }
         if (input != null) {
-            return mYaml.loadAs(input, mClazz);
+            return Optional.of(mYaml.loadAs(input, mClazz));
         } else {
             try {
-                Logger.getGlobal().log(Level.WARNING, "Using default configuration");
-                return mClazz.getDeclaredConstructor().newInstance();
+                log.warning("Using default configuration");
+                return Optional.of(mClazz.getDeclaredConstructor().newInstance());
             } catch (InstantiationException | IllegalAccessException | NoSuchMethodException |
                      InvocationTargetException e) {
                 e.printStackTrace();
             }
-            return null;
+            return Optional.empty();
         }
     }
 
@@ -61,7 +79,7 @@ public class ConfigFileParser<T> {
     public void saveToFile(T configuration, String path) throws IOException {
         File file = new File(path);
         Writer writer = new BufferedWriter(new FileWriter(file));
-        Logger.getGlobal().log(Level.INFO, "Saving config to file: " + file.getAbsolutePath());
+        log.info(STR."Saving config to file: \{file.getAbsolutePath()}");
         mYaml.dump(configuration, writer);
     }
 }

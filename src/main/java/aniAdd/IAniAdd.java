@@ -1,7 +1,15 @@
 package aniAdd;
 
-import aniAdd.Modules.IModule;
+import aniAdd.config.AniConfiguration;
+import org.jetbrains.annotations.NotNull;
 
-public interface IAniAdd extends Communication {
-    <T extends IModule> T GetModule(Class<T> modName);
+public interface IAniAdd {
+
+    void ProcessDirectory(String directory);
+
+    void MarkFileAsWatched(@NotNull String path);
+
+    AniConfiguration getConfiguration();
+
+    void Stop();
 }

@@ -1,129 +1,55 @@
 package processing;
 
-import java.io.File;
-import java.util.ArrayList;
-
-import aniAdd.misc.ICallBack;
 import ed2kHasher.Edonkey;
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
+import lombok.RequiredArgsConstructor;
 
-public class FileParser {
+import java.io.*;
+import java.security.NoSuchAlgorithmException;
 
-    private boolean paused;
-    private File file;
-    private Object tag;
-    private ICallBack<FileParser> callBack;
-    private Thread thread;
-    private Parser parser;
-    private String hash;
-    private long parseStartOn;
-    private long parseEndOn;
-    private long pauseStartOn;
-    private long pauseDuration;
+@RequiredArgsConstructor
+public class FileParser implements Runnable {
 
-    public FileParser(File file, ICallBack<FileParser> callBack, Object tag) {
-        this.file = file;
-        this.callBack = callBack;
-        this.tag = tag;
-        paused = false;
+    private final File file;
+    private final Integer tag;
+    private final OnHashComputed onHashComputed;
+    private final Termination termination;
 
-        parser = new Parser(this);
-        thread = new Thread(parser);
-    }
+    @Override
+    public void run() {
+        String hash = null;
 
-    public long getBytesRead() {
-        return parser.getBytesRead();
-    }
-
-    public long getByteCount() {
-        return file.length();
-    }
-
-    public void pause() {
-        pauseStartOn = System.currentTimeMillis();
-        paused = true;
-    }
-
-    public void resume() {
-        pauseDuration = System.currentTimeMillis() - pauseStartOn;
-        pauseStartOn = 0;
-        paused = false;
-    }
-
-    public void start() {
-        pauseDuration = 0;
-        parseStartOn = 0;
-        parseStartOn = System.currentTimeMillis();
-        thread.start();
-    }
-
-    public void terminate() {
-        parser.terminate();
-    }
-
-    public long ParseDuration() {
-        return parseEndOn - parseStartOn - pauseDuration;
-    }
-
-    public int MBPerSecond() {
-        return (int) ((file.length() / ParseDuration()) * 1000 / 1024 / 1024);
-    }
-
-    public Object Tag() {
-        return tag;
-    }
-
-    public String Hash() {
-        return hash;
-    }
-
-    private class Parser implements Runnable {
-
-        private FileParser fileParser;
-        private long bytesRead = 0;
-        private boolean terminate = false;
-
-        public void terminate() {
-            terminate = true;
+        if (file.isDirectory()) {
+            // We don't hash directories
+            return;
         }
 
-        public Parser(FileParser fileParser) {
-            this.fileParser = fileParser;
-        }
+        try {
+            Edonkey ed2k = new Edonkey();
+            byte[] b = new byte[1024 * 1024 * 4];
 
-        public long getBytesRead() {
-            return bytesRead;
-        }
-
-        public void run() {
-            ArrayList<Object> obj = new ArrayList<Object>();
-            obj.add(tag);
-            bytesRead = 0;
-
-            try {
-                Edonkey ed2k = new Edonkey();
-                byte[] b = new byte[1024 * 1024 * 4];
-                BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
-
-                try {
-                    int numRead;
-                    while ((numRead = bis.read(b)) != -1 && !terminate) {
-                        while (paused) Thread.sleep(100);
-                        
-                        ed2k.update(b, 0, numRead);
-                        bytesRead += numRead;
-                    }
-                    hash = ed2k.getHexValue();
-                } finally { bis.close(); }
-
-            } catch (Exception e) {}
-   
-
-            parseEndOn = System.currentTimeMillis();
-            if (!terminate) {
-                callBack.invoke(fileParser);
+            try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file))) {
+                int numRead;
+                while ((numRead = bis.read(b)) != -1 && !termination.shouldTerminate()) {
+                    ed2k.update(b, 0, numRead);
+                }
+                hash = ed2k.getHexValue();
             }
+
+        } catch (NoSuchAlgorithmException | IOException e) {
+            e.printStackTrace();
         }
+
+
+        if (!termination.shouldTerminate()) {
+            onHashComputed.onHashComputed(tag, hash);
+        }
+    }
+
+    public interface OnHashComputed {
+        void onHashComputed(Integer tag, String hash);
+    }
+
+    public interface Termination {
+        boolean shouldTerminate();
     }
 }

@@ -1,168 +1,130 @@
 package aniAdd.config;
 
 
-/**
- * Created by Archie on 23.12.2015.
- */
+import lombok.*;
+import lombok.extern.java.Log;
+
+import java.nio.file.Paths;
+
+@Log
+@Data
+@Builder(toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
 public class AniConfiguration {
 
+    /**
+     * If true files will be moved to the new location
+     */
     private boolean enableFileMove;
-    private boolean enableFileRenaming;
-    private String moveToFolder;
+    /**
+     * If true files will be renamed
+     */
+    @Builder.Default private boolean enableFileRenaming = false;
+    /**
+     * If true mylist entries will be overwritten if they already exist
+     */
     private boolean overwriteMLEntries;
+    /**
+     * If true empty folders will be cleared up after moving files
+     */
     private boolean recursivelyDeleteEmptyFolders;
-    private boolean renameFiles = false;
+    /**
+     * If true related files (i.e. files with different extensions) will be renamed as well
+     */
     private boolean renameRelatedFiles;
+    /**
+     * If true the files will be renamed to the AniDB filename
+     */
     private boolean renameTypeAniDBFileName;
-    private StorageType setStorageType = StorageType.UNKOWN;
+    /**
+     * Set the storage type of the found files
+     */
+    @Builder.Default private StorageType setStorageType = StorageType.UNKNOWN;
+    /**
+     * If true the files will be marked as watched
+     */
     private boolean setWatched;
-    private boolean addToMylist = false;
-    private boolean advancedMode;
+    /**
+     * If true the files will be added to your mylist
+     */
+    @Builder.Default private boolean addToMylist = false;
+    /**
+     * If true the files will be moved the folder specified in {@link #moveToFolder}
+     */
     private boolean moveTypeUseFolder;
+    /**
+     * The folder to move file sto if {@link #moveTypeUseFolder} is true
+     */
+    private String moveToFolder;
+    /**
+     * The tag system to code to use to compute new file name/path
+     */
     private String tagSystemCode;
+    /**
+     * If true duplicate files will be deleted directly
+     */
     private boolean deleteDuplicateFiles;
-    protected String directory;
+    /**
+     * The base folder to move tv shows to.
+     * It's recommended to make the tag system compute a seperate folder for each series
+     * Available in the tag system as "BaseTVShowFolder"
+     */
+    private String tvShowFolder;
+    /**
+     * The base folder to move movies to.
+     * It's recommended to make the tag system compute a seperate folder for each movie
+     * Available in the tag system as "BaseMovieFolder"
+     */
+    private String movieFolder;
+    /**
+     * The folder to move unknown files to if enabled in {@link #moveUnknownFiles}
+     */
+    @Builder.Default private String unknownFolder = "/unknown/";
+    /**
+     * If true unknown files will be moved to the folder specified in {@link #unknownFolder}
+     */
+    @Builder.Default private boolean moveUnknownFiles = false;
 
-    public boolean enableFileMove() {
-        return enableFileMove;
+    /**
+     * The folder to move duplicate files to if enabled in {@link #moveDuplicateFiles}
+     */
+    @Builder.Default private String duplicatesFolder = "/duplicates/";
+    /**
+     * If true duplicate files will be moved to the folder specified in {@link #duplicatesFolder}
+     */
+    @Builder.Default private boolean moveDuplicateFiles = false;
+
+    /**
+     * The port of the anidb UDP API (default = 9000), default should be correct
+     */
+    @Builder.Default private int anidbPort = 9000;
+    /**
+     * The host of the anidb UDP API (default = api.anidb.net), default should be correct
+     */
+    @Builder.Default private String anidbHost = "api.anidb.net";
+
+    public String getEpisodePath(String relativePath) {
+        return Paths.get(tvShowFolder, relativePath).toString();
     }
 
-    public void setEnableFileMove(boolean enableFileMove) {
-        this.enableFileMove = enableFileMove;
+    public String getMoviePath(String relativePath) {
+        return Paths.get(movieFolder, relativePath).toString();
     }
 
-    public boolean enableFileRenaming() {
-        return enableFileRenaming;
-    }
-
-    public void setEnableFileRenaming(boolean enableFileRenaming) {
-        this.enableFileRenaming = enableFileRenaming;
-    }
-
-    public String moveToFolder() {
-        return moveToFolder;
-    }
-
-    public void setMoveToFolder(String moveToFolder) {
-        this.moveToFolder = moveToFolder;
-    }
-
-    public boolean overwriteMLEntries() {
-        return overwriteMLEntries;
-    }
-
-    public void setOverwriteMLEntries(boolean overwriteMLEntries) {
-        this.overwriteMLEntries = overwriteMLEntries;
-    }
-
-    public boolean recursivelyDeleteEmptyFolders() {
-        return recursivelyDeleteEmptyFolders;
-    }
-
-    public void setRecursivelyDeleteEmptyFolders(boolean recursivelyDeleteEmptyFolders) {
-        this.recursivelyDeleteEmptyFolders = recursivelyDeleteEmptyFolders;
-    }
-
-    public boolean renameFiles() {
-        return renameFiles;
-    }
-
-    public void setRenameFiles(boolean renameFiles) {
-        this.renameFiles = renameFiles;
-    }
-
-    public boolean renameRelatedFiles() {
-        return renameRelatedFiles;
-    }
-
-    public void setRenameRelatedFiles(boolean renameRelatedFiles) {
-        this.renameRelatedFiles = renameRelatedFiles;
-    }
-
-    public boolean renameTypeAniDBFileName() {
-        return renameTypeAniDBFileName;
-    }
-
-    public void setRenameTypeAniDBFileName(boolean renameTypeAniDBFileName) {
-        this.renameTypeAniDBFileName = renameTypeAniDBFileName;
-    }
-
-    public StorageType storageType() {
-        return setStorageType;
-    }
-
-    public void setSetStorageType(StorageType setStorageType) {
-        this.setStorageType = setStorageType;
-    }
-
-    public boolean setWatched() {
-        return setWatched;
-    }
-
-    public void setSetWatched(boolean setWatched) {
-        this.setWatched = setWatched;
-    }
-
-    public boolean addToMylist() {
-        return addToMylist;
-    }
-
-    public void setAddToMylist(boolean addToMylist) {
-        this.addToMylist = addToMylist;
-    }
-
-    public boolean advancedMode() {
-        return advancedMode;
-    }
-
-    public void setAdvancedMode(boolean advancedMode) {
-        this.advancedMode = advancedMode;
-    }
-
-    public boolean moveTypeUseFolder() {
-        return moveTypeUseFolder;
-    }
-
-    public void setMoveTypeUseFolder(boolean moveTypeUseFolder) {
-        this.moveTypeUseFolder = moveTypeUseFolder;
-    }
-
-    public String tagSystemCode() {
-        return tagSystemCode;
-    }
-
-    public void setTagSystemCode(String tagSystemCode) {
-        this.tagSystemCode = tagSystemCode;
-    }
-
-    public boolean deleteDuplicateFiles() {
-        return deleteDuplicateFiles;
-    }
-
-    public void setDeleteDuplicateFiles(boolean deleteDuplicateFiles) {
-        this.deleteDuplicateFiles = deleteDuplicateFiles;
-    }
-
-    public String directory() {
-        return directory;
-    }
-
-    public void setDirectory(String directory) {
-        this.directory = directory;
-    }
-
+    @Getter
+    @RequiredArgsConstructor
     public enum StorageType {
-        UNKOWN(0), INTERNAL(1), EXTERNAL(2), DELETE(3), REMOTE(4);
-
+        UNKNOWN(0), INTERNAL(1), EXTERNAL(2), DELETED(3), REMOTE(4), @Deprecated UNKOWN(5);
         private final int value;
+    }
 
-        private StorageType(int i) {
-            value = i;
-        }
-
-        public int getValue() {
-            return value;
+    public void fixStorageType() {
+        // Fix typo in original version
+        if (setStorageType == StorageType.UNKOWN) {
+            log.warning("Please update your configuration file. The storage type 'UNKOWN' is deprecated. Please use 'UNKNOWN' instead.");
+            setStorageType = StorageType.UNKNOWN;
         }
     }
-    
+
 }

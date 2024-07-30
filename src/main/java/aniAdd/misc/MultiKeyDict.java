@@ -1,61 +1,65 @@
 package aniAdd.misc;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.TreeMap;
+import lombok.val;
 
-public class MultiKeyDict<C, K, V> {
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
-    private IKeyMapper<C, K, V> keyMapper;
-    private ArrayList<TreeMap<K, V>> dict;
+public class MultiKeyDict<C extends Enum<C>, K, V> {
 
-    public MultiKeyDict(IKeyMapper<C, K, V> keyMapper) {
+    private final IKeyMapper<C, K, V> keyMapper;
+    private final Map<C, Map<K, V>> dict = new ConcurrentHashMap<>();
+
+    public MultiKeyDict(Class<C> category, IKeyMapper<C, K, V> keyMapper) {
         this.keyMapper = keyMapper;
-        dict = new ArrayList<TreeMap<K, V>>();
 
-        for (int i = 0; i < keyMapper.count(); i++) {
-            dict.add(new TreeMap<K, V>());
+        for (C cat : EnumSet.allOf(category)) {
+            dict.put(cat, new ConcurrentHashMap<>());
         }
     }
 
     public void clear() {
-        for (int i = 0; i < keyMapper.count(); i++) {
-            dict.get(i).clear();
+        for (val entry : dict.entrySet()) {
+            entry.getValue().clear();
         }
     }
 
     public V get(C cat, K key) {
-        return dict.get(keyMapper.getCatIndex(cat)).get(key);
+        return dict.get(cat).get(key);
     }
 
     public void put(V value) {
-        for (int i = 0; i < keyMapper.count(); i++) {
-            dict.get(i).put(keyMapper.getKey(i, value), value);
+        for (val entry : dict.entrySet()) {
+            entry.getValue().put(keyMapper.getKey(entry.getKey(), value), value);
         }
     }
 
-    public void remove(C cat, K key) {
-        dict.get(keyMapper.getCatIndex(cat)).remove(key);
+    public void remove(K key) {
+        for (val category : dict.keySet()) {
+            dict.get(category).remove(key);
+        }
     }
 
     public boolean contains(C cat, K key) {
-        return dict.get(keyMapper.getCatIndex(cat)).containsKey(key);
+        return dict.get(cat).containsKey(key);
     }
 
     public Collection<V> values() {
-        return !dict.isEmpty() ? dict.get(0).values() : new ArrayList<V>();
+        if (dict.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return anyMap().values();
     }
 
     public int size() {
-        return !dict.isEmpty() ? dict.get(0).size() : 0;
+        return !dict.isEmpty() ? anyMap().size() : 0;
+    }
+
+    private Map<K, V> anyMap() {
+        return dict.get(dict.keySet().iterator().next());
     }
 
     public interface IKeyMapper<C, K, V> {
-
-        int count();
-
-        int getCatIndex(C category);
-
-        K getKey(int index, V value);
+        K getKey(C category, V value);
     }
 }
