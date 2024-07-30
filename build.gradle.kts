@@ -157,7 +157,7 @@ tasks.register<Exec>("createGitTag") {
         outputStream.toString()
     }
     if (branch.trim() == "master" || version.toString().contains("-SNAPSHOT")) {
-        commandLine("git", "tag", "-a", version, "-m", "Release $version")
+        commandLine("git", "tag", "-a", "$version", "-m", "Release $version")
         if (branch.trim() == "master") {
             commandLine("git", "push", "origin", "tag", version)
         }
