@@ -9,4 +9,9 @@ if [[ -z "${FROM_FOLDER}" ]]; then
   export FROM_FOLDER=/from
 fi
 
-java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF watch $FROM_FOLDER
+if [[ -z "${SCAN_INTERVAL}" ]]; then
+  echo "SCAN_INTERVAL is not set, setting to 30"
+  export SCAN_INTERVAL=30
+fi
+
+java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF watch --interval $SCAN_INTERVAL $FROM_FOLDER
