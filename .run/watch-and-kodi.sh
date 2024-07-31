@@ -6,7 +6,7 @@ fi
 
 if [[ -z "${FROM_FOLDER}" ]]; then
   echo "FROM_FOLDER is not set, setting to /from"
-  export $FROM_FOLDER=/from
+  export FROM_FOLDER=/from
 fi
 
 if [ -z "$KODI_PORT" ]
