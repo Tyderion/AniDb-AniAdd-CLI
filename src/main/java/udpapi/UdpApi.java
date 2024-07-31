@@ -264,13 +264,13 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     @SuppressWarnings("rawtypes")
     private void handleQueryReply(Query query) {
+        // Only one command is currently in flight at a time, so if we receive a response, we can safely set the command in flight to null
+        setCommandInFlight(null);
         if (!query.success()) {
             log.warning(STR."Query failed: \{query.toString()}");
             handleQueryError(query);
             return;
         }
-        // Only one command is currently in flight at a time, so if we receive a response, we can safely set the command in flight to null
-        setCommandInFlight(null);
         queries.remove(query.getFullTag());
 
         val command = query.getCommand();
@@ -288,11 +288,14 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             log.warning(STR."Fatal api error, waiting a long time: \{query.toString()}");
             disconnect();
         } else {
-            if (query.getCommand() instanceof LogoutCommand && query.getReply().getReplyStatus() == ReplyStatus.LOGIN_FIRST) {
-                log.info(STR."Logout failed due to not being logged in, setting login status to LOGGED_OUT");
+            // TODO: Handle with reply status callbacks (improve those)
+            if (query.getReply().getReplyStatus() == ReplyStatus.LOGIN_FIRST) {
                 loginStatus = LoginStatus.LOGGED_OUT;
-                // TODO: Improve handling these cases
-                return;
+                log.info("Command Failed, not logged in, setting login status to LOGGED_OUT");
+                if (query.getCommand() instanceof LogoutCommand) {
+                    log.info("Logout failed due to not being logged in.");
+                    return;
+                }
             }
             log.warning(STR."Retrying query later: \{query.toString()}");
             queueCommand(query.getCommand());
