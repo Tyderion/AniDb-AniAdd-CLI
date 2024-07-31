@@ -293,6 +293,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
                 loginStatus = LoginStatus.LOGGED_OUT;
                 log.info("Command Failed, not logged in, setting login status to LOGGED_OUT");
                 if (query.getCommand() instanceof LogoutCommand) {
+                    // We tried to logout, but we were not logged in, so we can safely ignore this
                     log.info("Logout failed due to not being logged in.");
                     return;
                 }
