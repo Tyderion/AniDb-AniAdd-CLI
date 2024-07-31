@@ -9,9 +9,14 @@ if [[ -z "${FROM_FOLDER}" ]]; then
   export FROM_FOLDER=/from
 fi
 
+if [[ -z "${SCAN_INTERVAL}" ]]; then
+  echo "SCAN_INTERVAL is not set, setting to 30"
+  export SCAN_INTERVAL=30
+fi
+
 if [ -z "$KODI_PORT" ]
 then
-  java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF watch-and-kodi --kodi=$KODI_HOST $FROM_FOLDER
+  java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF watch-and-kodi --interval $SCAN_INTERVAL --kodi=$KODI_HOST $FROM_FOLDER
  else
-   java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF watch-and-kodi --kodi=$KODI_HOST --port=$KODI_PORT $FROM_FOLDER
+   java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF watch-and-kodi --interval $SCAN_INTERVAL --kodi=$KODI_HOST --port=$KODI_PORT $FROM_FOLDER
 fi
