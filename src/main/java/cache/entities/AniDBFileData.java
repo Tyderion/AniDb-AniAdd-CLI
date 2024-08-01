@@ -9,20 +9,25 @@ import java.util.Map;
 @Entity
 @Builder
 @Data
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @IdClass(AniDBFileData.AniDBFileId.class)
 public class AniDBFileData {
     @Id
     @Column(nullable = false)
+    @NonNull
     private String ed2k;
 
     @Id
     @Column(nullable = false)
     private long size;
 
+    @Column(nullable = false, unique = true)
+    @NonNull
     private String fileName;
+
+    @Column(nullable = false)
+    @NonNull
     private String folderName;
 
     @Singular
