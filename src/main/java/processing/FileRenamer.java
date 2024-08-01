@@ -46,15 +46,18 @@ public class FileRenamer {
 
             if (Files.exists(targetFilePath)) {
                 log.info(STR."Destination for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} already exists: \{targetFilePath.toString()}");
-                if (configuration.isDeleteDuplicateFiles()) {
-                    fileHandler.deleteFile(procFile.getFile().toPath());
-                } else if (configuration.isMoveDuplicateFiles()) {
-                    val oldFilename = procFile.getFile().getName();
-                    val subFolderWithFile = targetFilePath.subpath(targetFilePath.getNameCount() - 2, targetFilePath.getNameCount());
-                    val targetPath = Paths.get(configuration.getDuplicatesFolder()).resolve(subFolderWithFile);
-                    fileHandler.renameFile(procFile.getFile().toPath(), targetPath);
-                    if (configuration.isRenameRelatedFiles()) {
-                        renameRelatedFiles(procFile, oldFilename, targetPath.getFileName().toString(), targetPath.getParent());
+                if (configuration.isEnableFileMove()) {
+                    // Only handle duplicates if moving is enabled, else we want to rename in place so duplicate means it's name is correct
+                    if (configuration.isDeleteDuplicateFiles()) {
+                        fileHandler.deleteFile(procFile.getFile().toPath());
+                    } else if (configuration.isMoveDuplicateFiles()) {
+                        val oldFilename = procFile.getFile().getName();
+                        val subFolderWithFile = targetFilePath.subpath(targetFilePath.getNameCount() - 2, targetFilePath.getNameCount());
+                        val targetPath = Paths.get(configuration.getDuplicatesFolder()).resolve(subFolderWithFile);
+                        fileHandler.renameFile(procFile.getFile().toPath(), targetPath);
+                        if (configuration.isRenameRelatedFiles()) {
+                            renameRelatedFiles(procFile, oldFilename, targetPath.getFileName().toString(), targetPath.getParent());
+                        }
                     }
                 }
                 return false;
