@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 5.3//EN"
+        "http://hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+<session-factory>
+    <property name="connection.driver_class">org.sqlite.JDBC</property>
+    <property name="connection.url">jdbc:sqlite:src/main/resources/db.sqlite</property>
+    <property name="hibernate.dialect">org.hibernate.community.dialect.SQLiteDialect</property>
+    <property name="show_sql">true</property>
+    <property name="format_sql">true</property>
+    <property name="hdm2ddl.auto">create-drop</property>
+    <property name="hibernate.hbm2ddl.auto">create-drop</property>
+</session-factory>
+</hibernate-configuration>

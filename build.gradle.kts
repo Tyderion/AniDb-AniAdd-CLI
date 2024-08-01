@@ -38,6 +38,10 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.0-M2")
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.11.0-M2")
     testImplementation("org.mockito:mockito-core:5.12.0")
+
+    implementation("org.hibernate.orm:hibernate-core:6.5.2.Final")
+    implementation("org.hibernate.orm:hibernate-community-dialects:6.5.2.Final")
+    implementation("org.xerial:sqlite-jdbc:3.46.0.0")
 }
 
 tasks.register<Jar>("fatJar") {
