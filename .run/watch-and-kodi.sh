@@ -16,7 +16,17 @@ fi
 
 if [ -z "$KODI_PORT" ]
 then
-  java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF watch-and-kodi --interval $SCAN_INTERVAL --kodi=$KODI_HOST $FROM_FOLDER
+  if [ -z "$LOCAL_CACHE_FILE" ]
+  then
+    java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF watch-and-kodi --interval $SCAN_INTERVAL --kodi=$KODI_HOST $FROM_FOLDER
+  else
+    java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF --db $LOCAL_CACHE_FILE watch-and-kodi --interval $SCAN_INTERVAL --kodi=$KODI_HOST $FROM_FOLDER
+  fi
  else
-   java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF watch-and-kodi --interval $SCAN_INTERVAL --kodi=$KODI_HOST --port=$KODI_PORT $FROM_FOLDER
+   if [ -z "$LOCAL_CACHE_FILE" ]
+   then
+    java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF watch-and-kodi --interval $SCAN_INTERVAL --kodi=$KODI_HOST --port=$KODI_PORT $FROM_FOLDER
+   else
+     java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF --db $LOCAL_CACHE_FILE watch-and-kodi --interval $SCAN_INTERVAL --kodi=$KODI_HOST --port=$KODI_PORT $FROM_FOLDER
+   fi
 fi

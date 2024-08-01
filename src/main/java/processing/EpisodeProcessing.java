@@ -6,6 +6,7 @@ import java.util.*;
 
 import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
+import cache.IAniDBFileRepository;
 import fileprocessor.FileProcessor;
 import lombok.extern.java.Log;
 import lombok.val;
@@ -30,6 +31,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     private final AniConfiguration configuration;
     private final ExecutorService executorService;
     private final FileRenamer fileRenamer;
+    private final IAniDBFileRepository fileRepository;
     private final IFileHandler fileHandler;
     private final List<ICallBack<ProcessingEvent>> eventHandlers = new ArrayList<>();
 
@@ -46,12 +48,17 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     private final MultiKeyDict<KeyType, Object, FileInfo> files = new MultiKeyDict<>(KeyType.class,
             (type, fileInfo) -> type == KeyType.Id ? fileInfo.getId() : (type == KeyType.Path ? fileInfo.getFile().getAbsolutePath() : null));
 
-    public EpisodeProcessing(AniConfiguration configuration, UdpApi udpApi, ExecutorService executorService, IFileHandler fileHandler) {
+    public EpisodeProcessing(AniConfiguration configuration,
+                             UdpApi udpApi,
+                             ExecutorService executorService,
+                             IFileHandler fileHandler,
+                             IAniDBFileRepository fileRepository) {
         this.configuration = configuration;
         this.api = udpApi;
         this.executorService = executorService;
         this.fileHandler = fileHandler;
         this.fileRenamer = new FileRenamer(fileHandler);
+        this.fileRepository = fileRepository;
 
         api.registerCallback(LogoutCommand.class, cmd -> {
             // Remove files after we automatically log out
@@ -105,8 +112,20 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             boolean sendML = procFile.isActionTodo(FileAction.MyListCmd);
             boolean sendFile = procFile.isActionTodo(FileAction.FileCmd);
 
-            if (sendFile) {
-                api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFile().length(), procFile.getData().get(TagSystemTags.Ed2kHash)));
+            if (procFile.isActionTodo(FileAction.FileCmd)) {
+                val cachedData = fileRepository.getAniDBFileData(procFile.getData().get(TagSystemTags.Ed2kHash), procFile.getFile().length());
+                cachedData.ifPresentOrElse(fd -> {
+                    log.info(STR."Got cached data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
+                    procFile.setCached(true);
+                    procFile.getData().putAll(fd.getTags());
+                    procFile.actionDone(FileAction.FileCmd);
+                    if (shouldRunFinalProcessing(procFile)) {
+                        finalProcessing(procFile);
+                    }
+                }, () -> {
+                    log.info(STR."Requesting data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
+                    api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFile().length(), procFile.getData().get(TagSystemTags.Ed2kHash)));
+                });
             }
             if (sendML) {
                 api.queueCommand(MylistAddCommand.Create(
@@ -155,6 +174,9 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         } else {
             procFile.actionDone(FileAction.FileCmd);
             query.getCommand().AddReplyToDict(procFile.getData(), query.getReply(), procFile.getWatched());
+            if (!procFile.isActionTodo(FileAction.Rename)) {
+                fileRepository.saveAniDBFileData(procFile.toAniDBFileData());
+            }
             log.fine(STR."Got DB Info for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
         }
 
@@ -225,8 +247,12 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             try {
                 if (fileRenamer.renameFile(procFile)) {
                     procFile.actionDone(FileAction.Rename);
+
                 } else {
                     procFile.actionFailed(FileAction.Rename);
+                }
+                if (!procFile.isCached()) {
+                    fileRepository.saveAniDBFileData(procFile.toAniDBFileData());
                 }
             } catch (Exception e) {
             }
