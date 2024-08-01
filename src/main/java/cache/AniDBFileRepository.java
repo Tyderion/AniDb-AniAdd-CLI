@@ -12,9 +12,10 @@ import java.util.Optional;
 
 @Log
 @RequiredArgsConstructor
-public class AniDBFileRepository {
+public class AniDBFileRepository implements IAniDBFileRepository {
     private final SessionFactory sessionFactory;
 
+    @Override
     public Optional<AniDBFileData> getAniDBFileData(String ed2k, long size) {
         try (val session = sessionFactory.openSession()) {
             try {
@@ -30,6 +31,7 @@ public class AniDBFileRepository {
         }
     }
 
+    @Override
     public Optional<AniDBFileData> getByFilename(@NonNull String filename) {
         try (val session = sessionFactory.openSession()) {
             try {
@@ -47,6 +49,7 @@ public class AniDBFileRepository {
         }
     }
 
+    @Override
     public boolean saveAniDBFileData(AniDBFileData aniDBFileData) {
         try (val session = sessionFactory.openSession()) {
             val transaction = session.beginTransaction();

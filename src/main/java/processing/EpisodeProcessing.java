@@ -6,6 +6,7 @@ import java.util.*;
 
 import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
+import cache.IAniDBFileRepository;
 import fileprocessor.FileProcessor;
 import lombok.extern.java.Log;
 import lombok.val;
@@ -30,6 +31,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     private final AniConfiguration configuration;
     private final ExecutorService executorService;
     private final FileRenamer fileRenamer;
+    private final IAniDBFileRepository fileRepository;
     private final IFileHandler fileHandler;
     private final List<ICallBack<ProcessingEvent>> eventHandlers = new ArrayList<>();
 
@@ -46,12 +48,17 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     private final MultiKeyDict<KeyType, Object, FileInfo> files = new MultiKeyDict<>(KeyType.class,
             (type, fileInfo) -> type == KeyType.Id ? fileInfo.getId() : (type == KeyType.Path ? fileInfo.getFile().getAbsolutePath() : null));
 
-    public EpisodeProcessing(AniConfiguration configuration, UdpApi udpApi, ExecutorService executorService, IFileHandler fileHandler) {
+    public EpisodeProcessing(AniConfiguration configuration,
+                             UdpApi udpApi,
+                             ExecutorService executorService,
+                             IFileHandler fileHandler,
+                             IAniDBFileRepository fileRepository) {
         this.configuration = configuration;
         this.api = udpApi;
         this.executorService = executorService;
         this.fileHandler = fileHandler;
         this.fileRenamer = new FileRenamer(fileHandler);
+        this.fileRepository = fileRepository;
 
         api.registerCallback(LogoutCommand.class, cmd -> {
             // Remove files after we automatically log out
