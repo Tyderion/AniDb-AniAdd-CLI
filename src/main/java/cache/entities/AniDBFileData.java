@@ -32,7 +32,7 @@ public class AniDBFileData {
 
     @Singular
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "file_data", joinColumns = {
+    @CollectionTable(joinColumns = {
             @JoinColumn(name = "file_ed2k", nullable = false, referencedColumnName = "ed2k"),
             @JoinColumn(name = "file_size", nullable = false, referencedColumnName = "size")})
     private Map<TagSystemTags, String> tags;
