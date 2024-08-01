@@ -28,6 +28,7 @@ public class FileInfo {
     @Getter @Setter private boolean hashed;
     @Getter @Setter private boolean isFinal;
     @Getter @Setter private AniConfiguration configuration;
+    @Getter @Setter private boolean isCached = false;
 
     public enum FileAction {Process, FileCmd, MyListCmd, VoteCmd, Rename,}
 

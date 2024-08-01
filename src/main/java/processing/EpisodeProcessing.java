@@ -115,12 +115,15 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             if (procFile.isActionTodo(FileAction.FileCmd)) {
                 val cachedData = fileRepository.getAniDBFileData(procFile.getData().get(TagSystemTags.Ed2kHash), procFile.getFile().length());
                 cachedData.ifPresentOrElse(fd -> {
+                    log.info(STR."Got cached data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
+                    procFile.setCached(true);
                     procFile.getData().putAll(fd.getTags());
                     procFile.actionDone(FileAction.FileCmd);
                     if (shouldRunFinalProcessing(procFile)) {
                         finalProcessing(procFile);
                     }
                 }, () -> {
+                    log.info(STR."Requesting data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
                     api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFile().length(), procFile.getData().get(TagSystemTags.Ed2kHash)));
                 });
             }
@@ -248,7 +251,9 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 } else {
                     procFile.actionFailed(FileAction.Rename);
                 }
-                fileRepository.saveAniDBFileData(procFile.toAniDBFileData());
+                if (!procFile.isCached()) {
+                    fileRepository.saveAniDBFileData(procFile.toAniDBFileData());
+                }
             } catch (Exception e) {
             }
 
