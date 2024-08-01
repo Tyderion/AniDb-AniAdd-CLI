@@ -104,6 +104,11 @@ public class AniConfiguration {
      */
     @Builder.Default private String anidbHost = "api.anidb.net";
 
+    /**
+     * The URL to the anime mapping file, maps from AniDB to TVDB
+     */
+    @Builder.Default private String animeMappingUrl = "https://raw.githubusercontent.com/Anime-Lists/anime-lists/master/anime-list.xml";
+
     public String getEpisodePath(String relativePath) {
         return Paths.get(tvShowFolder, relativePath).toString();
     }
