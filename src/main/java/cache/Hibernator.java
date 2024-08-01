@@ -12,24 +12,25 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Log
 public class Hibernator {
 
     public void Test() {
-        val x = new org.hibernate.community.dialect.SQLiteDialect();
         val configuration = new Configuration()
-                .configure("hibernate.xml")
                 .setProperty("hibernate.connection.driver_class", "org.sqlite.JDBC")
                 .setProperty("hibernate.connection.url", "jdbc:sqlite:test.sqlite")
                 .setProperty("hibernate.dialect", "org.hibernate.community.dialect.SQLiteDialect")
                 .setProperty("hibernate.show_sql", "true")
                 .setProperty("hibernate.format_sql", "true")
+                .setProperty("hibernate.hbm2ddl.auto", "create-drop")
                 .addAnnotatedClass(cache.entities.Command.class)
                 .addAnnotatedClass(cache.entities.CommandParameter.class)
 //                .addAnnotatedClass(cache.entities.CommandReply.class);
                 ;
         val session = configuration.buildSessionFactory().openSession();
+
         session.setFlushMode(FlushModeType.COMMIT);
         val command = Command.builder()
                 .action("mladd")
