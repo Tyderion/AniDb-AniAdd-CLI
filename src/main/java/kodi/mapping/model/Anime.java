@@ -11,11 +11,17 @@ import java.util.List;
 public class Anime {
     String name;
     long aniDbId;
-    long tvDbId;
+    Long tvDbId;
     Integer episodeOffset;
     String imdbId;
     String defaultTvDbSeason;
+    @Builder.Default
+    AnimeType type = AnimeType.SERIES;
     @Singular
     List<Mapping> mappings;
     SupplementalInfo supplementalInfo;
+
+    public static enum AnimeType {
+        SERIES, MOVIE, HENTAI, OVA, TVSPECIAL, MUSIC_VIDEO, WEB, OTHER;
+    }
 }

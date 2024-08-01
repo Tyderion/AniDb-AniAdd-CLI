@@ -46,9 +46,19 @@ public class AnimeMapping {
                     switch (startElement.getName().getLocalPart()) {
                         case "anime" -> {
                             currentAnime = Anime.builder();
-                            currentAnime.aniDbId(Long.parseLong(startElement.getAttributeByName(new QName("anidbid")).getValue()));
-                            currentAnime.tvDbId(Long.parseLong(startElement.getAttributeByName(new QName("tvdbid")).getValue()));
-                            currentAnime.defaultTvDbSeason(startElement.getAttributeByName(new QName("defaulttvdbseason")).getValue());
+                            currentAnime.aniDbId(getLongAttribute(startElement, "anidbid"));
+                            val tvdbId = getAttribute(startElement, "tvdbid").map(Attribute::getValue).orElseThrow();
+                            switch (tvdbId.toLowerCase()) {
+                                case "movie" -> currentAnime.type(Anime.AnimeType.MOVIE);
+                                case "hentai" -> currentAnime.type(Anime.AnimeType.HENTAI);
+                                case "ova" -> currentAnime.type(Anime.AnimeType.OVA);
+                                case "tv special" -> currentAnime.type(Anime.AnimeType.TVSPECIAL);
+                                case "music video" -> currentAnime.type(Anime.AnimeType.MUSIC_VIDEO);
+                                case "web" -> currentAnime.type(Anime.AnimeType.WEB);
+                                case "other" -> currentAnime.type(Anime.AnimeType.OTHER);
+                                default -> currentAnime.tvDbId(Long.parseLong(tvdbId));
+                            }
+                            currentAnime.defaultTvDbSeason(getAttribute(startElement, "defaulttvdbseason").map(Attribute::getValue).orElse(null));
                         }
                         case "name" -> currentAnime.name(reader.getElementText());
                         case "mapping-list" -> {
@@ -164,6 +174,12 @@ public class AnimeMapping {
         val attribute = getAttribute(startElement, name);
         return attribute.map(a -> Integer.parseInt(a.getValue())).orElse(null);
     }
+
+    private Long getLongAttribute(StartElement startElement, String name) {
+        val attribute = getAttribute(startElement, name);
+        return attribute.map(a -> Long.parseLong(a.getValue())).orElse(null);
+    }
+
 
     private Optional<Attribute> getAttribute(StartElement startElement, String name) {
         return Optional.ofNullable(startElement.getAttributeByName(new QName(name)));
