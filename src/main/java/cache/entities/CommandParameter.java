@@ -19,7 +19,7 @@ public class CommandParameter {
     @UuidGenerator
     private UUID Id;
 
-    @Column(name = "command_id")
+    @Column()
     private long commandId;
 
     private String key;

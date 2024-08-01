@@ -14,6 +14,8 @@ import java.util.UUID;
 @Builder
 @Getter
 @Setter
+@ToString
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class Command {

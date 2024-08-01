@@ -42,6 +42,8 @@ dependencies {
     implementation("org.hibernate.orm:hibernate-core:6.5.2.Final")
     implementation("org.hibernate.orm:hibernate-community-dialects:6.5.2.Final")
     implementation("org.xerial:sqlite-jdbc:3.46.0.0")
+    implementation("org.slf4j:slf4j-simple:2.0.13")
+
 }
 
 tasks.register<Jar>("fatJar") {
