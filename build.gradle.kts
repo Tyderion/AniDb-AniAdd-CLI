@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "ch.tyderion"
-version = "4.0.0"
+version = "4.1.0-alpha-1"
 
 java {
     targetCompatibility = JavaVersion.VERSION_21
@@ -131,7 +131,7 @@ tasks.register<Dockerfile>("createDockerfile") {
     copyFile("scan.sh", "/app/scan.sh")
     copyFile("watch-and-kodi.sh", "/app/watch-and-kodi.sh")
     copyFile("logging.properties", "/app/logging.properties")
-    defaultCommand("/app/scan.sh")
+    defaultCommand("/app/noop.sh")
 }
 
 tasks.register<DockerBuildImage>("buildDockerImage") {

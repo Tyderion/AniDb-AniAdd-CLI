@@ -52,6 +52,7 @@ public class AnidbCommand {
     String configPath;
 
     @Getter
+    @NonEmpty
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "aniAdd.sqlite")
     String dbPath;
 

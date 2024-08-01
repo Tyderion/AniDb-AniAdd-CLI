@@ -15,7 +15,7 @@ public class PersistenceConfiguration {
                 .setProperty("hibernate.dialect", "org.hibernate.community.dialect.SQLiteDialect")
                 .setProperty("hibernate.show_sql", "true")
                 .setProperty("hibernate.format_sql", "true")
-                .setProperty("hibernate.hbm2ddl.auto", "validate")
+                .setProperty("hibernate.hbm2ddl.auto", "update")
                 .addAnnotatedClass(cache.entities.AniDBFileData.class);
     }
 }

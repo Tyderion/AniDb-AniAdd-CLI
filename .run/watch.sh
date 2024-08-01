@@ -14,4 +14,10 @@ if [[ -z "${SCAN_INTERVAL}" ]]; then
   export SCAN_INTERVAL=30
 fi
 
-java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF watch --interval $SCAN_INTERVAL $FROM_FOLDER
+if [ -z "$LOCAL_CACHE_FILE" ]
+then
+  java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF watch --interval $SCAN_INTERVAL $FROM_FOLDER
+else
+  java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF --db $LOCAL_CACHE_FILE watch --interval $SCAN_INTERVAL $FROM_FOLDER
+fi
+
