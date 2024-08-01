@@ -19,6 +19,6 @@ public class SupplementalInfo {
     @Singular
     List<String> credits;
     @Singular
-    List<String> fanarts;
+    List<Thumb> fanarts;
 
 }

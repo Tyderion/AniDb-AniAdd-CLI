@@ -4,6 +4,7 @@ import aniAdd.config.AniConfiguration;
 import kodi.mapping.model.Anime;
 import kodi.mapping.model.Mapping;
 import kodi.mapping.model.SupplementalInfo;
+import kodi.mapping.model.Thumb;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
@@ -18,8 +19,6 @@ import javax.xml.stream.events.StartElement;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.*;
 
 @Log
@@ -58,7 +57,7 @@ public class AnimeMapping {
                                 case "other" -> currentAnime.type(Anime.AnimeType.OTHER);
                                 default -> currentAnime.tvDbId(Long.parseLong(tvdbId));
                             }
-                            currentAnime.defaultTvDbSeason(getAttribute(startElement, "defaulttvdbseason").map(Attribute::getValue).orElse(null));
+                            currentAnime.defaultTvDbSeason(getStringAttribute(startElement, "defaulttvdbseason"));
                         }
                         case "name" -> currentAnime.name(reader.getElementText());
                         case "mapping-list" -> {
@@ -104,9 +103,15 @@ public class AnimeMapping {
                         while (reader.hasNext()) {
                             // consume thumb element
                             val thumbEvent = reader.nextEvent();
-                            if (thumbEvent.isStartElement() && thumbEvent.asStartElement().getName().getLocalPart().equals("thumb")) {
-                                info.fanart(reader.getElementText());
-                                break;
+                            if (thumbEvent.isStartElement()) {
+                                val thumbStart = thumbEvent.asStartElement();
+                                if (thumbStart.getName().getLocalPart().equals("thumb")) {
+                                    val thumb = Thumb.builder()
+                                            .url(reader.getElementText())
+                                            .dimension(getStringAttribute(thumbStart, "dim"));
+                                    info.fanart(thumb.build());
+                                    break;
+                                }
                             }
                         }
                     }
@@ -178,6 +183,11 @@ public class AnimeMapping {
     private Long getLongAttribute(StartElement startElement, String name) {
         val attribute = getAttribute(startElement, name);
         return attribute.map(a -> Long.parseLong(a.getValue())).orElse(null);
+    }
+
+    private String getStringAttribute(StartElement startElement, String name) {
+        val attribute = getAttribute(startElement, name);
+        return attribute.map(Attribute::getValue).orElse(null);
     }
 
 
