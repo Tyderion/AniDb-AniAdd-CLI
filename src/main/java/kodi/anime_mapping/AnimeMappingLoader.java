@@ -1,10 +1,10 @@
-package kodi.mapping;
+package kodi.anime_mapping;
 
 import aniAdd.config.AniConfiguration;
-import kodi.mapping.model.Anime;
-import kodi.mapping.model.Mapping;
-import kodi.mapping.model.SupplementalInfo;
-import kodi.mapping.model.Thumb;
+import kodi.anime_mapping.model.AnimeMapping;
+import kodi.anime_mapping.model.Mapping;
+import kodi.anime_mapping.model.SupplementalInfo;
+import kodi.anime_mapping.model.Thumb;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
@@ -23,38 +23,38 @@ import java.util.*;
 
 @Log
 @RequiredArgsConstructor
-public class AnimeMapping {
+public class AnimeMappingLoader {
     final AniConfiguration aniConfiguration;
 
     @Getter(lazy = true)
-    private final List<Anime> animeMapping = loadAnimeMapping();
+    private final List<AnimeMapping> animeMapping = loadAnimeMapping();
 
-    private List<Anime> loadAnimeMapping() {
+    private List<AnimeMapping> loadAnimeMapping() {
         try {
 //            BufferedInputStream in = new BufferedInputStream(new URI(aniConfiguration.getAnimeMappingUrl()).toURL().openStream());
             val in = new BufferedInputStream(new FileInputStream("anime-list.xml"));
             XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
-            val animeList = new LinkedList<Anime>();
+            val animeList = new LinkedList<AnimeMapping>();
 
             val reader = xmlInputFactory.createXMLEventReader(in);
-            var currentAnime = Anime.builder();
+            var currentAnime = AnimeMapping.builder();
             while (reader.hasNext()) {
                 val event = reader.nextEvent();
                 if (event.isStartElement()) {
                     val startElement = event.asStartElement();
                     switch (startElement.getName().getLocalPart()) {
                         case "anime" -> {
-                            currentAnime = Anime.builder();
+                            currentAnime = AnimeMapping.builder();
                             currentAnime.aniDbId(getLongAttribute(startElement, "anidbid"));
                             val tvdbId = getAttribute(startElement, "tvdbid").map(Attribute::getValue).orElseThrow();
                             switch (tvdbId.toLowerCase()) {
-                                case "movie" -> currentAnime.type(Anime.AnimeType.MOVIE);
-                                case "hentai" -> currentAnime.type(Anime.AnimeType.HENTAI);
-                                case "ova" -> currentAnime.type(Anime.AnimeType.OVA);
-                                case "tv special" -> currentAnime.type(Anime.AnimeType.TVSPECIAL);
-                                case "music video" -> currentAnime.type(Anime.AnimeType.MUSIC_VIDEO);
-                                case "web" -> currentAnime.type(Anime.AnimeType.WEB);
-                                case "other" -> currentAnime.type(Anime.AnimeType.OTHER);
+                                case "movie" -> currentAnime.type(AnimeMapping.AnimeType.MOVIE);
+                                case "hentai" -> currentAnime.type(AnimeMapping.AnimeType.HENTAI);
+                                case "ova" -> currentAnime.type(AnimeMapping.AnimeType.OVA);
+                                case "tv special" -> currentAnime.type(AnimeMapping.AnimeType.TVSPECIAL);
+                                case "music video" -> currentAnime.type(AnimeMapping.AnimeType.MUSIC_VIDEO);
+                                case "web" -> currentAnime.type(AnimeMapping.AnimeType.WEB);
+                                case "other" -> currentAnime.type(AnimeMapping.AnimeType.OTHER);
                                 default -> currentAnime.tvDbId(Long.parseLong(tvdbId));
                             }
                             currentAnime.defaultTvDbSeason(getStringAttribute(startElement, "defaulttvdbseason"));

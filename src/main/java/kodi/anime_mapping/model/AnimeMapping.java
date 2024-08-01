@@ -1,4 +1,4 @@
-package kodi.mapping.model;
+package kodi.anime_mapping.model;
 
 import lombok.Builder;
 import lombok.Singular;
@@ -8,7 +8,7 @@ import java.util.List;
 
 @Builder
 @Value
-public class Anime {
+public class AnimeMapping {
     String name;
     long aniDbId;
     Long tvDbId;
