@@ -11,15 +11,15 @@ import java.util.UUID;
 @Builder
 @Getter
 @Setter
+@ToString
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class CommandParameter {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @UuidGenerator
-    private UUID Id;
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    private long Id;
 
-    @Column()
     private long commandId;
 
     private String key;

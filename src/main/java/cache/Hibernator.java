@@ -24,26 +24,27 @@ public class Hibernator {
                 .setProperty("hibernate.dialect", "org.hibernate.community.dialect.SQLiteDialect")
                 .setProperty("hibernate.show_sql", "true")
                 .setProperty("hibernate.format_sql", "true")
-                .setProperty("hibernate.hbm2ddl.auto", "create-drop")
+                .setProperty("hibernate.hbm2ddl.auto", "update")
                 .addAnnotatedClass(cache.entities.Command.class)
                 .addAnnotatedClass(cache.entities.CommandParameter.class)
 //                .addAnnotatedClass(cache.entities.CommandReply.class);
                 ;
         val session = configuration.buildSessionFactory().openSession();
 
-        session.setFlushMode(FlushModeType.COMMIT);
-        val command = Command.builder()
-                .action("mladd")
-                .parameter(CommandParameter.builder().key("bubu").value("bubuv").build())
-                .build();
+//        session.setFlushMode(FlushModeType.COMMIT);
+//        val command = Command.builder()
+//                .action("mladd")
+//                .parameter(CommandParameter.builder().key("bubu").value("bubuv").build())
+//                .build();
+//
+//            val transaction = session.beginTransaction();
+//            session.persist(command);
+//            command.getParameters().forEach(session::persist);
+//            transaction.commit();
+//        log.info(STR."Stored: \{command}");
 
-            val transaction = session.beginTransaction();
-            session.persist(command);
-            transaction.commit();
-        log.info(STR."Stored: \{command}");
 
-
-        val test = session.get(Command.class, command.getId());
+        val test = session.get(Command.class, 1);
 
         log.info(STR."Got: \{test}");
 

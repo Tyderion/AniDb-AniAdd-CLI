@@ -8,6 +8,7 @@ import org.hibernate.id.UUIDGenerator;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -22,13 +23,13 @@ public class Command {
 
     @Id
     @Column(name = "id")
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @UuidGenerator
-    private UUID Id;
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private long Id;
 
-    @OneToMany(targetEntity = CommandParameter.class, cascade = CascadeType.ALL, mappedBy = "commandId")
+    @OneToMany(targetEntity = CommandParameter.class)
+    @JoinColumn(name = "commandId")
     @Singular
-    private List<CommandParameter> parameters;
+    private Set<CommandParameter> parameters;
 
     private String action;
     private String identifier;
