@@ -13,6 +13,7 @@ import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -22,10 +23,10 @@ import static kodi.XmlHelper.getStringAttribute;
 @Log
 public class AnimeDetailsLoader {
 
-    public static Anime parseXml(int _animeId) {
+    public static Anime parseXml(String xml) {
         try {
 //            BufferedInputStream in = new BufferedInputStream(new URI(aniConfiguration.getAnimeMappingUrl()).toURL().openStream());
-            val in = new BufferedInputStream(new FileInputStream("accel_world.xml"));
+            val in = new BufferedInputStream(new FileInputStream(xml));
             XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
             val anime = Anime.builder();
 
@@ -134,7 +135,10 @@ public class AnimeDetailsLoader {
             if (event.isEndElement()) {
                 switch (event.asEndElement().getName().getLocalPart()) {
                     case "character" -> {
-                        characters.add(currentCharacter.build());
+                        val character = currentCharacter.build();
+                        if (character.getRole() != Character.Role.APPEARS_IN) {
+                            characters.add(character);
+                        }
                     }
                     case "characters" -> {
                         return characters;
@@ -146,6 +150,7 @@ public class AnimeDetailsLoader {
         log.severe("characters not closed properly");
         return null;
     }
+
 
     private static Set<AnimeTag> parseTags(XMLEventReader reader, StartElement rootElement, int animeId) throws XMLStreamException {
         val tags = new HashSet<AnimeTag>();
@@ -168,9 +173,11 @@ public class AnimeDetailsLoader {
                 switch (event.asEndElement().getName().getLocalPart()) {
                     case "tag" -> {
                         val tag = currentTag.build();
-                        currentAnimeTag.tag(tag)
-                                .id(AnimeTag.AnimeTagId.builder().animeId(animeId).tagId(tag.getId()).build());
-                        tags.add(currentAnimeTag.build());
+                        currentAnimeTag.tag(tag);
+                        val animeTag = currentAnimeTag.build();
+                        if (animeTag.getWeight() > 0) {
+                            tags.add(animeTag);
+                        }
                     }
                     case "tags" -> {
                         return tags;
@@ -182,6 +189,8 @@ public class AnimeDetailsLoader {
         log.severe("Tags not closed properly");
         return null;
     }
+
+    private static Set<String> relevantLanguages = new HashSet<>(Arrays.asList("ja", "en", "x-jat"));
 
     private static Set<Anime.Title> parseTitles(XMLEventReader reader, StartElement rootElement) throws XMLStreamException {
         val titles = new HashSet<Anime.Title>();
@@ -195,7 +204,9 @@ public class AnimeDetailsLoader {
                             .type(getStringAttribute(startElement, "type"))
                             .title(reader.getElementText())
                             .build();
-                    titles.add(title);
+                    if (relevantLanguages.contains(title.getLanguage()) && (title.getType().equals("main") || title.getType().equals("official"))) {
+                        titles.add(title);
+                    }
                 }
             }
             if (event.isEndElement()) {
@@ -251,12 +262,18 @@ public class AnimeDetailsLoader {
                             .id(getIntAttribute(startElement, "id"))
                             .name(reader.getElementText())
                             .build();
+                    val type = getStringAttribute(startElement, "type");
                     val animeCreator = AnimeCreator.builder()
-                            .creator(creator)
-                            .id(AnimeCreator.AnimeCreatorKey.builder().animeId(animeId).creatorId(creator.getId()).build())
-                            .type(getStringAttribute(startElement, "type"))
-                            .build();
-                    creators.add(animeCreator);
+                            .creator(creator);
+                    switch (type) {
+                        case "Direction" -> animeCreator.type(AnimeCreator.Type.DIRECTION);
+                        case "Original Work" -> animeCreator.type(AnimeCreator.Type.ORIGINAL_WORK);
+                        case "Character Design" -> animeCreator.type(AnimeCreator.Type.CHARACTER_DESIGNER);
+                    }
+                    val ac = animeCreator.build();
+                    if (ac.getType() != null) {
+                        creators.add(ac);
+                    }
                 }
             }
             if (event.isEndElement()) {

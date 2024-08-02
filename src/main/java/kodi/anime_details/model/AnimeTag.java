@@ -7,35 +7,25 @@ import java.io.Serializable;
 
 @Entity
 @Builder
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class AnimeTag {
-    @EmbeddedId
-    AnimeTagId id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("animeId")
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.MERGE)
     @JoinColumn
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     Anime anime;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @MapsId("tagId")
+    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
     @JoinColumn
     @EqualsAndHashCode.Exclude
     Tag tag;
 
     int weight;
-
-    @Builder
-    @Embeddable
-    @Data
-    @RequiredArgsConstructor
-    @AllArgsConstructor
-    public static class AnimeTagId implements Serializable {
-        int animeId;
-        int tagId;
-    }
 }

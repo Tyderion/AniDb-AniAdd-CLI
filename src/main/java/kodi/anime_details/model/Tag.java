@@ -19,5 +19,6 @@ public class Tag {
     private int id;
 
     String name;
+    @ToString.Exclude
     String description;
 }

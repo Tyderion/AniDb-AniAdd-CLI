@@ -7,36 +7,29 @@ import java.io.Serializable;
 
 @Entity
 @Builder
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class AnimeCreator {
-    @EmbeddedId
-    AnimeCreatorKey id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("animeId")
     @JoinColumn
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     Anime anime;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @MapsId("creatorId")
+    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
     @JoinColumn
     @EqualsAndHashCode.Exclude
     Creator creator;
 
-    String type;
+    Type type;
 
-
-    @Data
-    @Builder
-    @Embeddable
-    @RequiredArgsConstructor
-    @AllArgsConstructor
-    public static class AnimeCreatorKey implements Serializable {
-        int animeId;
-        int creatorId;
+    public enum Type {
+        ORIGINAL_WORK, DIRECTION, CHARACTER_DESIGNER;
     }
 }
