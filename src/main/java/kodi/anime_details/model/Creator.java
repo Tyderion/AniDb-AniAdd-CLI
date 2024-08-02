@@ -10,7 +10,7 @@ import java.util.Set;
 @Entity
 @Builder
 @Data
-@ToString(onlyExplicitlyIncluded = true)
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 public class Creator {
@@ -20,8 +20,4 @@ public class Creator {
     String name;
 
     String picture;
-
-    @OneToMany(mappedBy = "anime")
-    @ToString.Exclude
-    Set<AnimeCreator> animes;
 }

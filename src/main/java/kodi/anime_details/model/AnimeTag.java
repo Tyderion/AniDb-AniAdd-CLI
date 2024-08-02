@@ -18,17 +18,20 @@ public class AnimeTag {
     @MapsId("animeId")
     @JoinColumn
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     Anime anime;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @MapsId("tagId")
     @JoinColumn
+    @EqualsAndHashCode.Exclude
     Tag tag;
 
     int weight;
 
     @Builder
     @Embeddable
+    @Data
     @RequiredArgsConstructor
     @AllArgsConstructor
     public static class AnimeTagId implements Serializable {

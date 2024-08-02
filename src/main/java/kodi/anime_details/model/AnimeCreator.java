@@ -18,16 +18,19 @@ public class AnimeCreator {
     @MapsId("animeId")
     @JoinColumn
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     Anime anime;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @MapsId("creatorId")
     @JoinColumn
+    @EqualsAndHashCode.Exclude
     Creator creator;
 
     String type;
 
 
+    @Data
     @Builder
     @Embeddable
     @RequiredArgsConstructor

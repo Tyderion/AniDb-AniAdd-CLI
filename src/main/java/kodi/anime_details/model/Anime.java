@@ -19,10 +19,10 @@ public class Anime {
 
     String type;
     int episodeCount;
-    @Column(name = "local_date", columnDefinition = "DATE")
+    @Column(columnDefinition = "DATE")
     private LocalDate startDate;
 
-    @Column(name = "local_date", columnDefinition = "DATE")
+    @Column(columnDefinition = "DATE")
     private LocalDate endDate;
 
     @Singular
@@ -38,15 +38,15 @@ public class Anime {
     private List<Rating> ratings;
 
 
-    @OneToMany(mappedBy = "creator", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "anime", fetch = FetchType.EAGER)
     Set<AnimeCreator> creators;
 
 
-    @OneToMany(mappedBy = "tag", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "anime", fetch = FetchType.EAGER)
     Set<AnimeTag> tags;
 
     @ToString.Exclude
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "anime_characters",
             joinColumns = @JoinColumn(name = "anime_id", referencedColumnName = "id"),
@@ -61,6 +61,7 @@ public class Anime {
     @Data
     @Builder
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class Title {
         private String title;
         private String language;
@@ -71,6 +72,7 @@ public class Anime {
     @Data
     @Builder
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class Rating {
         private Type type;
         private int count;

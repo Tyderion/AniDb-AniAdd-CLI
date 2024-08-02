@@ -177,7 +177,7 @@ tasks {
         options.isDeprecation = true
         options.compilerArgs.add("-Aproject=${project.group}/${project.name}")
         options.compilerArgs.add("--enable-preview")
-        options.compilerArgs.add("-Xlint:unchecked")
+//        options.compilerArgs.add("-Xlint:unchecked")
     }
     withType<Test> {
         useJUnitPlatform()

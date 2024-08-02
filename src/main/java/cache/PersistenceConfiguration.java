@@ -1,5 +1,7 @@
 package cache;
 
+import kodi.anime_details.model.*;
+import kodi.anime_details.model.Character;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.jetbrains.annotations.NotNull;
@@ -15,7 +17,14 @@ public class PersistenceConfiguration {
                 .setProperty("hibernate.dialect", "org.hibernate.community.dialect.SQLiteDialect")
                 .setProperty("hibernate.show_sql", "true")
                 .setProperty("hibernate.format_sql", "true")
-                .setProperty("hibernate.hbm2ddl.auto", "validate")
-                .addAnnotatedClass(cache.entities.AniDBFileData.class);
+                .setProperty("hibernate.hbm2ddl.auto", "update")
+                .addAnnotatedClass(cache.entities.AniDBFileData.class)
+                .addAnnotatedClass(Anime.class)
+                .addAnnotatedClass(AnimeCreator.class)
+                .addAnnotatedClass(AnimeTag.class)
+                .addAnnotatedClass(Character.class)
+                .addAnnotatedClass(Creator.class)
+                .addAnnotatedClass(Tag.class)
+                ;
     }
 }

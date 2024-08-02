@@ -23,21 +23,14 @@ public class Character {
     String picture;
 
     @ToString.Exclude
-    @ManyToMany
-    @JoinTable(
-            name = "anime_characters",
-            joinColumns = @JoinColumn(name = "character_id", referencedColumnName = "id"),
-            inverseJoinColumns = @JoinColumn(name = "anime_id", referencedColumnName = "id"))
-    Set<Anime> animes;
-
-    @ToString.Exclude
-    @OneToMany(fetch = FetchType.EAGER, mappedBy = "character")
+    @ManyToOne(fetch = FetchType.EAGER, targetEntity = Creator.class)
     Creator seiyuu;
 
     @Embeddable
     @Data
     @Builder
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class Rating {
         private int count;
         private double rating;

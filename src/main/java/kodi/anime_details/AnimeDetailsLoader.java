@@ -22,7 +22,7 @@ import static kodi.XmlHelper.getStringAttribute;
 @Log
 public class AnimeDetailsLoader {
 
-    public static Anime parseXml(int animeId) {
+    public static Anime parseXml(int _animeId) {
         try {
 //            BufferedInputStream in = new BufferedInputStream(new URI(aniConfiguration.getAnimeMappingUrl()).toURL().openStream());
             val in = new BufferedInputStream(new FileInputStream("accel_world.xml"));
@@ -30,12 +30,16 @@ public class AnimeDetailsLoader {
             val anime = Anime.builder();
 
             val reader = xmlInputFactory.createXMLEventReader(in);
+            var animeId = 0;
             while (reader.hasNext()) {
                 val event = reader.nextEvent();
                 if (event.isStartElement()) {
                     val startElement = event.asStartElement();
                     switch (startElement.getName().getLocalPart()) {
-                        case "anime" -> anime.id(getIntAttribute(startElement, "id"));
+                        case "anime" -> {
+                            animeId = getIntAttribute(startElement, "id");
+                            anime.id(animeId);
+                        }
                         case "type" -> anime.type(reader.getElementText());
                         case "episodecount" -> anime.episodeCount(Integer.parseInt(reader.getElementText()));
                         case "startdate" -> anime.startDate(LocalDate.parse(reader.getElementText()));
@@ -47,7 +51,7 @@ public class AnimeDetailsLoader {
                             anime.titles(titles);
                         }
                         case "creators" -> {
-                            val creators = parseCreators(reader, startElement);
+                            val creators = parseCreators(reader, startElement, animeId);
                             anime.creators(creators);
                         }
                         case "characters" -> {
@@ -59,7 +63,7 @@ public class AnimeDetailsLoader {
                             anime.ratings(ratings);
                         }
                         case "tags" -> {
-                            val tags = parseTags(reader, startElement);
+                            val tags = parseTags(reader, startElement, animeId);
                             anime.tags(tags);
                         }
                         case "relatedanime", "similaranime", "recommendations", "resources" ->
@@ -143,7 +147,7 @@ public class AnimeDetailsLoader {
         return null;
     }
 
-    private static Set<AnimeTag> parseTags(XMLEventReader reader, StartElement rootElement) throws XMLStreamException {
+    private static Set<AnimeTag> parseTags(XMLEventReader reader, StartElement rootElement, int animeId) throws XMLStreamException {
         val tags = new HashSet<AnimeTag>();
         var currentTag = Tag.builder();
         var currentAnimeTag = AnimeTag.builder();
@@ -163,7 +167,9 @@ public class AnimeDetailsLoader {
             if (event.isEndElement()) {
                 switch (event.asEndElement().getName().getLocalPart()) {
                     case "tag" -> {
-                        currentAnimeTag.tag(currentTag.build());
+                        val tag = currentTag.build();
+                        currentAnimeTag.tag(tag)
+                                .id(AnimeTag.AnimeTagId.builder().animeId(animeId).tagId(tag.getId()).build());
                         tags.add(currentAnimeTag.build());
                     }
                     case "tags" -> {
@@ -234,7 +240,7 @@ public class AnimeDetailsLoader {
     }
 
 
-    private static Set<AnimeCreator> parseCreators(XMLEventReader reader, StartElement rootElement) throws XMLStreamException {
+    private static Set<AnimeCreator> parseCreators(XMLEventReader reader, StartElement rootElement, int animeId) throws XMLStreamException {
         val creators = new HashSet<AnimeCreator>();
         while (reader.hasNext()) {
             val event = reader.nextEvent();
@@ -247,6 +253,7 @@ public class AnimeDetailsLoader {
                             .build();
                     val animeCreator = AnimeCreator.builder()
                             .creator(creator)
+                            .id(AnimeCreator.AnimeCreatorKey.builder().animeId(animeId).creatorId(creator.getId()).build())
                             .type(getStringAttribute(startElement, "type"))
                             .build();
                     creators.add(animeCreator);
