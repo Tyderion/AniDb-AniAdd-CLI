@@ -16,6 +16,7 @@ public class Character {
     @Column(nullable = false)
     int id;
 
+    String name;
     Rating rating;
     Role role;
     String gender;

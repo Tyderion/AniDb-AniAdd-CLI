@@ -41,6 +41,10 @@ public class Anime {
     @OneToMany(mappedBy = "creator", fetch = FetchType.EAGER)
     Set<AnimeCreator> creators;
 
+
+    @OneToMany(mappedBy = "tag", fetch = FetchType.EAGER)
+    Set<AnimeTag> tags;
+
     @ToString.Exclude
     @ManyToMany
     @JoinTable(

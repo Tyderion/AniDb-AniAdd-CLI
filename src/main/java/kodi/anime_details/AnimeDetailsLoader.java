@@ -1,9 +1,7 @@
 package kodi.anime_details;
 
-import kodi.anime_details.model.Anime;
-import kodi.anime_details.model.AnimeCreator;
+import kodi.anime_details.model.*;
 import kodi.anime_details.model.Character;
-import kodi.anime_details.model.Creator;
 import lombok.extern.java.Log;
 import lombok.val;
 
@@ -37,7 +35,7 @@ public class AnimeDetailsLoader {
                 if (event.isStartElement()) {
                     val startElement = event.asStartElement();
                     switch (startElement.getName().getLocalPart()) {
-                        case "anime" -> getIntAttribute(startElement, "id");
+                        case "anime" -> anime.id(getIntAttribute(startElement, "id"));
                         case "type" -> anime.type(reader.getElementText());
                         case "episodecount" -> anime.episodeCount(Integer.parseInt(reader.getElementText()));
                         case "startdate" -> anime.startDate(LocalDate.parse(reader.getElementText()));
@@ -64,22 +62,119 @@ public class AnimeDetailsLoader {
                             val tags = parseTags(reader, startElement);
                             anime.tags(tags);
                         }
+                        case "relatedanime", "similaranime", "recommendations", "resources" ->
+                                consumeUntilEndTag(reader, startElement.getName().getLocalPart());
                     }
 
                 }
                 if (event.isEndElement()) {
                     if (event.asEndElement().getName().getLocalPart().equals("anime")) {
-                        break;
+                        return anime.build();
                     }
                 }
             }
-
-            return anime.build();
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         } catch (XMLStreamException e) {
             throw new RuntimeException(e);
         }
+
+        return null;
+    }
+
+    private static void consumeUntilEndTag(XMLEventReader reader, String endTag) throws XMLStreamException {
+        while (reader.hasNext()) {
+            val event = reader.nextEvent();
+            if (event.isEndElement() && event.asEndElement().getName().getLocalPart().equals(endTag)) {
+                return;
+            }
+        }
+    }
+
+    private static Set<Character> parseCharacters(XMLEventReader reader, StartElement rootElement) throws XMLStreamException {
+        val characters = new HashSet<Character>();
+        var currentCharacter = Character.builder();
+        while (reader.hasNext()) {
+            val event = reader.nextEvent();
+            if (event.isStartElement()) {
+                val startElement = event.asStartElement();
+                switch (startElement.getName().getLocalPart()) {
+                    case "character" -> {
+                        currentCharacter = Character.builder()
+                                .id(getIntAttribute(startElement, "id"));
+                        switch (getStringAttribute(startElement, "type")) {
+                            case "main character in" -> currentCharacter.role(Character.Role.MAIN);
+                            case "secondary cast in" -> currentCharacter.role(Character.Role.SECONDARY);
+                            case "appears in" -> currentCharacter.role(Character.Role.APPEARS_IN);
+                        }
+                    }
+                    case "rating" -> {
+                        currentCharacter.rating(Character.Rating.builder()
+                                .count(getIntAttribute(startElement, "votes"))
+                                .rating(Double.parseDouble(reader.getElementText()))
+                                .build());
+                    }
+                    case "name" -> currentCharacter.name(reader.getElementText());
+                    case "gender" -> currentCharacter.gender(reader.getElementText());
+                    case "picture" -> currentCharacter.picture(reader.getElementText());
+                    case "seiyuu" -> {
+                        val seiyuu = Creator.builder()
+                                .id(getIntAttribute(startElement, "id"))
+                                .picture(getStringAttribute(startElement, "picture"))
+                                .name(reader.getElementText())
+                                .build();
+                        currentCharacter.seiyuu(seiyuu);
+                    }
+                }
+            }
+            if (event.isEndElement()) {
+                switch (event.asEndElement().getName().getLocalPart()) {
+                    case "character" -> {
+                        characters.add(currentCharacter.build());
+                    }
+                    case "characters" -> {
+                        return characters;
+                    }
+                }
+
+            }
+        }
+        log.severe("characters not closed properly");
+        return null;
+    }
+
+    private static Set<AnimeTag> parseTags(XMLEventReader reader, StartElement rootElement) throws XMLStreamException {
+        val tags = new HashSet<AnimeTag>();
+        var currentTag = Tag.builder();
+        var currentAnimeTag = AnimeTag.builder();
+        while (reader.hasNext()) {
+            val event = reader.nextEvent();
+            if (event.isStartElement()) {
+                val startElement = event.asStartElement();
+                switch (startElement.getName().getLocalPart()) {
+                    case "tag" -> {
+                        currentTag = Tag.builder().id(getIntAttribute(startElement, "id"));
+                        currentAnimeTag = AnimeTag.builder().weight(getIntAttribute(startElement, "weight"));
+                    }
+                    case "name" -> currentTag.name(reader.getElementText());
+                    case "description" -> currentTag.description(reader.getElementText());
+                }
+            }
+            if (event.isEndElement()) {
+                switch (event.asEndElement().getName().getLocalPart()) {
+                    case "tag" -> {
+                        currentAnimeTag.tag(currentTag.build());
+                        tags.add(currentAnimeTag.build());
+                    }
+                    case "tags" -> {
+                        return tags;
+                    }
+                }
+
+            }
+        }
+        log.severe("Tags not closed properly");
+        return null;
     }
 
     private static Set<Anime.Title> parseTitles(XMLEventReader reader, StartElement rootElement) throws XMLStreamException {
@@ -90,7 +185,7 @@ public class AnimeDetailsLoader {
                 val startElement = event.asStartElement();
                 if (startElement.getName().getLocalPart().equals("title")) {
                     val title = Anime.Title.builder()
-                            .language(getStringAttribute(startElement, "xml:lang"))
+                            .language(getStringAttribute(startElement, "lang", "http://www.w3.org/XML/1998/namespace"))
                             .type(getStringAttribute(startElement, "type"))
                             .title(reader.getElementText())
                             .build();
@@ -110,22 +205,26 @@ public class AnimeDetailsLoader {
 
     private static Set<Anime.Rating> parseAnimeRatings(XMLEventReader reader, StartElement rootElement) throws XMLStreamException {
         val ratings = new HashSet<Anime.Rating>();
+        var currentRating = Anime.Rating.builder();
         while (reader.hasNext()) {
             val event = reader.nextEvent();
             if (event.isStartElement()) {
                 val startElement = event.asStartElement();
-                val rating = Anime.Rating.builder()
+                currentRating = Anime.Rating.builder()
                         .count(getIntAttribute(startElement, "count"))
                         .rating(Double.parseDouble(reader.getElementText()));
                 switch (startElement.getName().getLocalPart()) {
-                    case "temporary" -> rating.type(Anime.Rating.Type.TEMPORARY);
-                    case "permanent" -> rating.type(Anime.Rating.Type.PERMANENT);
-                    case "review" -> rating.type(Anime.Rating.Type.REVIEW);
+                    case "temporary" -> currentRating.type(Anime.Rating.Type.TEMPORARY);
+                    case "permanent" -> currentRating.type(Anime.Rating.Type.PERMANENT);
+                    case "review" -> currentRating.type(Anime.Rating.Type.REVIEW);
                 }
+                ratings.add(currentRating.build());
             }
             if (event.isEndElement()) {
-                if (event.asEndElement().getName().getLocalPart().equals("ratings")) {
-                    return ratings;
+                switch (event.asEndElement().getName().getLocalPart()) {
+                    case "ratings" -> {
+                        return ratings;
+                    }
                 }
 
             }
@@ -161,21 +260,5 @@ public class AnimeDetailsLoader {
             }
         }
         return null;
-    }
-
-    private static Set<Character> parseCharacters(XMLEventReader reader, StartElement rootElement) {
-
-        return null;
-    }
-
-    private static void Test() {
-        val character = Character.builder()
-                .id(1)
-                .role(Character.Role.MAIN)
-                .rating(Character.Rating.builder()
-                        .count(100)
-                        .rating(4.5)
-                        .build())
-                .build();
     }
 }

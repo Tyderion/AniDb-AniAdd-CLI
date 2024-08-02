@@ -19,6 +19,8 @@ public class Creator {
 
     String name;
 
+    String picture;
+
     @OneToMany(mappedBy = "anime")
     @ToString.Exclude
     Set<AnimeCreator> animes;

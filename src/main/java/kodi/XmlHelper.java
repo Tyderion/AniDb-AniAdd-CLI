@@ -30,11 +30,19 @@ public class XmlHelper {
     }
 
     public static String getStringAttribute(StartElement startElement, String name) {
-        val attribute = getAttribute(startElement, name);
+        return getStringAttribute(startElement, name, null);
+    }
+
+    public static String getStringAttribute(StartElement startElement, String name, String namespace) {
+        val attribute = getAttribute(startElement, name, namespace);
         return attribute.map(Attribute::getValue).orElse(null);
     }
 
     public static Optional<Attribute> getAttribute(StartElement startElement, String name) {
-        return Optional.ofNullable(startElement.getAttributeByName(new QName(name)));
+        return getAttribute(startElement, name, null);
+    }
+
+    public static Optional<Attribute> getAttribute(StartElement startElement, String name, String namespace) {
+        return Optional.ofNullable(startElement.getAttributeByName(new QName(namespace, name)));
     }
 }
