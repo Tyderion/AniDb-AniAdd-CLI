@@ -1,5 +1,6 @@
 package kodi.anime_details.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
@@ -10,11 +11,11 @@ import java.util.Set;
 @Entity
 @Builder
 @Data
-@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 public class Creator {
     @Id
+    @Column(nullable = false)
     int id;
 
     String name;

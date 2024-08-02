@@ -18,13 +18,10 @@ public class AnimeTag {
 
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.MERGE)
     @JoinColumn
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     Anime anime;
 
     @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
     @JoinColumn
-    @EqualsAndHashCode.Exclude
     Tag tag;
 
     int weight;

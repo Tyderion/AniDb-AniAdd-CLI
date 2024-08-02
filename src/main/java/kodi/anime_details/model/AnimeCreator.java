@@ -16,15 +16,12 @@ public class AnimeCreator {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.MERGE)
     @JoinColumn
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     Anime anime;
 
     @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
     @JoinColumn
-    @EqualsAndHashCode.Exclude
     Creator creator;
 
     Type type;

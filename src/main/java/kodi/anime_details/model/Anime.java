@@ -41,8 +41,7 @@ public class Anime {
     @OneToMany(mappedBy = "anime", fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
     Set<AnimeCreator> creators;
 
-
-    @OneToMany(mappedBy = "anime", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "anime", fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
     Set<AnimeTag> tags;
 
     @ToString.Exclude
