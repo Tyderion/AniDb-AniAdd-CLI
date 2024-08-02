@@ -11,18 +11,34 @@ import java.io.Serializable;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@IdClass(AnimeTag.AnimeTagId.class)
 public class AnimeTag {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long id;
+    int animeId;
+    @Id
+    int tagId;
+
+    public AnimeTagId getId() {
+        return new AnimeTagId(animeId, tagId);
+    }
 
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.MERGE)
-    @JoinColumn
+    @JoinColumn(name = "animeId", insertable = false, updatable = false, referencedColumnName = "id")
     Anime anime;
 
     @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
-    @JoinColumn
+    @JoinColumn(name = "tagId", insertable = false, updatable = false, referencedColumnName = "id")
     Tag tag;
 
     int weight;
+
+    @Data
+    @AllArgsConstructor
+    @EqualsAndHashCode
+    @NoArgsConstructor
+    public static class AnimeTagId {
+        private int animeId;
+        private int tagId;
+    }
 }

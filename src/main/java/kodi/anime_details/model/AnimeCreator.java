@@ -27,6 +27,6 @@ public class AnimeCreator {
     Type type;
 
     public enum Type {
-        ORIGINAL_WORK, DIRECTION, CHARACTER_DESIGNER;
+        ORIGINAL_WORK, DIRECTION, CHARACTER_DESIGNER, ANIMATION_WORK;
     }
 }

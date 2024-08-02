@@ -1,9 +1,6 @@
 package kodi.common;
 
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.RequiredArgsConstructor;
-import lombok.Value;
+import lombok.*;
 
 @Value
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -31,9 +28,14 @@ public class UniqueId {
         return new UniqueId(Type.ANIDB_FILEID, value);
     }
 
+    public static UniqueId AniDbEpisodeId(long value) {
+        return new UniqueId(Type.ANIDB_EPISODEID, value);
+    }
+
     @RequiredArgsConstructor
+    @Getter
     public enum Type {
-        ANIDB("anidb"), TVDB("tvdb"), IMDB("imdb"), TMDB("tmdb"), ANIDB_FILEID("anidb_fid");
+        ANIDB("anidb"), TVDB("tvdb"), IMDB("imdb"), TMDB("tmdb"), ANIDB_FILEID("anidb_fid"), ANIDB_EPISODEID("anidb_eid");
         private final String name;
     }
 

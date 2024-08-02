@@ -1,6 +1,8 @@
 package kodi.anime_details.model;
 
 import jakarta.persistence.*;
+import kodi.nfo.Actor;
+import kodi.nfo.Series;
 import lombok.*;
 
 import java.util.Set;
@@ -25,6 +27,18 @@ public class Character {
     @ToString.Exclude
     @ManyToOne(fetch = FetchType.EAGER, targetEntity = Creator.class)
     Creator seiyuu;
+
+    public Actor toActor(int order) {
+        if (seiyuu == null) {
+            return null;
+        }
+        return Actor.builder()
+                .name(seiyuu.getName())
+                .role(getName())
+                .thumb(STR."http://img7.anidb.net/pics/anime/\{seiyuu.getPicture()}")
+                .order(order)
+                .build();
+    }
 
     @Embeddable
     @Data

@@ -214,6 +214,7 @@ public class AnimeDetailsLoader {
                     case "tag" -> {
                         val tag = currentTag.build();
                         currentAnimeTag.tag(tag);
+                        currentAnimeTag.animeId(animeId).tagId(tag.getId());
                         val animeTag = currentAnimeTag.build();
                         if (animeTag.getWeight() > 0) {
                             tags.add(animeTag);
@@ -309,6 +310,7 @@ public class AnimeDetailsLoader {
                         case "Direction" -> animeCreator.type(AnimeCreator.Type.DIRECTION);
                         case "Original Work" -> animeCreator.type(AnimeCreator.Type.ORIGINAL_WORK);
                         case "Character Design" -> animeCreator.type(AnimeCreator.Type.CHARACTER_DESIGNER);
+                        case "Animation Work" -> animeCreator.type(AnimeCreator.Type.ANIMATION_WORK);
                     }
                     val ac = animeCreator.build();
                     if (ac.getType() != null) {
