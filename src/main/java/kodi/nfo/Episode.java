@@ -39,7 +39,6 @@ public class Episode {
     List<String> directors;
 
     LocalDate premiered;
-    int year;
     String studio;
 
     StreamDetails streamDetails;
@@ -68,8 +67,8 @@ public class Episode {
     @Builder
     public static class Video {
         String codec;
-        double aspectRatio;
-        String resolution;
+        int width;
+        int height;
         int durationInSeconds;
     }
 }

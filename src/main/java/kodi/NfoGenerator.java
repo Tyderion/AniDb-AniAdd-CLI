@@ -11,19 +11,17 @@ import org.dom4j.io.XMLWriter;
 import processing.FileInfo;
 
 import javax.xml.namespace.QName;
-import javax.xml.stream.XMLEventFactory;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.*;
 import javax.xml.stream.events.Attribute;
-import javax.xml.stream.events.StartElement;
-import javax.xml.stream.events.XMLEvent;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -34,62 +32,169 @@ public class NfoGenerator {
     final Episode episode;
     final FileInfo fileInfo;
 
+    private XMLEventWriter writer;
+    private XMLEventFactory factory;
+
     public void writeNfoFiles() {
         val folder = fileInfo.getRenamedFile() == null ? fileInfo.getFile().getParentFile().toPath() : fileInfo.getRenamedFile().getParent();
+        val rootFileName = fileInfo.getRenamedFile() == null ? fileInfo.getFile().toPath().toString() : fileInfo.getRenamedFile().toString();
+        val rootFileNameWithoutExtension = rootFileName.substring(0, rootFileName.lastIndexOf("."));
         val seriesFile = folder.resolve(seriesNfo);
-//        if (!Files.exists(seriesFile)) {
+        val episodeFile = folder.resolve(STR."\{rootFileNameWithoutExtension}.nfo");
         try {
+            prettyPrint(getSeriesNfoContent(), seriesFile);
+            prettyPrint(getEpisodeNfoContent(), episodeFile);
+        } catch (XMLStreamException e) {
+            throw new RuntimeException(e);
+        } catch (IOException | DocumentException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-            val byteArrayOutputStream = new ByteArrayOutputStream();
-            val outputStream = new BufferedOutputStream(byteArrayOutputStream);
+    private void prettyPrint(String content, Path file) throws IOException, DocumentException {
+        OutputFormat format = OutputFormat.createPrettyPrint();
+        format.setIndentSize(4);
+        format.setSuppressDeclaration(false);
+        format.setEncoding(StandardCharsets.UTF_8.displayName());
 
-            val eventFactory = XMLEventFactory.newInstance();
-            val outputWriter = XMLOutputFactory.newInstance().createXMLEventWriter(outputStream);
-            val rootTag = eventFactory.createStartDocument("UTF-8", "1.0", true);
-            outputWriter.add(rootTag);
-            outputWriter.add(eventFactory.createStartElement(QName.valueOf("tvshow"), null, null));
-            outputWriter.add(eventFactory.createStartElement(QName.valueOf("title"), null, null));
-            outputWriter.add(eventFactory.createCharacters(series.getTitle()));
-            outputWriter.add(eventFactory.createEndElement(QName.valueOf("title"), null));
-            outputWriter.add(eventFactory.createStartElement(QName.valueOf("originaltitle"), null, null));
-            outputWriter.add(eventFactory.createCharacters(series.getOriginalTitle()));
-            outputWriter.add(eventFactory.createEndElement(QName.valueOf("originaltitle"), null));
+        org.dom4j.Document document = DocumentHelper.parseText(content);
+        StringWriter sw = new StringWriter();
+        XMLWriter writer = new XMLWriter(sw, format);
+        writer.write(document);
 
-            outputWriter.add(eventFactory.createStartElement(QName.valueOf("showtitle"), null, null));
-            outputWriter.add(eventFactory.createCharacters(series.getOriginalTitle()));
-            outputWriter.add(eventFactory.createEndElement(QName.valueOf("showtitle"), null));
+        try (val fileWriter = Files.newBufferedWriter(file, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)) {
+            fileWriter.write(sw.toString());
+        }
+    }
 
-            outputWriter.add(eventFactory.createStartElement(QName.valueOf("ratings"), null, null));
-            outputWriter.add(eventFactory.createStartElement(QName.valueOf("rating"),
-                    List.of(eventFactory.createAttribute("default", "true"), eventFactory.createAttribute("max", "10"), eventFactory.createAttribute("name", "anidb")).iterator(),
-                    null));
+    private String getEpisodeNfoContent() throws XMLStreamException {
+        val byteArrayOutputStream = new ByteArrayOutputStream();
+        val outputStream = new BufferedOutputStream(byteArrayOutputStream);
 
-            outputWriter.add(eventFactory.createStartElement(QName.valueOf("value"), null, null));
-            outputWriter.add(eventFactory.createCharacters(String.valueOf(series.getRating())));
-            outputWriter.add(eventFactory.createEndElement(QName.valueOf("value"), null));
-            outputWriter.add(eventFactory.createStartElement(QName.valueOf("votes"), null, null));
-            outputWriter.add(eventFactory.createCharacters(String.valueOf(series.getVoteCount())));
-            outputWriter.add(eventFactory.createEndElement(QName.valueOf("votes"), null));
+        writer = XMLOutputFactory.newInstance().createXMLEventWriter(outputStream);
+        factory = XMLEventFactory.newInstance();
 
-            outputWriter.add(eventFactory.createEndElement(QName.valueOf("rating"), null));
-            outputWriter.add(eventFactory.createEndElement(QName.valueOf("ratings"), null));
+        startDocument();
+        writeTag("episodedetails", () -> {
+            writeTag("title", episode.getTitle());
+            writeTag("showtitle", series.getTitle());
+            writeTag("ratings", () -> {
+                writeTag("rating", List.of(
+                                attribute("default", "true"),
+                                attribute("max", "10"),
+                                attribute("name", "anidb")),
+                        () -> {
+                            writeTag("value", episode.getRating());
+                            writeTag("votes", episode.getVoteCount());
+                        });
+            });
+            writeTag("season", episode.getSeason());
+            writeTag("episode", episode.getEpisode());
+            writeTag("plot", episode.getPlot());
+            writeTag("runtime", Duration.ofSeconds(episode.getRuntimeInSeconds()).toMinutes());
+            writeTag("playcount", episode.isWatched() ? "1" : "0");
+            episode.getUniqueIds()
+                    .forEach(uniqueId -> {
+                        try {
+                            writeTag("uniqueid", uniqueId.getValue(), attributes("type", uniqueId.getType().getName()));
+                        } catch (XMLStreamException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
 
-            outputWriter.add(eventFactory.createStartElement(QName.valueOf("plot"), null, null));
-            outputWriter.add(eventFactory.createCharacters(series.getPlot()));
-            outputWriter.add(eventFactory.createEndElement(QName.valueOf("plot"), null));
+            episode.getGenres()
+                    .forEach(genre -> {
+                        try {
+                            writeTag("genre", genre);
+                        } catch (XMLStreamException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
 
-            outputWriter.add(eventFactory.createStartElement(QName.valueOf("playcount"), null, null));
-            outputWriter.add(eventFactory.createCharacters(series.isWatched() ? "1" : "0"));
-            outputWriter.add(eventFactory.createEndElement(QName.valueOf("playcount"), null));
+            episode.getCredits()
+                    .forEach(credit -> {
+                        try {
+                            writeTag("credits", credit);
+                        } catch (XMLStreamException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+
+            episode.getDirectors()
+                    .forEach(director -> {
+                        try {
+                            writeTag("director", director);
+                        } catch (XMLStreamException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+
+            writeTag("premiered", episode.getPremiered().format(DateTimeFormatter.ISO_LOCAL_DATE));
+            writeTag("aired", episode.getPremiered().format(DateTimeFormatter.ISO_LOCAL_DATE));
+            writeTag("fileinfo", () -> {
+                writeTag("streamdetails", () -> {
+                    writeTag("video", () -> {
+                        val video = episode.getStreamDetails().getVideo();
+                        writeTag("codec", video.getCodec());
+                        writeTag("aspect", (double) video.getWidth() / video.getHeight());
+                        writeTag("width", video.getWidth());
+                        writeTag("height", video.getHeight());
+                        writeTag("durationinseconds", video.getDurationInSeconds());
+                    });
+                    writeTag("audio", () -> {
+                        val audio = episode.getStreamDetails().getAudio();
+                        writeTag("codec", audio.getCodec());
+                        writeTag("language", audio.getLanguage());
+                        writeTag("channels", audio.getChannels());
+                    });
+                    episode.getStreamDetails().getSubtitles()
+                            .forEach(subtitle -> {
+                                try {
+                                    writeTag("subtitle", () -> writeTag("language", subtitle));
+                                } catch (XMLStreamException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            });
+                });
+            });
+            writeActors();
+
+        });
+
+        writer.flush();
+
+        return byteArrayOutputStream.toString(StandardCharsets.UTF_8);
+    }
+
+    private String getSeriesNfoContent() throws XMLStreamException {
+        val byteArrayOutputStream = new ByteArrayOutputStream();
+        val outputStream = new BufferedOutputStream(byteArrayOutputStream);
+
+        writer = XMLOutputFactory.newInstance().createXMLEventWriter(outputStream);
+        factory = XMLEventFactory.newInstance();
+
+        startDocument();
+        writeTag("tvshow", () -> {
+            writeTag("title", series.getTitle());
+            writeTag("originaltitle", series.getOriginalTitle());
+            writeTag("showtitle", series.getOriginalTitle());
+            writeTag("ratings", () -> {
+                writeTag("rating", List.of(
+                                attribute("default", "true"),
+                                attribute("max", "10"),
+                                attribute("name", "anidb")),
+                        () -> {
+                            writeTag("value", series.getRating());
+                            writeTag("votes", series.getVoteCount());
+                        });
+            });
+            writeTag("plot", series.getPlot());
+            writeTag("playcount", series.isWatched() ? "1" : "0");
 
             series.getUniqueIds()
                     .forEach(uniqueId -> {
                         try {
-                            outputWriter.add(eventFactory.createStartElement(QName.valueOf("uniqueid"),
-                                    List.of(eventFactory.createAttribute("type", uniqueId.getType().getName())).iterator(),
-                                    null));
-                            outputWriter.add(eventFactory.createCharacters(STR."\{uniqueId.getValue()}"));
-                            outputWriter.add(eventFactory.createEndElement(QName.valueOf("uniqueid"), null));
+                            writeTag("uniqueid", uniqueId.getValue(), attributes("type", uniqueId.getType().getName()));
                         } catch (XMLStreamException e) {
                             throw new RuntimeException(e);
                         }
@@ -98,75 +203,101 @@ public class NfoGenerator {
             series.getGenres()
                     .forEach(genre -> {
                         try {
-                            outputWriter.add(eventFactory.createStartElement(QName.valueOf("genre"), null, null));
-                            outputWriter.add(eventFactory.createCharacters(genre));
-                            outputWriter.add(eventFactory.createEndElement(QName.valueOf("genre"), null));
-                        } catch (XMLStreamException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-            outputWriter.add(eventFactory.createStartElement(QName.valueOf("tag"), null, null));
-            outputWriter.add(eventFactory.createCharacters("anime"));
-            outputWriter.add(eventFactory.createEndElement(QName.valueOf("tag"), null));
-
-            outputWriter.add(eventFactory.createStartElement(QName.valueOf("premiered"), null, null));
-            outputWriter.add(eventFactory.createCharacters(series.getPremiered().format(DateTimeFormatter.ISO_LOCAL_DATE)));
-            outputWriter.add(eventFactory.createEndElement(QName.valueOf("premiered"), null));
-
-            outputWriter.add(eventFactory.createStartElement(QName.valueOf("studio"), null, null));
-            outputWriter.add(eventFactory.createCharacters(series.getStudio()));
-            outputWriter.add(eventFactory.createEndElement(QName.valueOf("studio"), null));
-
-            series.getActors()
-                    .forEach(actor -> {
-                        try {
-                            outputWriter.add(eventFactory.createStartElement(QName.valueOf("actor"), null, null));
-                            outputWriter.add(eventFactory.createStartElement(QName.valueOf("name"), null, null));
-                            outputWriter.add(eventFactory.createCharacters(actor.getName()));
-                            outputWriter.add(eventFactory.createEndElement(QName.valueOf("name"), null));
-                            outputWriter.add(eventFactory.createStartElement(QName.valueOf("role"), null, null));
-                            outputWriter.add(eventFactory.createCharacters(actor.getRole()));
-                            outputWriter.add(eventFactory.createEndElement(QName.valueOf("role"), null));
-                            outputWriter.add(eventFactory.createStartElement(QName.valueOf("thumb"), null, null));
-                            outputWriter.add(eventFactory.createCharacters(actor.getThumb()));
-                            outputWriter.add(eventFactory.createEndElement(QName.valueOf("thumb"), null));
-                            outputWriter.add(eventFactory.createStartElement(QName.valueOf("order"), null, null));
-                            outputWriter.add(eventFactory.createCharacters(STR."\{actor.getOrder()}"));
-                            outputWriter.add(eventFactory.createEndElement(QName.valueOf("order"), null));
-                            outputWriter.add(eventFactory.createEndElement(QName.valueOf("actor"), null));
+                            writeTag("genre", genre);
                         } catch (XMLStreamException e) {
                             throw new RuntimeException(e);
                         }
                     });
 
+            writeTag("tag", "anime");
+            writeTag("premiered", series.getPremiered().format(DateTimeFormatter.ISO_LOCAL_DATE));
+            writeTag("studio", series.getStudio());
+            writeActors();
 
-            outputWriter.add(eventFactory.createEndElement(QName.valueOf("tvshow"), null));
-            outputWriter.add(eventFactory.createEndDocument());
-            outputWriter.flush();
+        });
+        writer.flush();
 
-            val outputString = byteArrayOutputStream.toString(StandardCharsets.UTF_8);
+        return byteArrayOutputStream.toString(StandardCharsets.UTF_8);
+    }
 
-            OutputFormat format = OutputFormat.createPrettyPrint();
-            format.setIndentSize(4);
-            format.setSuppressDeclaration(false);
-            format.setEncoding(StandardCharsets.UTF_8.displayName());
+    private void writeActors() {
+        series.getActors()
+                .forEach(actor -> {
+                    try {
+                        writeTag("actor", () -> {
+                            writeTag("name", actor.getName());
+                            writeTag("role", actor.getRole());
+                            writeTag("thumb", actor.getThumb());
+                            writeTag("order", actor.getOrder());
+                        });
+                    } catch (XMLStreamException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+    }
 
-            org.dom4j.Document document = DocumentHelper.parseText(outputString);
-            StringWriter sw = new StringWriter();
-            XMLWriter writer = new XMLWriter(sw, format);
-            writer.write(document);
 
-            try (val fileWriter = Files.newBufferedWriter(seriesFile, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)) {
-                fileWriter.write(sw.toString());
-            }
+    private List<Attribute> attributes(String name, String value) {
+        return List.of(attribute(name, value));
+    }
 
+    private Attribute attribute(String name, String value) {
+        return factory.createAttribute(name, value);
+    }
 
-        } catch (XMLStreamException e) {
-            throw new RuntimeException(e);
-        } catch (IOException | DocumentException e) {
-            throw new RuntimeException(e);
-        }
-//        }
+    private void startDocument() throws XMLStreamException {
+        writer.add(factory.createStartDocument("UTF-8", "1.0", true));
+    }
 
+    private void writeTag(String tag, IContentWriter content) throws XMLStreamException {
+        writer.add(factory.createStartElement(QName.valueOf(tag), null, null));
+        content.write();
+        writer.add(factory.createEndElement(QName.valueOf(tag), null));
+    }
+
+    private void writeTag(String tag, int content) throws XMLStreamException {
+        writer.add(factory.createStartElement(QName.valueOf(tag), null, null));
+        writer.add(factory.createCharacters(String.valueOf(content)));
+        writer.add(factory.createEndElement(QName.valueOf(tag), null));
+    }
+
+    private void writeTag(String tag, long content) throws XMLStreamException {
+        writer.add(factory.createStartElement(QName.valueOf(tag), null, null));
+        writer.add(factory.createCharacters(String.valueOf(content)));
+        writer.add(factory.createEndElement(QName.valueOf(tag), null));
+    }
+
+    private void writeTag(String tag, long content, List<Attribute> attributes) throws XMLStreamException {
+        writer.add(factory.createStartElement(QName.valueOf(tag), attributes.iterator(), null));
+        writer.add(factory.createCharacters(String.valueOf(content)));
+        writer.add(factory.createEndElement(QName.valueOf(tag), null));
+    }
+
+    private void writeTag(String tag, double content) throws XMLStreamException {
+        writer.add(factory.createStartElement(QName.valueOf(tag), null, null));
+        writer.add(factory.createCharacters(String.valueOf(content)));
+        writer.add(factory.createEndElement(QName.valueOf(tag), null));
+    }
+
+    private void writeTag(String tag, String content) throws XMLStreamException {
+        writer.add(factory.createStartElement(QName.valueOf(tag), null, null));
+        writer.add(factory.createCharacters(content));
+        writer.add(factory.createEndElement(QName.valueOf(tag), null));
+    }
+
+    private void writeTag(String tag, String content, List<Attribute> attributes) throws XMLStreamException {
+        writer.add(factory.createStartElement(QName.valueOf(tag), attributes.iterator(), null));
+        writer.add(factory.createCharacters(content));
+        writer.add(factory.createEndElement(QName.valueOf(tag), null));
+    }
+
+    private void writeTag(String tag, List<Attribute> attributes, IContentWriter content) throws XMLStreamException {
+        writer.add(factory.createStartElement(QName.valueOf(tag), attributes.iterator(), null));
+        content.write();
+        writer.add(factory.createEndElement(QName.valueOf(tag), null));
+    }
+
+    interface IContentWriter {
+        void write() throws XMLStreamException;
     }
 }
