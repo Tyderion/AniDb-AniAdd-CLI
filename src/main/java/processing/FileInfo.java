@@ -2,6 +2,7 @@ package processing;
 
 import aniAdd.config.AniConfiguration;
 import cache.entities.AniDBFileData;
+import kodi.anime_details.model.Tag;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;

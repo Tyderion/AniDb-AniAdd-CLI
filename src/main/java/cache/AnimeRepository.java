@@ -55,6 +55,9 @@ public class AnimeRepository implements IAnimeRepository {
                 }
                 persistIfNotExists(session, character.getId(), character);
             });
+            anime.getEpisodes().forEach(episode -> {
+                persistIfNotExists(session, episode.getId(), episode);
+            });
             transaction.commit();
             return true;
         } catch (GenericJDBCException e) {

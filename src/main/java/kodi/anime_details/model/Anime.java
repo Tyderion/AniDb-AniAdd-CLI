@@ -37,7 +37,6 @@ public class Anime {
             @JoinColumn(name = "anime_id", nullable = false, referencedColumnName = "id")})
     private List<Rating> ratings;
 
-
     @OneToMany(mappedBy = "anime", fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
     Set<AnimeCreator> creators;
 
@@ -51,6 +50,9 @@ public class Anime {
             joinColumns = @JoinColumn(name = "anime_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "character_id", referencedColumnName = "id"))
     Set<Character> characters;
+
+    @OneToMany(fetch = FetchType.EAGER)
+    Set<Episode> episodes;
 
     @ToString.Exclude
     String description;

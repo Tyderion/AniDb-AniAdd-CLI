@@ -24,7 +24,7 @@ public class PersistenceConfiguration {
                 .addAnnotatedClass(AnimeTag.class)
                 .addAnnotatedClass(Character.class)
                 .addAnnotatedClass(Creator.class)
-                .addAnnotatedClass(Tag.class)
-                ;
+                .addAnnotatedClass(Episode.class)
+                .addAnnotatedClass(Tag.class);
     }
 }

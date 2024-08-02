@@ -8,7 +8,7 @@ import java.util.Set;
 @Entity
 @Builder
 @Data
-@ToString(onlyExplicitlyIncluded = false)
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 public class Character {

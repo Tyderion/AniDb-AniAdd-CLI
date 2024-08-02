@@ -67,6 +67,10 @@ public class AnimeDetailsLoader {
                             val tags = parseTags(reader, startElement, animeId);
                             anime.tags(tags);
                         }
+                        case "episodes" -> {
+                            val episodes = parseEpisodes(reader, startElement);
+                            anime.episodes(episodes);
+                        }
                         case "relatedanime", "similaranime", "recommendations", "resources" ->
                                 consumeUntilEndTag(reader, startElement.getName().getLocalPart());
                     }
@@ -151,6 +155,42 @@ public class AnimeDetailsLoader {
         return null;
     }
 
+    private static Set<Episode> parseEpisodes(XMLEventReader reader, StartElement rootElement) throws XMLStreamException {
+        val episodes = new HashSet<Episode>();
+        var currentEpisode = Episode.builder();
+        while (reader.hasNext()) {
+            val event = reader.nextEvent();
+            if (event.isStartElement()) {
+                val startElement = event.asStartElement();
+                switch (startElement.getName().getLocalPart()) {
+                    case "episode" -> {
+                        currentEpisode = Episode.builder()
+                                .id(getIntAttribute(startElement, "id"));
+                    }
+                    case "airdate" -> {
+                        currentEpisode.airDate(LocalDate.parse(reader.getElementText()));
+                    }
+                    case "rating" -> {
+                        currentEpisode.voteCount(getIntAttribute(startElement, "votes"));
+                        currentEpisode.rating(Double.parseDouble(reader.getElementText()));
+                    }
+                }
+            }
+            if (event.isEndElement()) {
+                switch (event.asEndElement().getName().getLocalPart()) {
+                    case "episode" -> {
+                        episodes.add(currentEpisode.build());
+                    }
+                    case "episodes" -> {
+                        return episodes;
+                    }
+                }
+
+            }
+        }
+        log.severe("Episodes not closed properly");
+        return null;
+    }
 
     private static Set<AnimeTag> parseTags(XMLEventReader reader, StartElement rootElement, int animeId) throws XMLStreamException {
         val tags = new HashSet<AnimeTag>();
