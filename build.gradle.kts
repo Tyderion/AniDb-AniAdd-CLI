@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "ch.tyderion"
-version = "4.0.0"
+version = "4.0.1"
 
 java {
     targetCompatibility = JavaVersion.VERSION_21
