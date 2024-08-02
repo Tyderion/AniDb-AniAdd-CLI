@@ -184,7 +184,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 api.queueCommand(query.getCommand().WithEdit());
                 log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} already added on MyList, retrying with edit");
             } else {
-                log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} already added on MyList");
+                log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} already added on MyList. Continuing with next step.");
+                procFile.actionDone(FileAction.MyListCmd);
             }
         } else {
             procFile.actionFailed(FileAction.MyListCmd);
