@@ -18,6 +18,7 @@ public class Anime {
     private int id;
 
     String type;
+    int episodeCount;
     @Column(name = "local_date", columnDefinition = "DATE")
     private LocalDate startDate;
 
@@ -28,7 +29,7 @@ public class Anime {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(joinColumns = {
             @JoinColumn(name = "anime_id", nullable = false, referencedColumnName = "id")})
-    private List<Title> titles;
+    private Set<Title> titles;
 
     @Singular
     @ElementCollection(fetch = FetchType.EAGER)
@@ -49,13 +50,14 @@ public class Anime {
     Set<Character> characters;
 
     String description;
+    String picture;
 
 
     @Embeddable
     @Data
     @Builder
     @AllArgsConstructor
-    private static class Title {
+    public static class Title {
         private String title;
         private String language;
         private String type;
@@ -65,8 +67,8 @@ public class Anime {
     @Data
     @Builder
     @AllArgsConstructor
-    private static class Rating {
-        private Type title;
+    public static class Rating {
+        private Type type;
         private int count;
         private double rating;
 

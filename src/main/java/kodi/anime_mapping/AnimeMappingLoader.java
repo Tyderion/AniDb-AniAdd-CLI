@@ -21,6 +21,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.*;
 
+import static kodi.XmlHelper.*;
+
 @Log
 @RequiredArgsConstructor
 public class AnimeMappingLoader {
@@ -165,33 +167,4 @@ public class AnimeMappingLoader {
         return List.of();
     }
 
-    private int getIntAttribute(StartElement startElement, String name) {
-        val attribute = getAttribute(startElement, name);
-        return attribute.map(a -> Integer.parseInt(a.getValue())).orElseThrow();
-    }
-
-    private boolean getBooleanAttribute(StartElement startElement, String name) {
-        val attribute = getAttribute(startElement, name);
-        return attribute.map(a -> Boolean.parseBoolean(a.getValue())).orElse(false);
-    }
-
-    private Integer getIntegerAttribute(StartElement startElement, String name) {
-        val attribute = getAttribute(startElement, name);
-        return attribute.map(a -> Integer.parseInt(a.getValue())).orElse(null);
-    }
-
-    private Long getLongAttribute(StartElement startElement, String name) {
-        val attribute = getAttribute(startElement, name);
-        return attribute.map(a -> Long.parseLong(a.getValue())).orElse(null);
-    }
-
-    private String getStringAttribute(StartElement startElement, String name) {
-        val attribute = getAttribute(startElement, name);
-        return attribute.map(Attribute::getValue).orElse(null);
-    }
-
-
-    private Optional<Attribute> getAttribute(StartElement startElement, String name) {
-        return Optional.ofNullable(startElement.getAttributeByName(new QName(name)));
-    }
 }

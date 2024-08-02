@@ -14,12 +14,13 @@ public class AnimeCreator {
     @EmbeddedId
     AnimeCreatorKey id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("animeId")
     @JoinColumn
+    @ToString.Exclude
     Anime anime;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @MapsId("creatorId")
     @JoinColumn
     Creator creator;
