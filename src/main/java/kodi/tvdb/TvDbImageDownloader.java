@@ -19,9 +19,11 @@ import java.util.concurrent.ExecutorService;
 public class TvDbImageDownloader {
     private final TVDbClient tvDbClient;
     private final OkHttpClient okHttpClient;
+    private final String apiKey;
     private String token;
 
     public TvDbImageDownloader(String apiKey, ExecutorService executorService) {
+        this.apiKey = apiKey;
         this.okHttpClient = httpClient(executorService);
         this.tvDbClient = initClient(apiKey);
     }
@@ -29,28 +31,45 @@ public class TvDbImageDownloader {
     public void getAllTvDbData(int seriesId, IAllDataCallback onReceive) {
         val requestsDone = new RequestsDone();
         val allData = TvDbAllData.builder();
+        
+        getAllEpisodeData(seriesId, 0, requestsDone, allData, onReceive);
+        getSeasons(seriesId, requestsDone, allData, onReceive);
+        getArtworks(seriesId, requestsDone, allData, onReceive);
+        getPlot(seriesId, requestsDone, allData, onReceive);
+    }
 
+    private void getArtworks(int seriesId, RequestsDone requestsDone, TvDbAllData.TvDbAllDataBuilder allData, IAllDataCallback onReceive) {
+        tvDbClient.getArtworks(seriesId, "eng", null).enqueue(new RequestCallback<>(data -> {
+            allData.artworks(data.getArtworks());
+            requestsDone.setPlot(true);
+            notify(onReceive, allData, requestsDone);
+        }, _ -> {
+            login(tvDbClient, apiKey);
+            getArtworks(seriesId, requestsDone, allData, onReceive);
+        }));
+    }
+
+    private void getPlot(int seriesId, RequestsDone requestsDone, TvDbAllData.TvDbAllDataBuilder allData, IAllDataCallback onReceive) {
+        tvDbClient.getPlot(seriesId).enqueue(new RequestCallback<>(data -> {
+            allData.plot(data.getPlot());
+            requestsDone.setPlot(true);
+            notify(onReceive, allData, requestsDone);
+        }, _ -> {
+            login(tvDbClient, apiKey);
+            getPlot(seriesId, requestsDone, allData, onReceive);
+        }));
+    }
+
+    private void getSeasons(int seriesId, RequestsDone requestsDone, TvDbAllData.TvDbAllDataBuilder allData, IAllDataCallback onReceive) {
         tvDbClient.getSeasons(seriesId).enqueue(new RequestCallback<>(data -> {
             allData.seasons(data.getSeasons());
             requestsDone.setSeasons(true);
 
             notify(onReceive, allData, requestsDone);
+        }, _ -> {
+            login(tvDbClient, apiKey);
+            getSeasons(seriesId, requestsDone, allData, onReceive);
         }));
-
-        getAllEpisodeData(seriesId, 0, requestsDone, allData, onReceive);
-
-        tvDbClient.getArtworks(seriesId, "eng", null).enqueue(new RequestCallback<>(data -> {
-            allData.artworks(data.getArtworks());
-            requestsDone.setArtworks(true);
-            notify(onReceive, allData, requestsDone);
-        }));
-
-        tvDbClient.getPlot(seriesId).enqueue(new RequestCallback<>(data -> {
-            allData.plot(data.getPlot());
-            requestsDone.setPlot(true);
-            notify(onReceive, allData, requestsDone);
-        }));
-
     }
 
     private void getAllEpisodeData(int seriesId, int page, RequestsDone requestsDone, TvDbAllData.TvDbAllDataBuilder allData, IAllDataCallback onReceive) {
@@ -65,6 +84,9 @@ public class TvDbImageDownloader {
             if (data.getLinks().getPagesize() < data.getLinks().getTotalItems()) {
                 getAllEpisodeData(seriesId, page + 1, requestsDone, allData, onReceive);
             }
+        }, _ -> {
+            login(tvDbClient, apiKey);
+            getAllEpisodeData(seriesId, page, requestsDone, allData, onReceive);
         }));
     }
 
@@ -83,13 +105,18 @@ public class TvDbImageDownloader {
                 .build();
 
         val client = retrofit.create(TVDbClient.class);
+        login(client, apiKey);
+        return client;
+    }
+
+    private void login(TVDbClient client, String apiKey) {
         try {
             val response = client.login(new LoginRequest(apiKey)).execute();
             if (response.isSuccessful()) {
                 val body = response.body();
                 if (body.getStatus() == TvDbResponse.Status.SUCCESS) {
                     token = body.getData().getToken();
-                    return client;
+                    return;
                 }
             }
             throw new RuntimeException(STR."Failed to login to TVDb: \{response.message()}");
@@ -119,32 +146,39 @@ public class TvDbImageDownloader {
     private static class FulLRequestCallback<T> implements Callback<TvDbResponse<T>> {
 
         final OnResponse<TvDbResponse<T>> onResponse;
+        final OnResponse<Void> onUnauthorized;
 
         @Override
         public void onResponse(Call<TvDbResponse<T>> call, Response<TvDbResponse<T>> response) {
             if (response.isSuccessful()) {
-                onResponse.onSuccess(response.body());
+                onResponse.received(response.body());
+            }
+            if (response.code() == 401) {
+                onUnauthorized.received(null);
             }
         }
 
         @Override
         public void onFailure(Call<TvDbResponse<T>> call, Throwable t) {
+            if ( t.getMessage() != null && t.getMessage().contains("401")) {
+                onUnauthorized.received(null);
+            }
             log.severe(STR."Failed to execute request: \{t.getMessage()}");
         }
     }
 
     private static class RequestCallback<T> extends FulLRequestCallback<T> {
-        private RequestCallback(OnResponse<T> onResponse) {
+        private RequestCallback(OnResponse<T> onResponse, OnResponse<Void> onUnauthorized) {
             super(response -> {
                 if (response != null && response.getStatus() == TvDbResponse.Status.SUCCESS) {
-                    onResponse.onSuccess(response.getData());
+                    onResponse.received(response.getData());
                 }
-            });
+            }, onUnauthorized);
         }
     }
 
     private interface OnResponse<T> {
-        void onSuccess(T data);
+        void received(T data);
     }
 
     public interface IAllDataCallback {
