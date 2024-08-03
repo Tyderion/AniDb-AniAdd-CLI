@@ -9,7 +9,6 @@ import java.util.List;
 @Data
 public class TvDbSeasonResponse {
     int id;
-
     List<Season> seasons;
 
     @Data

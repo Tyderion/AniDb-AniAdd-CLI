@@ -20,6 +20,7 @@ public class TvDbResponse<T> {
         FAILURE
     }
 
+    @Data
     public class Links {
 
         @SerializedName("total_items")

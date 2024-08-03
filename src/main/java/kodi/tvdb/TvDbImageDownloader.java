@@ -1,5 +1,6 @@
 package kodi.tvdb;
 
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 import lombok.val;
@@ -12,7 +13,6 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 @Log
@@ -26,28 +26,52 @@ public class TvDbImageDownloader {
         this.tvDbClient = initClient(apiKey);
     }
 
-    public void test(int seriesId) {
+    public void getAllTvDbData(int seriesId, IAllDataCallback onReceive) {
+        val requestsDone = new RequestsDone();
+        val allData = TvDbAllData.builder();
+
         tvDbClient.getSeasons(seriesId).enqueue(new RequestCallback<>(data -> {
-            List<TvDbSeasonResponse.Season> seasons = data.getSeasons();
-            for (TvDbSeasonResponse.Season season : seasons) {
-                log.info(STR."Season: \{season}");
-            }
-        }));
-        tvDbClient.getArtworks(seriesId, "eng", null).enqueue(new RequestCallback<>(data -> {
-            data.getArtworks().forEach(artwork -> {
-                log.info(STR."Artwork: \{artwork}");
-            });
+            allData.seasons(data.getSeasons());
+            requestsDone.setSeasons(true);
+
+            notify(onReceive, allData, requestsDone);
         }));
 
-        tvDbClient.getEpisodes(seriesId, 0).enqueue(new RequestCallback<>(data -> {
-            data.getEpisodes().forEach(episode -> {
-                log.info(STR."Episode: \{episode}");
-            });
+        getAllEpisodeData(seriesId, 0, requestsDone, allData, onReceive);
+
+        tvDbClient.getArtworks(seriesId, "eng", null).enqueue(new RequestCallback<>(data -> {
+            allData.artworks(data.getArtworks());
+            requestsDone.setArtworks(true);
+            notify(onReceive, allData, requestsDone);
         }));
 
         tvDbClient.getPlot(seriesId).enqueue(new RequestCallback<>(data -> {
-            log.info(STR."Description: \{data.getPlot()}");
+            allData.plot(data.getPlot());
+            requestsDone.setPlot(true);
+            notify(onReceive, allData, requestsDone);
         }));
+
+    }
+
+    private void getAllEpisodeData(int seriesId, int page, RequestsDone requestsDone, TvDbAllData.TvDbAllDataBuilder allData, IAllDataCallback onReceive) {
+        tvDbClient.getEpisodes(seriesId, page).enqueue(new FulLRequestCallback<>(data -> {
+            val episodes = data.getData().getEpisodes();
+            if (episodes.isEmpty()) {
+                requestsDone.setEpisodes(true);
+                notify(onReceive, allData, requestsDone);
+                return;
+            }
+            data.getData().getEpisodes().forEach(allData::episode);
+            if (data.getLinks().getPagesize() < data.getLinks().getTotalItems()) {
+                getAllEpisodeData(seriesId, page + 1, requestsDone, allData, onReceive);
+            }
+        }));
+    }
+
+    private void notify(IAllDataCallback onReceive, TvDbAllData.TvDbAllDataBuilder allData, RequestsDone requestsDone) {
+        if (requestsDone.allDone()) {
+            onReceive.received(allData.build());
+        }
     }
 
 
@@ -92,17 +116,14 @@ public class TvDbImageDownloader {
     }
 
     @RequiredArgsConstructor
-    private static class RequestCallback<T> implements Callback<TvDbResponse<T>> {
+    private static class FulLRequestCallback<T> implements Callback<TvDbResponse<T>> {
 
-        final OnResponse<T> onResponse;
+        final OnResponse<TvDbResponse<T>> onResponse;
 
         @Override
         public void onResponse(Call<TvDbResponse<T>> call, Response<TvDbResponse<T>> response) {
             if (response.isSuccessful()) {
-                val body = response.body();
-                if (body != null && body.getStatus() == TvDbResponse.Status.SUCCESS) {
-                    onResponse.onSuccess(body.getData());
-                }
+                onResponse.onSuccess(response.body());
             }
         }
 
@@ -110,9 +131,35 @@ public class TvDbImageDownloader {
         public void onFailure(Call<TvDbResponse<T>> call, Throwable t) {
             log.severe(STR."Failed to execute request: \{t.getMessage()}");
         }
+    }
 
-        interface OnResponse<T> {
-            void onSuccess(T data);
+    private static class RequestCallback<T> extends FulLRequestCallback<T> {
+        private RequestCallback(OnResponse<T> onResponse) {
+            super(response -> {
+                if (response != null && response.getStatus() == TvDbResponse.Status.SUCCESS) {
+                    onResponse.onSuccess(response.getData());
+                }
+            });
+        }
+    }
+
+    private interface OnResponse<T> {
+        void onSuccess(T data);
+    }
+
+    public interface IAllDataCallback {
+        void received(TvDbAllData data);
+    }
+
+    @Data
+    private static class RequestsDone {
+        boolean seasons;
+        boolean artworks;
+        boolean episodes;
+        boolean plot;
+
+        public boolean allDone() {
+            return seasons && artworks && episodes && plot;
         }
     }
 }

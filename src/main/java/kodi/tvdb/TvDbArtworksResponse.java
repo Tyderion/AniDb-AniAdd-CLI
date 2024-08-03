@@ -9,7 +9,6 @@ import java.util.List;
 public class TvDbArtworksResponse {
     int id;
     List<Artwork> artworks;
-
     @Data
     public class Artwork {
         int id;
