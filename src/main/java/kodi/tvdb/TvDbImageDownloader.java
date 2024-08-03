@@ -13,6 +13,7 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
 @Log
@@ -21,6 +22,7 @@ public class TvDbImageDownloader {
     private final OkHttpClient okHttpClient;
     private final String apiKey;
     private String token;
+    private boolean loggedIn;
 
     public TvDbImageDownloader(String apiKey, ExecutorService executorService) {
         this.apiKey = apiKey;
@@ -29,9 +31,15 @@ public class TvDbImageDownloader {
     }
 
     public void getAllTvDbData(int seriesId, IAllDataCallback onReceive) {
+        log.info(STR."Getting all data for tvdb series \{seriesId}");
         val requestsDone = new RequestsDone();
         val allData = TvDbAllData.builder();
-        
+
+        if (!loggedIn) {
+            onReceive.received(Optional.empty());
+            return;
+        }
+
         getAllEpisodeData(seriesId, 0, requestsDone, allData, onReceive);
         getSeasons(seriesId, requestsDone, allData, onReceive);
         getArtworks(seriesId, requestsDone, allData, onReceive);
@@ -39,9 +47,11 @@ public class TvDbImageDownloader {
     }
 
     private void getArtworks(int seriesId, RequestsDone requestsDone, TvDbAllData.TvDbAllDataBuilder allData, IAllDataCallback onReceive) {
+        log.info(STR."Fetching artworks for series \{seriesId}");
         tvDbClient.getArtworks(seriesId, "eng", null).enqueue(new RequestCallback<>(data -> {
             allData.artworks(data.getArtworks());
-            requestsDone.setPlot(true);
+            requestsDone.setArtworks(true);
+            log.info(STR."Successfully fetched all \{data.getArtworks().size()} artworks for series \{seriesId}");
             notify(onReceive, allData, requestsDone);
         }, _ -> {
             login(tvDbClient, apiKey);
@@ -50,9 +60,11 @@ public class TvDbImageDownloader {
     }
 
     private void getPlot(int seriesId, RequestsDone requestsDone, TvDbAllData.TvDbAllDataBuilder allData, IAllDataCallback onReceive) {
+        log.info(STR."Fetching plot for series \{seriesId}");
         tvDbClient.getPlot(seriesId).enqueue(new RequestCallback<>(data -> {
             allData.plot(data.getPlot());
             requestsDone.setPlot(true);
+            log.info(STR."Successfully fetched plot for series \{seriesId}");
             notify(onReceive, allData, requestsDone);
         }, _ -> {
             login(tvDbClient, apiKey);
@@ -61,10 +73,11 @@ public class TvDbImageDownloader {
     }
 
     private void getSeasons(int seriesId, RequestsDone requestsDone, TvDbAllData.TvDbAllDataBuilder allData, IAllDataCallback onReceive) {
+        log.info(STR."Fetching seasons for series \{seriesId}");
         tvDbClient.getSeasons(seriesId).enqueue(new RequestCallback<>(data -> {
             allData.seasons(data.getSeasons());
             requestsDone.setSeasons(true);
-
+            log.info(STR."Successfully fetched all \{data.getSeasons().size()} seasons for series \{seriesId}");
             notify(onReceive, allData, requestsDone);
         }, _ -> {
             login(tvDbClient, apiKey);
@@ -73,15 +86,15 @@ public class TvDbImageDownloader {
     }
 
     private void getAllEpisodeData(int seriesId, int page, RequestsDone requestsDone, TvDbAllData.TvDbAllDataBuilder allData, IAllDataCallback onReceive) {
+        log.info(STR."Fetching episodes page \{page} for series \{seriesId}");
         tvDbClient.getEpisodes(seriesId, page).enqueue(new FulLRequestCallback<>(data -> {
-            val episodes = data.getData().getEpisodes();
-            if (episodes.isEmpty()) {
+            data.getData().getEpisodes().forEach(allData::episode);
+            if (data.getLinks().getPagesize() * (page + 1) > data.getLinks().getTotalItems()) {
                 requestsDone.setEpisodes(true);
+                log.info(STR."Successfully fetched all \{data.getLinks().getTotalItems()} episodes for series \{seriesId}");
                 notify(onReceive, allData, requestsDone);
                 return;
-            }
-            data.getData().getEpisodes().forEach(allData::episode);
-            if (data.getLinks().getPagesize() < data.getLinks().getTotalItems()) {
+            } else {
                 getAllEpisodeData(seriesId, page + 1, requestsDone, allData, onReceive);
             }
         }, _ -> {
@@ -91,8 +104,9 @@ public class TvDbImageDownloader {
     }
 
     private void notify(IAllDataCallback onReceive, TvDbAllData.TvDbAllDataBuilder allData, RequestsDone requestsDone) {
+        log.info(STR."Checking if all requests are done for series \{requestsDone}");
         if (requestsDone.allDone()) {
-            onReceive.received(allData.build());
+            onReceive.received(Optional.of(allData.build()));
         }
     }
 
@@ -111,17 +125,22 @@ public class TvDbImageDownloader {
 
     private void login(TVDbClient client, String apiKey) {
         try {
+            log.info("Logging in to TVDb");
             val response = client.login(new LoginRequest(apiKey)).execute();
             if (response.isSuccessful()) {
                 val body = response.body();
                 if (body.getStatus() == TvDbResponse.Status.SUCCESS) {
+                    log.info("Successfully logged in to TVDb");
                     token = body.getData().getToken();
+                    loggedIn = true;
                     return;
                 }
             }
-            throw new RuntimeException(STR."Failed to login to TVDb: \{response.message()}");
+            log.warning(STR."Failed to login to TVDb: \{response.message()}");
+            loggedIn = false;
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            log.severe(STR."Failed to login to TVDb: \{e.getMessage()}");
+            loggedIn = false;
         }
     }
 
@@ -160,7 +179,7 @@ public class TvDbImageDownloader {
 
         @Override
         public void onFailure(Call<TvDbResponse<T>> call, Throwable t) {
-            if ( t.getMessage() != null && t.getMessage().contains("401")) {
+            if (t.getMessage() != null && t.getMessage().contains("401")) {
                 onUnauthorized.received(null);
             }
             log.severe(STR."Failed to execute request: \{t.getMessage()}");
@@ -182,7 +201,7 @@ public class TvDbImageDownloader {
     }
 
     public interface IAllDataCallback {
-        void received(TvDbAllData data);
+        void received(Optional<TvDbAllData> data);
     }
 
     @Data
