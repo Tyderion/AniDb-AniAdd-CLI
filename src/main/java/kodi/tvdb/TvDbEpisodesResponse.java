@@ -1,0 +1,28 @@
+package kodi.tvdb;
+
+import com.google.gson.annotations.SerializedName;
+import lombok.Data;
+
+import java.util.List;
+
+@Data
+public class TvDbEpisodesResponse {
+    int id;
+    @SerializedName("image")
+    String seriesPoster;
+    String name;
+
+    List<Episode> episodes;
+
+    @Data
+    public class Episode {
+        int id;
+        int number;
+        int absoluteNumber;
+        int seasonNumber;
+        String image;
+        @SerializedName("overview")
+        String plot;
+        String name;
+    }
+}
