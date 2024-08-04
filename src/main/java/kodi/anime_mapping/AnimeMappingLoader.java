@@ -6,11 +6,12 @@ import kodi.anime_mapping.model.Mapping;
 import kodi.anime_mapping.model.SupplementalInfo;
 import kodi.anime_mapping.model.Thumb;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 import lombok.val;
+import org.jetbrains.annotations.NotNull;
 
-import javax.xml.namespace.QName;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -19,71 +20,84 @@ import javax.xml.stream.events.StartElement;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static kodi.XmlHelper.*;
 
 @Log
 @RequiredArgsConstructor
 public class AnimeMappingLoader {
-    final AniConfiguration aniConfiguration;
+    @NotNull @NonNull final AniConfiguration aniConfiguration;
+    final Duration cacheDuration = Duration.ofDays(31);
+    private static final Path LOCAL_ANIME_MAPPING = Path.of("anime-list.xml");
 
     @Getter(lazy = true)
-    private final List<AnimeMapping> animeMapping = loadAnimeMapping();
+    private final Map<Long, AnimeMapping> animeMapping = loadAnimeMapping();
 
-    private List<AnimeMapping> loadAnimeMapping() {
+    private Map<Long, AnimeMapping> loadAnimeMapping() {
         try {
-//            BufferedInputStream in = new BufferedInputStream(new URI(aniConfiguration.getAnimeMappingUrl()).toURL().openStream());
-            val in = new BufferedInputStream(new FileInputStream("anime-list.xml"));
-            XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
-            val animeList = new LinkedList<AnimeMapping>();
+            val loadFromRepo = !Files.exists(LOCAL_ANIME_MAPPING) ||
+                    Files.getLastModifiedTime(LOCAL_ANIME_MAPPING).toInstant().isBefore(Instant.now().minus(cacheDuration));
+            try (val in = new BufferedInputStream(loadFromRepo ? new URI(Objects.requireNonNull(aniConfiguration).getAnimeMappingUrl()).toURL().openStream() : new FileInputStream(LOCAL_ANIME_MAPPING.toFile()))) {
+                XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
+                val animeList = new LinkedList<AnimeMapping>();
 
-            val reader = xmlInputFactory.createXMLEventReader(in);
-            var currentAnime = AnimeMapping.builder();
-            while (reader.hasNext()) {
-                val event = reader.nextEvent();
-                if (event.isStartElement()) {
-                    val startElement = event.asStartElement();
-                    switch (startElement.getName().getLocalPart()) {
-                        case "anime" -> {
-                            currentAnime = AnimeMapping.builder();
-                            currentAnime.aniDbId(getLongAttribute(startElement, "anidbid"));
-                            val tvdbId = getAttribute(startElement, "tvdbid").map(Attribute::getValue).orElseThrow();
-                            switch (tvdbId.toLowerCase()) {
-                                case "movie" -> currentAnime.type(AnimeMapping.AnimeType.MOVIE);
-                                case "hentai" -> currentAnime.type(AnimeMapping.AnimeType.HENTAI);
-                                case "ova" -> currentAnime.type(AnimeMapping.AnimeType.OVA);
-                                case "tv special" -> currentAnime.type(AnimeMapping.AnimeType.TVSPECIAL);
-                                case "music video" -> currentAnime.type(AnimeMapping.AnimeType.MUSIC_VIDEO);
-                                case "web" -> currentAnime.type(AnimeMapping.AnimeType.WEB);
-                                case "other" -> currentAnime.type(AnimeMapping.AnimeType.OTHER);
-                                default -> currentAnime.tvDbId(Long.parseLong(tvdbId));
+                val reader = xmlInputFactory.createXMLEventReader(in);
+                var currentAnime = AnimeMapping.builder();
+                while (reader.hasNext()) {
+                    val event = reader.nextEvent();
+                    if (event.isStartElement()) {
+                        val startElement = event.asStartElement();
+                        switch (startElement.getName().getLocalPart()) {
+                            case "anime" -> {
+                                currentAnime = AnimeMapping.builder();
+                                currentAnime.aniDbId(getLongAttribute(startElement, "anidbid"));
+                                val tvdbId = getAttribute(startElement, "tvdbid").map(Attribute::getValue).orElseThrow();
+                                switch (tvdbId.toLowerCase()) {
+                                    case "movie" -> currentAnime.type(AnimeMapping.AnimeType.MOVIE);
+                                    case "hentai" -> currentAnime.type(AnimeMapping.AnimeType.HENTAI);
+                                    case "ova" -> currentAnime.type(AnimeMapping.AnimeType.OVA);
+                                    case "tv special" -> currentAnime.type(AnimeMapping.AnimeType.TVSPECIAL);
+                                    case "music video" -> currentAnime.type(AnimeMapping.AnimeType.MUSIC_VIDEO);
+                                    case "web" -> currentAnime.type(AnimeMapping.AnimeType.WEB);
+                                    case "other" -> currentAnime.type(AnimeMapping.AnimeType.OTHER);
+                                    default -> currentAnime.tvDbId(Long.parseLong(tvdbId));
+                                }
+                                currentAnime.defaultTvDbSeason(getStringAttribute(startElement, "defaulttvdbseason"));
                             }
-                            currentAnime.defaultTvDbSeason(getStringAttribute(startElement, "defaulttvdbseason"));
+                            case "name" -> currentAnime.name(reader.getElementText());
+                            case "mapping-list" -> {
+                                val mappings = parseMappings(reader);
+                                currentAnime.mappings(mappings);
+                            }
+                            case "supplemental-info" -> {
+                                val supplementalInfo = parseSupplementalInfo(reader, startElement);
+                                currentAnime.supplementalInfo(supplementalInfo);
+                            }
                         }
-                        case "name" -> currentAnime.name(reader.getElementText());
-                        case "mapping-list" -> {
-                            val mappings = parseMappings(reader);
-                            currentAnime.mappings(mappings);
-                        }
-                        case "supplemental-info" -> {
-                            val supplementalInfo = parseSupplementalInfo(reader, startElement);
-                            currentAnime.supplementalInfo(supplementalInfo);
+                    }
+                    if (event.isEndElement()) {
+                        val endElement = event.asEndElement();
+                        if (endElement.getName().getLocalPart().equals("anime")) {
+                            val anime = currentAnime.build();
+                            animeList.add(anime);
                         }
                     }
                 }
-                if (event.isEndElement()) {
-                    val endElement = event.asEndElement();
-                    if (endElement.getName().getLocalPart().equals("anime")) {
-                        val anime = currentAnime.build();
-                        animeList.add(anime);
-                    }
-                }
+                return animeList.stream().collect(Collectors.toMap(AnimeMapping::getAniDbId, a -> a));
             }
-            return animeList;
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (XMLStreamException e) {
+            throw new RuntimeException(e);
+        } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
     }

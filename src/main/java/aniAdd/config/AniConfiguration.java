@@ -3,6 +3,7 @@ package aniAdd.config;
 
 import lombok.*;
 import lombok.extern.java.Log;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Paths;
 
@@ -107,7 +108,7 @@ public class AniConfiguration {
     /**
      * The URL to the anime mapping file, maps from AniDB to TVDB
      */
-    @Builder.Default private String animeMappingUrl = "https://raw.githubusercontent.com/Anime-Lists/anime-lists/master/anime-list.xml";
+    @NotNull @NonNull @Builder.Default private String animeMappingUrl = "https://raw.githubusercontent.com/Anime-Lists/anime-lists/master/anime-list.xml";
 
     public String getEpisodePath(String relativePath) {
         return Paths.get(tvShowFolder, relativePath).toString();
