@@ -38,6 +38,7 @@ public class KodiMetadataGenerator {
     @Getter(lazy = true, value = AccessLevel.PRIVATE)
     private final Map<Long, AnimeMapping> animeMapping = initAnimeMapping();
     private final Map<Long, NfoGenerator> nfoGenerators = new HashMap<>();
+    private final DownloadHelper downloadHelper;
     private final TvDbApi tvDbApi;
     private final SessionFactory sessionFactory;
     private final String animeMappingUrl;
@@ -120,7 +121,7 @@ public class KodiMetadataGenerator {
         }
         try {
             Files.createDirectories(path.getParent());
-            DownloadHelper.downloadToFile(url, path);
+            downloadHelper.downloadToFile(url, path);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -130,7 +131,7 @@ public class KodiMetadataGenerator {
         val path = Path.of(STR."\{aniDbAnimeId}.xml");
         try {
             if (!Files.exists(path)) {
-                DownloadHelper.downloadToFile(AnimeDetailsLoader.getAnidbDetailsXmlUrl(aniDbAnimeId), path);
+                downloadHelper.downloadToFile(AnimeDetailsLoader.getAnidbDetailsXmlUrl(aniDbAnimeId), path);
             }
             return new FileInputStream(path.toFile());
         } catch (IOException e) {

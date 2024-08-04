@@ -147,7 +147,7 @@ public class TvDbApi {
     }
 
     private OkHttpClient httpClient(ExecutorService executorService) {
-        OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
+        val httpClient = new OkHttpClient.Builder();
         httpClient.setDispatcher$okhttp(new Dispatcher(executorService));
         httpClient.addInterceptor(chain -> {
             val original = chain.request();
