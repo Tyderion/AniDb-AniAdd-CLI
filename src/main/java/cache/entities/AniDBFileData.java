@@ -53,8 +53,24 @@ public class AniDBFileData {
         private long size;
     }
 
-    public int anidbEpisodeId() {
-        return Integer.parseInt(tags.get(TagSystemTags.EpisodeId));
+    @Transient
+    public int seasonNumber() {
+        val epNo = tags.get(TagSystemTags.EpisodeNumber);
+        if (epNo.matches("[0-9]+")) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
+    @Transient
+    public int episodeNumber() {
+        val epNo = tags.get(TagSystemTags.EpisodeNumber);
+        if (epNo.matches("[0-9]+")) {
+            return Integer.parseInt(epNo);
+        } else {
+            return epNo.replaceAll("[^0-9]", "").isEmpty() ? 0 : Integer.parseInt(epNo.replaceAll("[^0-9]", ""));
+        }
     }
 
     public Episode.EpisodeBuilder toEpisode() {

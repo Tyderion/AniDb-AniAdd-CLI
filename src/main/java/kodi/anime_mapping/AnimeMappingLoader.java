@@ -34,7 +34,7 @@ import static kodi.XmlHelper.*;
 @Log
 @RequiredArgsConstructor
 public class AnimeMappingLoader {
-    @NotNull @NonNull final AniConfiguration aniConfiguration;
+    @NotNull @NonNull final String animeMappingUrl;
     final Duration cacheDuration = Duration.ofDays(31);
     private static final Path LOCAL_ANIME_MAPPING = Path.of("anime-list.xml");
 
@@ -45,7 +45,7 @@ public class AnimeMappingLoader {
         try {
             val loadFromRepo = !Files.exists(LOCAL_ANIME_MAPPING) ||
                     Files.getLastModifiedTime(LOCAL_ANIME_MAPPING).toInstant().isBefore(Instant.now().minus(cacheDuration));
-            try (val in = new BufferedInputStream(loadFromRepo ? new URI(Objects.requireNonNull(aniConfiguration).getAnimeMappingUrl()).toURL().openStream() : new FileInputStream(LOCAL_ANIME_MAPPING.toFile()))) {
+            try (val in = new BufferedInputStream(loadFromRepo ? new URI(animeMappingUrl).toURL().openStream() : new FileInputStream(LOCAL_ANIME_MAPPING.toFile()))) {
                 XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
                 val animeList = new LinkedList<AnimeMapping>();
 

@@ -5,6 +5,7 @@ import kodi.nfo.Actor;
 import kodi.nfo.Episode;
 import kodi.nfo.Series;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.java.Log;
 import lombok.val;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentHelper;
@@ -27,6 +28,7 @@ import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+@Log
 @RequiredArgsConstructor(staticName = "forSeries")
 public class NfoGenerator {
     private static final String seriesNfo = "tvshow.nfo";
@@ -41,15 +43,18 @@ public class NfoGenerator {
         val folder = episodePath.getParent();
         val seriesFile = folder.resolve(seriesNfo);
         val episodeFile = folder.resolve(STR."\{getEpisodeFileName(episodePath)}.nfo");
+        log.info(STR."Writing NFO files for \{series.getTitle()}: \{episodeFile.getFileName()}, overwriteSeries: \{overwriteSeries}, overwriteEpisode: \{overwriteEpisode}");
         writeNfoFiles(seriesFile, episodeFile, overwriteSeries, overwriteEpisode);
     }
 
     private void writeNfoFiles(Path seriesFile, Path episodeFile, boolean overwriteSeries, boolean overwriteEpisode) {
         try {
             if (overwriteSeries || !Files.exists(seriesFile)) {
+                log.info(STR."Writing series NFO file: \{seriesFile.toString()}");
                 prettyPrint(getSeriesNfoContent(), seriesFile);
             }
             if (overwriteEpisode || !Files.exists(episodeFile)) {
+                log.info(STR."Writing episode NFO file: \{episodeFile.toString()}");
                 prettyPrint(getEpisodeNfoContent(), episodeFile);
             }
         } catch (XMLStreamException | IOException | DocumentException e) {

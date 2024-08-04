@@ -10,10 +10,9 @@ import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.StartElement;
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
+import java.io.*;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -26,7 +25,7 @@ import static kodi.XmlHelper.getStringAttribute;
 public class AnimeDetailsLoader {
 
     public static String getAnidbDetailsXmlUrl(int aniDbAnimeId) {
-        return STR."http://api.anidb.net:9001/httpapi?request=anime&client=\{UdpApiConfiguration.ANIDB_CLIENT_TAG.toLowerCase()}&clientver=5&protover=1&aid=\{aniDbAnimeId}";
+        return STR."http://api.anidb.net:9001/httpapi?request=anime&client=xbmcscrap&clientver=1&protover=1&aid=\{aniDbAnimeId}";
     }
 
     public static Anime parseXml(InputStream xml) {

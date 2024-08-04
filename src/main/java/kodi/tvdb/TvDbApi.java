@@ -50,6 +50,7 @@ public class TvDbApi {
         log.info(STR."Fetching artworks for series \{seriesId}");
         tvDbClient.getArtworks(seriesId, "eng", null).enqueue(new RequestCallback<>(data -> {
             allData.artworks(data.getArtworks());
+            allData.seriesId(data.getId());
             requestsDone.setArtworks(true);
             log.info(STR."Successfully fetched all \{data.getArtworks().size()} artworks for series \{seriesId}");
             notify(onReceive, allData, requestsDone);
@@ -89,6 +90,7 @@ public class TvDbApi {
         log.info(STR."Fetching episodes page \{page} for series \{seriesId}");
         tvDbClient.getEpisodes(seriesId, page).enqueue(new FulLRequestCallback<>(data -> {
             data.getData().getEpisodes().forEach(allData::episode);
+            allData.seriesName(data.getData().getName());
             if (data.getLinks().getPagesize() * (page + 1) > data.getLinks().getTotalItems()) {
                 requestsDone.setEpisodes(true);
                 log.info(STR."Successfully fetched all \{data.getLinks().getTotalItems()} episodes for series \{seriesId}");
