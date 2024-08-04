@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Singular;
 import lombok.Value;
 
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -26,8 +27,18 @@ public class Episode {
     int runtimeInSeconds;
     boolean watched;
 
+    Path filePath;
+    String fileExtension;
+    String fileNameWithoutExtension;
+
+    public String getFileName() {
+        return STR."\{fileNameWithoutExtension}.\{fileExtension}";
+    }
+
     @Singular
     List<UniqueId> uniqueIds;
+
+    String thumbnail;
 
     @Singular
     List<String> genres;

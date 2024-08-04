@@ -4,6 +4,8 @@ import cache.AnimeRepository;
 import kodi.anime_details.AnimeDetailsLoader;
 import kodi.anime_mapping.AnimeMappingLoader;
 import kodi.anime_mapping.model.AnimeMapping;
+import kodi.nfo.Episode;
+import kodi.nfo.Series;
 import kodi.tvdb.TvDbApi;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -57,21 +59,50 @@ public class KodiMetadataGenerator {
         log.info(STR."Anime: \{anime.getId()} - \{anime.getTitles().stream().findFirst()}");
         val tvDbId = this.getAnimeMapping().get((long) aniDbAnimeId).getTvDbId();
         tvDbApi.getAllTvDbData(tvDbId, data -> {
-            data.ifPresent(d -> {
-                log.info(STR."TVDB: \{d.getSeriesId()} - \{d.getSeriesName()}");
+            data.ifPresent(tvDbData -> {
+                log.info(STR."TVDB: \{tvDbData.getSeriesId()} - \{tvDbData.getSeriesName()}");
                 NfoGenerator generator;
                 if (nfoGenerators.containsKey((long) aniDbAnimeId)) {
                     generator = nfoGenerators.get((long) aniDbAnimeId);
                 } else {
-                    generator = NfoGenerator.forSeries(d.updateSeries(anime.toSeries()).build());
+                    generator = NfoGenerator.forSeries(tvDbData.updateSeries(anime.toSeries()).build());
                     nfoGenerators.put((long) aniDbAnimeId, generator);
                 }
 
                 val episodeFileData = fileInfo.toAniDBFileData();
+                val filePath = fileInfo.getFinalFilePath();
+                val fileName = filePath.getFileName().toString();
+                val extension = fileName.substring(fileName.lastIndexOf("."));
+                val fileNameWithoutExtension = fileName.substring(0, fileName.lastIndexOf("."));
+                val episodeData = tvDbData.updateEpisode(episodeFileData.toEpisode(), episodeFileData.seasonNumber(), episodeFileData.episodeNumber())
+                        .filePath(filePath)
+                        .fileExtension(extension)
+                        .fileNameWithoutExtension(fileNameWithoutExtension)
+                                .build();
 
-                generator.writeNfoFiles(d.updateEpisode(episodeFileData.toEpisode(), episodeFileData.seasonNumber(), episodeFileData.episodeNumber()).build(), fileInfo.getFinalFilePath(), overwriteSeries, overwriteEpisode);
+
+                generator.writeNfoFiles(episodeData, overwriteSeries, overwriteEpisode);
+                exportImages(generator.getSeries(), episodeData);
             });
         });
+    }
+
+    private void exportImages(Series series, Episode episode) {
+        val bytes = downloadFile(episode.getThumbnail());
+        val path = episode.getFilePath().getParent().resolve(STR."\{episode.getFileNameWithoutExtension()}-thumb.jpg");
+        try {
+            Files.write(path, bytes);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private byte[] downloadFile(String url) {
+        try (val is = new URI(url).toURL().openStream()) {
+            return is.readAllBytes();
+        } catch (IOException | URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private InputStream getXmlInput(int aniDbAnimeId) {
@@ -88,17 +119,5 @@ public class KodiMetadataGenerator {
         } catch (IOException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private void exportActorThumbs() {
-        // TODO
-    }
-
-    private void generateSeriesNfo() {
-        // TODO
-    }
-
-    private void generateEpisodeNfo() {
-        // TODO
     }
 }

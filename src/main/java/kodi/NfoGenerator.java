@@ -4,9 +4,12 @@ import kodi.common.UniqueId;
 import kodi.nfo.Actor;
 import kodi.nfo.Episode;
 import kodi.nfo.Series;
+import kodi.tvdb.TvDbArtworksResponse;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 import lombok.val;
+import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentHelper;
 import org.dom4j.io.OutputFormat;
@@ -32,17 +35,18 @@ import java.util.List;
 @RequiredArgsConstructor(staticName = "forSeries")
 public class NfoGenerator {
     private static final String seriesNfo = "tvshow.nfo";
+    @Getter
     final Series series;
     Episode episode;
 
     private XMLEventWriter writer;
     private XMLEventFactory factory;
 
-    public void writeNfoFiles(Episode episode, Path episodePath, boolean overwriteSeries, boolean overwriteEpisode) {
+    public void writeNfoFiles(Episode episode, boolean overwriteSeries, boolean overwriteEpisode) {
         this.episode = episode;
-        val folder = episodePath.getParent();
+        val folder = episode.getFilePath().getParent();
         val seriesFile = folder.resolve(seriesNfo);
-        val episodeFile = folder.resolve(STR."\{getEpisodeFileName(episodePath)}.nfo");
+        val episodeFile = folder.resolve(STR."\{episode.getFileNameWithoutExtension()}.nfo");
         log.info(STR."Writing NFO files for \{series.getTitle()}: \{episodeFile.getFileName()}, overwriteSeries: \{overwriteSeries}, overwriteEpisode: \{overwriteEpisode}");
         writeNfoFiles(seriesFile, episodeFile, overwriteSeries, overwriteEpisode);
     }
@@ -73,7 +77,7 @@ public class NfoGenerator {
         format.setSuppressDeclaration(false);
         format.setEncoding(StandardCharsets.UTF_8.displayName());
 
-        org.dom4j.Document document = DocumentHelper.parseText(content);
+        Document document = DocumentHelper.parseText(content);
         StringWriter sw = new StringWriter();
         XMLWriter writer = new XMLWriter(sw, format);
         writer.write(document);
@@ -108,6 +112,7 @@ public class NfoGenerator {
             writeTag("episode", episode.getEpisode());
             writeTag("plot", episode.getPlot());
             writeTag("runtime", Duration.ofSeconds(episode.getRuntimeInSeconds()).toMinutes());
+            writeTag("thumb", episode.getThumbnail());
             writeTag("playcount", episode.isWatched() ? "1" : "0");
             for (UniqueId uniqueId : episode.getUniqueIds()) {
                 writeTag("uniqueid", uniqueId.getValue(), attributes("type", uniqueId.getType().getName()));
@@ -182,6 +187,30 @@ public class NfoGenerator {
             writeTag("plot", series.getPlot());
             writeTag("playcount", series.isWatched() ? "1" : "0");
 
+            for (Series.Artwork artwork : series.getArtworks()) {
+                val attributes = switch (artwork.getType()) {
+                    case SERIES_POSTER, SERIES_BACKGROUND -> List.of(attribute("aspect", "poster"));
+                    case SERIES_BANNER -> List.of(attribute("aspect", "banner"));
+                    case SEASON_BANNER -> List.of(
+                            attribute("aspect", "banner"),
+                            attribute("type", "season"),
+                            attribute("originalseason", artwork.getSeason()),
+                            attribute("season", 1));
+                    case SEASON_POSTER, SEASON_BACKGROUND -> List.of(attribute("aspect", "poster"),
+                            attribute("type", "season"),
+                            attribute("originalseason", artwork.getSeason()),
+                            attribute("season", 1));
+                    case CLEARART -> List.of(attribute("aspect", "clearart"));
+                    case CLEARLOGO -> List.of(attribute("aspect", "clearlogo"));
+                };
+                writeTag("thumb", artwork.getUrl(), attributes);
+            }
+            writeTag("fanart", () -> {
+                for (Series.Artwork artwork : series.getFanarts()) {
+                    writeTag("thumb", artwork.getUrl());
+                }
+            });
+
             for (UniqueId uniqueId : series.getUniqueIds()) {
                 writeTag("uniqueid", uniqueId.getValue(), attributes("type", uniqueId.getType().getName()));
             }
@@ -219,6 +248,10 @@ public class NfoGenerator {
 
     private Attribute attribute(String name, String value) {
         return factory.createAttribute(name, value);
+    }
+
+    private Attribute attribute(String name, int value) {
+        return attribute(name, String.valueOf(value));
     }
 
     private void startDocument() throws XMLStreamException {

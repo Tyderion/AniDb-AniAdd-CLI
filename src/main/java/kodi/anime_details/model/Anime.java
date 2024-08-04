@@ -74,14 +74,15 @@ public class Anime {
             actors.add(secondaryCharacters.get(i).toActor(i + mainCharacters.size()));
         }
         return Series.builder()
-                .title(titles.stream().filter(t -> t.getLanguage().equals("en")).findFirst().orElse(titles.iterator().next()).getTitle())
+                .title(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle())
                 .originalTitle(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle())
                 .voteCount(ratings.stream().filter(r -> r.getType() == Rating.Type.PERMANENT).findFirst().orElse(Rating.builder().count(0).build()).getCount())
                 .rating(ratings.stream().filter(r -> r.getType() == Rating.Type.PERMANENT).findFirst().orElse(Rating.builder().rating(0).build()).getRating())
+                .artwork(Series.Artwork.builder().url(STR."http://img7.anidb.net/pics/anime/\{picture}").type(Series.ArtworkType.SERIES_POSTER).build())
                 .plot(description)
                 .watched(false)
                 .uniqueId(UniqueId.AniDbAnimeId(id))
-                .genres(tags.stream().sorted(Comparator.comparingInt(AnimeTag::getWeight).reversed()).limit(5).map(t -> t.getTag().getName()).toList())
+                .genres(tags.stream().sorted(Comparator.comparingInt(AnimeTag::getWeight).reversed()).limit(8).map(t -> t.getTag().getName()).toList())
                 .premiered(startDate)
                 .year(startDate.getYear())
                 .studio(creators.stream().filter(c -> c.getType() == AnimeCreator.Type.ANIMATION_WORK).map(c -> c.getCreator().getName()).findFirst().orElse(""))
