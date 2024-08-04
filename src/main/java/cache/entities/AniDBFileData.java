@@ -73,6 +73,11 @@ public class AniDBFileData {
         }
     }
 
+    @Transient
+    public int aniDbEpisodeNumber() {
+        return Integer.parseInt(tags.get(TagSystemTags.EpisodeId));
+    }
+
     public Episode.EpisodeBuilder toEpisode() {
         val video = Episode.Video.builder()
                 .codec(tags.get(TagSystemTags.FileVideoCodec))
@@ -110,7 +115,7 @@ public class AniDBFileData {
                 .streamDetails(streamDetails)
                 .uniqueId(UniqueId.AniDbFileId(Long.parseLong(tags.get(TagSystemTags.FileId))))
                 .uniqueId(UniqueId.AniDbAnimeId(Long.parseLong(tags.get(TagSystemTags.AnimeId))))
-                .uniqueId(UniqueId.AniDbEpisodeId(Long.parseLong(tags.get(TagSystemTags.EpisodeId))))
+                .uniqueId(UniqueId.AniDbEpisodeId(this.aniDbEpisodeNumber()))
                 .premiered(LocalDate.ofInstant(Instant.ofEpochSecond(Long.parseLong(tags.get(TagSystemTags.EpisodeAirDate))), ZoneId.systemDefault()));
 
     }
