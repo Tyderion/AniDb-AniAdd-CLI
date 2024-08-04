@@ -30,7 +30,8 @@ public class FileInfo {
     @Getter @Setter private AniConfiguration configuration;
     @Getter @Setter private boolean isCached = false;
 
-    public enum FileAction {Process, FileCmd, MyListCmd, VoteCmd, Rename, GenerateKodiMetadata}
+    // TODO: Load watched state before generating kodi metadata
+    public enum FileAction {Process, FileCmd, MyListCmd, VoteCmd, Rename, LoadWatchedState, GenerateKodiMetadata}
 
     public void actionDone(FileAction action) {
         actionsTodo.remove(action);
