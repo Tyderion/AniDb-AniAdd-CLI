@@ -68,7 +68,7 @@ public class AnimeMappingLoader {
                                     case "music video" -> currentAnime.type(AnimeMapping.AnimeType.MUSIC_VIDEO);
                                     case "web" -> currentAnime.type(AnimeMapping.AnimeType.WEB);
                                     case "other" -> currentAnime.type(AnimeMapping.AnimeType.OTHER);
-                                    default -> currentAnime.tvDbId(Long.parseLong(tvdbId));
+                                    default -> currentAnime.tvDbId(Integer.parseInt(tvdbId));
                                 }
                                 currentAnime.defaultTvDbSeason(getStringAttribute(startElement, "defaulttvdbseason"));
                             }

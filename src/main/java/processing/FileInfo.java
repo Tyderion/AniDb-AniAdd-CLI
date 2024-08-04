@@ -2,7 +2,6 @@ package processing;
 
 import aniAdd.config.AniConfiguration;
 import cache.entities.AniDBFileData;
-import kodi.anime_details.model.Tag;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -53,6 +52,10 @@ public class FileInfo {
     public void actionFailed(FileAction action) {
         actionsTodo.remove(action);
         actionsError.add(action);
+    }
+
+    public Path getFinalFilePath() {
+        return renamedFile != null ? renamedFile : file.toPath();
     }
 
     public AniDBFileData toAniDBFileData() {

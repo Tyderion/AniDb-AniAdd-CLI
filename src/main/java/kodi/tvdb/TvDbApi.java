@@ -17,14 +17,14 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
 @Log
-public class TvDbImageDownloader {
+public class TvDbApi {
     private final TVDbClient tvDbClient;
     private final OkHttpClient okHttpClient;
     private final String apiKey;
     private String token;
     private boolean loggedIn;
 
-    public TvDbImageDownloader(String apiKey, ExecutorService executorService) {
+    public TvDbApi(String apiKey, ExecutorService executorService) {
         this.apiKey = apiKey;
         this.okHttpClient = httpClient(executorService);
         this.tvDbClient = initClient(apiKey);

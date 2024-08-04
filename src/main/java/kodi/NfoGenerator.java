@@ -32,21 +32,19 @@ public class NfoGenerator {
     private static final String seriesNfo = "tvshow.nfo";
     final Series series;
     Episode episode;
-    FileInfo fileInfo;
 
     private XMLEventWriter writer;
     private XMLEventFactory factory;
 
-    public void writeNfoFiles(Episode episode, FileInfo fileInfo, boolean overwriteSeries, boolean overwriteEpisode) {
+    public void writeNfoFiles(Episode episode, Path episodePath, boolean overwriteSeries, boolean overwriteEpisode) {
         this.episode = episode;
-        this.fileInfo = fileInfo;
-        val folder = getFolderPath();
+        val folder = episodePath.getParent();
         val seriesFile = folder.resolve(seriesNfo);
-        val episodeFile = folder.resolve(STR."\{getEpisodeFileName()}.nfo");
+        val episodeFile = folder.resolve(STR."\{getEpisodeFileName(episodePath)}.nfo");
         writeNfoFiles(seriesFile, episodeFile, overwriteSeries, overwriteEpisode);
     }
 
-    public void writeNfoFiles(Path seriesFile, Path episodeFile, boolean overwriteSeries, boolean overwriteEpisode) {
+    private void writeNfoFiles(Path seriesFile, Path episodeFile, boolean overwriteSeries, boolean overwriteEpisode) {
         try {
             if (overwriteSeries || !Files.exists(seriesFile)) {
                 prettyPrint(getSeriesNfoContent(), seriesFile);
@@ -59,12 +57,8 @@ public class NfoGenerator {
         }
     }
 
-    private Path getFolderPath() {
-        return fileInfo.getRenamedFile() == null ? fileInfo.getFile().getParentFile().toPath() : fileInfo.getRenamedFile().getParent();
-    }
-
-    private String getEpisodeFileName() {
-        val rootFileName = fileInfo.getRenamedFile() == null ? fileInfo.getFile().toPath().toString() : fileInfo.getRenamedFile().toString();
+    private String getEpisodeFileName(Path episodePath) {
+        val rootFileName = episodePath.toString();
         return rootFileName.substring(0, rootFileName.lastIndexOf("."));
     }
 

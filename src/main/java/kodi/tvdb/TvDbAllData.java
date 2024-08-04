@@ -1,5 +1,7 @@
 package kodi.tvdb;
 
+import kodi.nfo.Episode;
+import kodi.nfo.Series;
 import lombok.Builder;
 import lombok.Singular;
 import lombok.Value;
@@ -14,4 +16,14 @@ public class TvDbAllData {
     @Singular
     public List<TvDbEpisodesResponse.Episode> episodes;
     public List<TvDbSeasonResponse.Season> seasons;
+
+    public Series.SeriesBuilder updateSeries(Series.SeriesBuilder builder) {
+        // TODO
+        return builder;
+    }
+
+    public Episode.EpisodeBuilder updateEpisode(Episode.EpisodeBuilder builder) {
+        // TODO
+        return builder;
+    }
 }

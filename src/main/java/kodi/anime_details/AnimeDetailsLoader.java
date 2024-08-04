@@ -4,6 +4,7 @@ import kodi.anime_details.model.*;
 import kodi.anime_details.model.Character;
 import lombok.extern.java.Log;
 import lombok.val;
+import udpapi.UdpApiConfiguration;
 
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
@@ -12,6 +13,7 @@ import javax.xml.stream.events.StartElement;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -23,10 +25,13 @@ import static kodi.XmlHelper.getStringAttribute;
 @Log
 public class AnimeDetailsLoader {
 
-    public static Anime parseXml(String xml) {
+    public static String getAnidbDetailsXmlUrl(int aniDbAnimeId) {
+        return STR."http://api.anidb.net:9001/httpapi?request=anime&client=\{UdpApiConfiguration.ANIDB_CLIENT_TAG.toLowerCase()}&clientver=5&protover=1&aid=\{aniDbAnimeId}";
+    }
+
+    public static Anime parseXml(InputStream xml) {
         try {
-//            BufferedInputStream in = new BufferedInputStream(new URI(aniConfiguration.getAnimeMappingUrl()).toURL().openStream());
-            val in = new BufferedInputStream(new FileInputStream(xml));
+            val in = new BufferedInputStream(xml);
             XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
             val anime = Anime.builder();
 
@@ -82,8 +87,6 @@ public class AnimeDetailsLoader {
                     }
                 }
             }
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
         } catch (XMLStreamException e) {
             throw new RuntimeException(e);
         }

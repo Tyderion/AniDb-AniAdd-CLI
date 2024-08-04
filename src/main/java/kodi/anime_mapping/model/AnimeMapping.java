@@ -11,7 +11,7 @@ import java.util.List;
 public class AnimeMapping {
     String name;
     long aniDbId;
-    Long tvDbId;
+    Integer tvDbId;
     Integer episodeOffset;
     String imdbId;
     String defaultTvDbSeason;
