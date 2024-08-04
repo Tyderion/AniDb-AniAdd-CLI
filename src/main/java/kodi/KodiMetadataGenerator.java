@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 import lombok.val;
+import okhttp3.OkHttpClient;
 import org.hibernate.SessionFactory;
 import processing.FileInfo;
 import processing.tagsystem.TagSystemTags;
@@ -19,6 +20,10 @@ import processing.tagsystem.TagSystemTags;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -95,7 +100,7 @@ public class KodiMetadataGenerator {
             val url = series.getFanarts().get(i).getUrl();
             val extension = url.substring(url.lastIndexOf("."));
             val name = i == 0 ? "fanart" : STR."fanart\{i}";
-            writeFile(url, seriesFolder.resolve(STR."\{name}.\{extension}"));
+            writeFile(url, seriesFolder.resolve(STR."\{name}\{extension}"));
         }
         series.getArtworks().stream().filter(a -> a.getType() == Series.ArtworkType.SERIES_POSTER).findFirst().ifPresent(
                 a -> writeFile(a.getUrl(), seriesFolder.resolve("poster.jpg"))
@@ -115,16 +120,8 @@ public class KodiMetadataGenerator {
         }
         try {
             Files.createDirectories(path.getParent());
-            Files.write(path, downloadFile(url));
+            DownloadHelper.downloadToFile(url, path);
         } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private byte[] downloadFile(String url) {
-        try (val is = new URI(url).toURL().openStream()) {
-            return is.readAllBytes();
-        } catch (IOException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
     }
@@ -132,15 +129,11 @@ public class KodiMetadataGenerator {
     private InputStream getXmlInput(int aniDbAnimeId) {
         val path = Path.of(STR."\{aniDbAnimeId}.xml");
         try {
-            if (Files.exists(path)) {
-                return new FileInputStream(path.toFile());
-            } else {
-                try (val is = new URI(AnimeDetailsLoader.getAnidbDetailsXmlUrl(aniDbAnimeId)).toURL().openStream()) {
-                    Files.copy(is, Path.of(STR."\{aniDbAnimeId}_default.xml"));
-                }
-                return getXmlInput(aniDbAnimeId);
+            if (!Files.exists(path)) {
+                DownloadHelper.downloadToFile(AnimeDetailsLoader.getAnidbDetailsXmlUrl(aniDbAnimeId), path);
             }
-        } catch (IOException | URISyntaxException e) {
+            return new FileInputStream(path.toFile());
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
