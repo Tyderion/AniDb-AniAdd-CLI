@@ -78,7 +78,7 @@ public class KodiMetadataGenerator {
                         .filePath(filePath)
                         .fileExtension(extension)
                         .fileNameWithoutExtension(fileNameWithoutExtension)
-                                .build();
+                        .build();
 
 
                 generator.writeNfoFiles(episodeData, overwriteSeries, overwriteEpisode);
@@ -88,10 +88,34 @@ public class KodiMetadataGenerator {
     }
 
     private void exportImages(Series series, Episode episode) {
-        val bytes = downloadFile(episode.getThumbnail());
-        val path = episode.getFilePath().getParent().resolve(STR."\{episode.getFileNameWithoutExtension()}-thumb.jpg");
+        val seriesFolder = episode.getFilePath().getParent();
+        writeFile(episode.getThumbnail(), seriesFolder.resolve(STR."\{episode.getFileNameWithoutExtension()}-thumb.jpg"));
+
+        for (var i = 0; i < series.getFanarts().size(); i++) {
+            val url = series.getFanarts().get(i).getUrl();
+            val extension = url.substring(url.lastIndexOf("."));
+            val name = i == 0 ? "fanart" : STR."fanart\{i}";
+            writeFile(url, seriesFolder.resolve(STR."\{name}.\{extension}"));
+        }
+        series.getArtworks().stream().filter(a -> a.getType() == Series.ArtworkType.SERIES_POSTER).findFirst().ifPresent(
+                a -> writeFile(a.getUrl(), seriesFolder.resolve("poster.jpg"))
+        );
+        series.getArtworks().stream().filter(a -> a.getType() == Series.ArtworkType.SERIES_BANNER).findFirst().ifPresent(
+                a -> writeFile(a.getUrl(), seriesFolder.resolve("banner.jpg"))
+        );
+        val actorPath = seriesFolder.resolve(".actors");
+        series.getActors().forEach(actor -> {
+            writeFile(actor.getThumb(), actorPath.resolve(STR."\{actor.getName().replaceAll(" ", "_")}.jpg"));
+        });
+    }
+
+    private void writeFile(String url, Path path) {
+        if (Files.exists(path)) {
+            return;
+        }
         try {
-            Files.write(path, bytes);
+            Files.createDirectories(path.getParent());
+            Files.write(path, downloadFile(url));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
