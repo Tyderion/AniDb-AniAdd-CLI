@@ -1,5 +1,7 @@
 package kodi;
 
+import kodi.common.UniqueId;
+import kodi.nfo.Actor;
 import kodi.nfo.Episode;
 import kodi.nfo.Series;
 import lombok.RequiredArgsConstructor;
@@ -25,30 +27,45 @@ import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-@RequiredArgsConstructor
+@RequiredArgsConstructor(staticName = "forSeries")
 public class NfoGenerator {
     private static final String seriesNfo = "tvshow.nfo";
     final Series series;
-    final Episode episode;
-    final FileInfo fileInfo;
+    Episode episode;
+    FileInfo fileInfo;
 
     private XMLEventWriter writer;
     private XMLEventFactory factory;
 
-    public void writeNfoFiles() {
-        val folder = fileInfo.getRenamedFile() == null ? fileInfo.getFile().getParentFile().toPath() : fileInfo.getRenamedFile().getParent();
-        val rootFileName = fileInfo.getRenamedFile() == null ? fileInfo.getFile().toPath().toString() : fileInfo.getRenamedFile().toString();
-        val rootFileNameWithoutExtension = rootFileName.substring(0, rootFileName.lastIndexOf("."));
+    public void writeNfoFiles(Episode episode, FileInfo fileInfo, boolean overwriteSeries, boolean overwriteEpisode) {
+        this.episode = episode;
+        this.fileInfo = fileInfo;
+        val folder = getFolderPath();
         val seriesFile = folder.resolve(seriesNfo);
-        val episodeFile = folder.resolve(STR."\{rootFileNameWithoutExtension}.nfo");
+        val episodeFile = folder.resolve(STR."\{getEpisodeFileName()}.nfo");
+        writeNfoFiles(seriesFile, episodeFile, overwriteSeries, overwriteEpisode);
+    }
+
+    public void writeNfoFiles(Path seriesFile, Path episodeFile, boolean overwriteSeries, boolean overwriteEpisode) {
         try {
-            prettyPrint(getSeriesNfoContent(), seriesFile);
-            prettyPrint(getEpisodeNfoContent(), episodeFile);
-        } catch (XMLStreamException e) {
-            throw new RuntimeException(e);
-        } catch (IOException | DocumentException e) {
+            if (overwriteSeries || !Files.exists(seriesFile)) {
+                prettyPrint(getSeriesNfoContent(), seriesFile);
+            }
+            if (overwriteEpisode || !Files.exists(episodeFile)) {
+                prettyPrint(getEpisodeNfoContent(), episodeFile);
+            }
+        } catch (XMLStreamException | IOException | DocumentException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private Path getFolderPath() {
+        return fileInfo.getRenamedFile() == null ? fileInfo.getFile().getParentFile().toPath() : fileInfo.getRenamedFile().getParent();
+    }
+
+    private String getEpisodeFileName() {
+        val rootFileName = fileInfo.getRenamedFile() == null ? fileInfo.getFile().toPath().toString() : fileInfo.getRenamedFile().toString();
+        return rootFileName.substring(0, rootFileName.lastIndexOf("."));
     }
 
     private void prettyPrint(String content, Path file) throws IOException, DocumentException {
@@ -93,41 +110,21 @@ public class NfoGenerator {
             writeTag("plot", episode.getPlot());
             writeTag("runtime", Duration.ofSeconds(episode.getRuntimeInSeconds()).toMinutes());
             writeTag("playcount", episode.isWatched() ? "1" : "0");
-            episode.getUniqueIds()
-                    .forEach(uniqueId -> {
-                        try {
-                            writeTag("uniqueid", uniqueId.getValue(), attributes("type", uniqueId.getType().getName()));
-                        } catch (XMLStreamException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
+            for (UniqueId uniqueId : episode.getUniqueIds()) {
+                writeTag("uniqueid", uniqueId.getValue(), attributes("type", uniqueId.getType().getName()));
+            }
 
-            episode.getGenres()
-                    .forEach(genre -> {
-                        try {
-                            writeTag("genre", genre);
-                        } catch (XMLStreamException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
+            for (String genre : episode.getGenres()) {
+                writeTag("genre", genre);
+            }
 
-            episode.getCredits()
-                    .forEach(credit -> {
-                        try {
-                            writeTag("credits", credit);
-                        } catch (XMLStreamException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
+            for (String credit : episode.getCredits()) {
+                writeTag("credits", credit);
+            }
 
-            episode.getDirectors()
-                    .forEach(director -> {
-                        try {
-                            writeTag("director", director);
-                        } catch (XMLStreamException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
+            for (String director : episode.getDirectors()) {
+                writeTag("director", director);
+            }
 
             writeTag("premiered", episode.getPremiered().format(DateTimeFormatter.ISO_LOCAL_DATE));
             writeTag("aired", episode.getPremiered().format(DateTimeFormatter.ISO_LOCAL_DATE));
@@ -147,14 +144,9 @@ public class NfoGenerator {
                         writeTag("language", audio.getLanguage());
                         writeTag("channels", audio.getChannels());
                     });
-                    episode.getStreamDetails().getSubtitles()
-                            .forEach(subtitle -> {
-                                try {
-                                    writeTag("subtitle", () -> writeTag("language", subtitle));
-                                } catch (XMLStreamException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            });
+                    for (String subtitle : episode.getStreamDetails().getSubtitles()) {
+                        writeTag("subtitle", () -> writeTag("language", subtitle));
+                    }
                 });
             });
             writeActors();
@@ -191,23 +183,13 @@ public class NfoGenerator {
             writeTag("plot", series.getPlot());
             writeTag("playcount", series.isWatched() ? "1" : "0");
 
-            series.getUniqueIds()
-                    .forEach(uniqueId -> {
-                        try {
-                            writeTag("uniqueid", uniqueId.getValue(), attributes("type", uniqueId.getType().getName()));
-                        } catch (XMLStreamException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
+            for (UniqueId uniqueId : series.getUniqueIds()) {
+                writeTag("uniqueid", uniqueId.getValue(), attributes("type", uniqueId.getType().getName()));
+            }
 
-            series.getGenres()
-                    .forEach(genre -> {
-                        try {
-                            writeTag("genre", genre);
-                        } catch (XMLStreamException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
+            for (String genre : series.getGenres()) {
+                writeTag("genre", genre);
+            }
 
             writeTag("tag", "anime");
             writeTag("premiered", series.getPremiered().format(DateTimeFormatter.ISO_LOCAL_DATE));
@@ -220,20 +202,15 @@ public class NfoGenerator {
         return byteArrayOutputStream.toString(StandardCharsets.UTF_8);
     }
 
-    private void writeActors() {
-        series.getActors()
-                .forEach(actor -> {
-                    try {
-                        writeTag("actor", () -> {
-                            writeTag("name", actor.getName());
-                            writeTag("role", actor.getRole());
-                            writeTag("thumb", actor.getThumb());
-                            writeTag("order", actor.getOrder());
-                        });
-                    } catch (XMLStreamException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+    private void writeActors() throws XMLStreamException {
+        for (Actor actor : series.getActors()) {
+            writeTag("actor", () -> {
+                writeTag("name", actor.getName());
+                writeTag("role", actor.getRole());
+                writeTag("thumb", actor.getThumb());
+                writeTag("order", actor.getOrder());
+            });
+        }
     }
 
 
