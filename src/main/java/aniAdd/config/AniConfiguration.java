@@ -110,6 +110,8 @@ public class AniConfiguration {
      */
     @NotNull @NonNull @Builder.Default private String animeMappingUrl = "https://raw.githubusercontent.com/Anime-Lists/anime-lists/master/anime-list.xml";
 
+    @Builder.Default private boolean generateKodiMetadata = false;
+
     public String getEpisodePath(String relativePath) {
         return Paths.get(tvShowFolder, relativePath).toString();
     }

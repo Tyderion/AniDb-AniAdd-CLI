@@ -8,6 +8,7 @@ import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
 import cache.IAniDBFileRepository;
 import fileprocessor.FileProcessor;
+import kodi.KodiMetadataGenerator;
 import lombok.extern.java.Log;
 import lombok.val;
 import processing.FileInfo.FileAction;
@@ -30,6 +31,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     private final UdpApi api;
     private final AniConfiguration configuration;
     private final ExecutorService executorService;
+    private final KodiMetadataGenerator kodiMetadataGenerator;
     private final FileRenamer fileRenamer;
     private final IAniDBFileRepository fileRepository;
     private final IFileHandler fileHandler;
@@ -51,11 +53,13 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     public EpisodeProcessing(AniConfiguration configuration,
                              UdpApi udpApi,
                              ExecutorService executorService,
+                             KodiMetadataGenerator kodiMetadataGenerator,
                              IFileHandler fileHandler,
                              IAniDBFileRepository fileRepository) {
         this.configuration = configuration;
         this.api = udpApi;
         this.executorService = executorService;
+        this.kodiMetadataGenerator = kodiMetadataGenerator;
         this.fileHandler = fileHandler;
         this.fileRenamer = new FileRenamer(fileHandler);
         this.fileRepository = fileRepository;
@@ -112,6 +116,10 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             boolean sendML = procFile.isActionTodo(FileAction.MyListCmd);
             boolean sendFile = procFile.isActionTodo(FileAction.FileCmd);
 
+            if (configuration.isGenerateKodiMetadata()) {
+                procFile.addTodo(FileAction.GenerateKodiMetadata);
+            }
+
             if (procFile.isActionTodo(FileAction.FileCmd)) {
                 val cachedData = fileRepository.getAniDBFileData(procFile.getData().get(TagSystemTags.Ed2kHash), procFile.getFile().length());
                 cachedData.ifPresentOrElse(fd -> {
@@ -119,8 +127,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     procFile.setCached(true);
                     procFile.getData().putAll(fd.getTags());
                     procFile.actionDone(FileAction.FileCmd);
-                    if (shouldRunFinalProcessing(procFile)) {
-                        finalProcessing(procFile);
+                    if (shouldRename(procFile)) {
+                        renameFile(procFile);
                     }
                 }, () -> {
                     log.info(STR."Requesting data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
@@ -180,8 +188,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             log.fine(STR."Got DB Info for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
         }
 
-        if (shouldRunFinalProcessing(procFile)) {
-            finalProcessing(procFile);
+        if (shouldRename(procFile)) {
+            renameFile(procFile);
         }
     }
 
@@ -218,19 +226,16 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 log.warning(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned error \{replyStatus}");
             }
         }
-
-        if (shouldRunFinalProcessing(procFile)) {
-            finalProcessing(procFile);
+        if (shouldRename(procFile)) {
+            renameFile(procFile);
         }
     }
 
-    private boolean shouldRunFinalProcessing(FileInfo procFile) {
-        return !procFile.isFinal() && !(procFile.isActionTodo(FileAction.FileCmd) || (procFile.isActionTodo(FileAction.MyListCmd)));
+    private boolean shouldRename(FileInfo procFile) {
+        return !(procFile.isActionTodo(FileAction.FileCmd) || (procFile.isActionTodo(FileAction.MyListCmd)));
     }
 
-    private void finalProcessing(FileInfo procFile) {
-        procFile.setFinal(true);
-
+    private void renameFile(FileInfo procFile) {
         if (procFile.isActionTodo(FileAction.Rename) && procFile.isActionDone(FileAction.FileCmd)) {
 
             while (filesBeingMoved > 0) {
@@ -261,9 +266,26 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 filesBeingMoved--;
             }
         }
+        generateKodiMetadata(procFile);
+    }
 
+    private void generateKodiMetadata(FileInfo procFile) {
+        if (procFile.isActionTodo(FileAction.GenerateKodiMetadata)) {
+            kodiMetadataGenerator.generateMetadata(procFile, false, false, () -> {
+                procFile.actionDone(FileAction.GenerateKodiMetadata);
+                if (procFile.allDone()) {
+                    finalize(procFile);
+                }
+            });
+        } else if (procFile.allDone()) {
+            finalize(procFile);
+        }
+    }
+
+    private void finalize(FileInfo procFile) {
+        procFile.setFinal(true);
         log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} done");
-        if (files.values().stream().allMatch(FileInfo::isFinal)) {
+        if (files.values().stream().allMatch(FileInfo::allDone)) {
             sendEvent(ProcessingEvent.Done);
         }
     }

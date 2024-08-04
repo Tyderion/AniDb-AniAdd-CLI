@@ -30,7 +30,7 @@ public class FileInfo {
     @Getter @Setter private AniConfiguration configuration;
     @Getter @Setter private boolean isCached = false;
 
-    public enum FileAction {Process, FileCmd, MyListCmd, VoteCmd, Rename,}
+    public enum FileAction {Process, FileCmd, MyListCmd, VoteCmd, Rename, GenerateKodiMetadata}
 
     public void actionDone(FileAction action) {
         actionsTodo.remove(action);
@@ -52,6 +52,10 @@ public class FileInfo {
     public void actionFailed(FileAction action) {
         actionsTodo.remove(action);
         actionsError.add(action);
+    }
+
+    public boolean allDone() {
+        return actionsTodo.isEmpty();
     }
 
     public Path getFinalFilePath() {

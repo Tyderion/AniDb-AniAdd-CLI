@@ -1,5 +1,6 @@
 package kodi;
 
+import aniAdd.misc.ICallBack;
 import cache.AnimeRepository;
 import kodi.anime_details.AnimeDetailsLoader;
 import kodi.anime_mapping.AnimeMappingLoader;
@@ -54,7 +55,7 @@ public class KodiMetadataGenerator {
         return new cache.AnimeRepository(sessionFactory);
     }
 
-    public void generateMetadata(FileInfo fileInfo, boolean overwriteSeries, boolean overwriteEpisode) {
+    public void generateMetadata(FileInfo fileInfo, boolean overwriteSeries, boolean overwriteEpisode, OnDone onDone) {
         log.info(STR."Generating metadata for \{fileInfo.getFile().getName()}");
         val aniDbAnimeId = Integer.parseInt(fileInfo.getData().get(TagSystemTags.AnimeId));
         var anime = this.getAnimeRepository().getByAnimeId(aniDbAnimeId).orElseGet(() -> {
@@ -89,6 +90,7 @@ public class KodiMetadataGenerator {
 
                 generator.writeNfoFiles(episodeData, overwriteSeries, overwriteEpisode);
                 exportImages(generator.getSeries(), episodeData);
+                onDone.onDone();
             });
         });
     }
@@ -137,5 +139,9 @@ public class KodiMetadataGenerator {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public interface OnDone {
+        void onDone();
     }
 }
