@@ -2,6 +2,7 @@ package aniAdd.startup.commands.anidb;
 
 import aniAdd.startup.validation.validators.min.Min;
 import aniAdd.startup.validation.validators.nonempty.NonEmpty;
+import cache.PersistenceConfiguration;
 import lombok.extern.java.Log;
 import lombok.val;
 import picocli.CommandLine;
@@ -28,8 +29,8 @@ public class WatchCommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         log.info(STR."Watching directory \{directory} every \{interval} minutes");
-        try (val executorService = Executors.newScheduledThreadPool(10)) {
-            val aniAddO = parent.initializeAniAdd(false, executorService, directory);
+        try (val executorService = Executors.newScheduledThreadPool(10); val sessionFactory = PersistenceConfiguration.getSessionFactory(parent.getDbPath())) {
+            val aniAddO = parent.initializeAniAdd(false, executorService, directory, sessionFactory);
             if (aniAddO.isEmpty()) {
                 executorService.shutdownNow();
                 return 1;
