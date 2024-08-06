@@ -2,6 +2,8 @@ package processing;
 
 import java.io.*;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import aniAdd.config.AniConfiguration;
@@ -113,9 +115,14 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             boolean sendFile = procFile.isActionTodo(FileAction.FileCmd);
 
             if (procFile.isActionTodo(FileAction.FileCmd)) {
-                val cachedData = fileRepository.getAniDBFileData(procFile.getData().get(TagSystemTags.Ed2kHash), procFile.getFile().length());
+                val cachedData = fileRepository.getAniDBFileData(procFile.getEd2k(), procFile.getFile().length());
                 cachedData.ifPresentOrElse(fd -> {
                     log.info(STR."Got cached data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
+                    if (fd.getUpdatedAt() == null ||  fd.getUpdatedAt().plusDays(configuration.getCacheTTLInDays()).isBefore(LocalDateTime.now())) {
+                        log.info(STR."Cached data for file \{procFile.getFile().getAbsolutePath()} with Hash \{procFile.getEd2k()} is outdated, loading new info");
+                        api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFile().length(), procFile.getEd2k()));
+                        return;
+                    }
                     procFile.setCached(true);
                     procFile.getData().putAll(fd.getTags());
                     procFile.actionDone(FileAction.FileCmd);
@@ -124,14 +131,14 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     }
                 }, () -> {
                     log.info(STR."Requesting data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
-                    api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFile().length(), procFile.getData().get(TagSystemTags.Ed2kHash)));
+                    api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFile().length(), procFile.getEd2k()));
                 });
             }
             if (sendML) {
                 api.queueCommand(MylistAddCommand.Create(
                         procFile.getId(),
                         procFile.getFile().length(),
-                        procFile.getData().get(TagSystemTags.Ed2kHash),
+                        procFile.getEd2k(),
                         procFile.getConfiguration().getSetStorageType().getValue(),
                         procFile.getWatched() != null && procFile.getWatched()));
             }

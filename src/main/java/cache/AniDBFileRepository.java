@@ -31,6 +31,10 @@ public class AniDBFileRepository implements IAniDBFileRepository {
         }
     }
 
+    private Optional<AniDBFileData> get(AniDBFileData data) {
+        return getAniDBFileData(data.getEd2k(), data.getSize());
+    }
+
     @Override
     public Optional<AniDBFileData> getByFilename(@NonNull String filename) {
         try (val session = sessionFactory.openSession()) {
@@ -53,7 +57,7 @@ public class AniDBFileRepository implements IAniDBFileRepository {
     public boolean saveAniDBFileData(AniDBFileData aniDBFileData) {
         try (val session = sessionFactory.openSession()) {
             val transaction = session.beginTransaction();
-            session.persist(aniDBFileData);
+            session.merge(aniDBFileData);
             transaction.commit();
             return true;
         } catch (GenericJDBCException e) {

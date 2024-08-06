@@ -54,6 +54,10 @@ public class FileInfo {
         actionsError.add(action);
     }
 
+    public String getEd2k() {
+        return data.get(TagSystemTags.Ed2kHash);
+    }
+
     public AniDBFileData toAniDBFileData() {
         val builder = AniDBFileData.builder()
                 .ed2k(data.get(TagSystemTags.Ed2kHash))
