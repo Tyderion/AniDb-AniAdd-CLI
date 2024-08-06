@@ -61,4 +61,13 @@ public class AniDBFileData {
         private String ed2k;
         private long size;
     }
+
+    public void update(AniDBFileData other) {
+        if (!this.getEd2k().equals(other.getEd2k()) || this.getSize() != other.getSize()) {
+            throw new IllegalArgumentException("Cannot update different files");
+        }
+        this.fileName = other.fileName;
+        this.folderName = other.folderName;
+        this.tags = other.tags;
+    }
 }
