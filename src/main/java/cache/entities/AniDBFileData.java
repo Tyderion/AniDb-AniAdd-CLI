@@ -2,8 +2,12 @@ package cache.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import processing.tagsystem.TagSystemTags;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @Entity
@@ -13,6 +17,7 @@ import java.util.Map;
 @AllArgsConstructor
 @IdClass(AniDBFileData.AniDBFileId.class)
 public class AniDBFileData {
+
     @Id
     @Column(nullable = false)
     @NonNull
@@ -35,7 +40,17 @@ public class AniDBFileData {
     @CollectionTable(joinColumns = {
             @JoinColumn(name = "file_ed2k", nullable = false, referencedColumnName = "ed2k"),
             @JoinColumn(name = "file_size", nullable = false, referencedColumnName = "size")})
+
     private Map<TagSystemTags, String> tags;
+
+    @CreationTimestamp
+    @Column(updatable = false)
+    @Setter(value = AccessLevel.NONE)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Setter(value = AccessLevel.NONE)
+    private LocalDateTime updatedAt;
 
 
     @Data
