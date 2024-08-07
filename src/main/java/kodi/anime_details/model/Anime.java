@@ -9,12 +9,14 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Set;
+import java.util.stream.Stream;
 
 @Builder
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Anime {
+    private static final int maxTags = 25;
     private int id;
 
     String type;
@@ -38,7 +40,7 @@ public class Anime {
     public void updateEpisode(kodi.nfo.Episode.EpisodeBuilder builder, int anidbEpisodeNumber) {
         episodes.stream().filter(e -> e.getId() == anidbEpisodeNumber).findFirst()
                 .ifPresent(episode -> builder.voteCount(episode.getVoteCount()).rating(episode.getRating()));
-        tags.stream().sorted(Comparator.comparingInt(Tag::getWeight).reversed()).limit(8).map(Tag::getName).forEach(builder::genre);
+        getTags().forEach(builder::genre);
         creators.stream().filter(c -> c.getType() == Creator.Type.DIRECTION).map(Creator::getName).findFirst().ifPresent(builder::director);
         creators.stream().filter(c -> c.getType() == Creator.Type.CHARACTER_DESIGNER).map(Creator::getName).findFirst().ifPresent(builder::credit);
         creators.stream().filter(c -> c.getType() == Creator.Type.ORIGINAL_WORK).map(Creator::getName).findFirst().ifPresent(builder::credit);
@@ -63,11 +65,15 @@ public class Anime {
                 .plot(description)
                 .watched(false)
                 .uniqueId(UniqueId.AniDbAnimeId(id))
-                .genres(tags.stream().sorted(Comparator.comparingInt(Tag::getWeight).reversed()).limit(8).map(Tag::getName).toList())
+                .genres(getTags().toList())
                 .premiered(startDate)
                 .year(startDate.getYear())
                 .studio(creators.stream().filter(c -> c.getType() == Creator.Type.ANIMATION_WORK).map(Creator::getName).findFirst().orElse(""))
                 .actors(actors);
+    }
+
+    private Stream<String> getTags() {
+        return tags.stream().sorted(Comparator.comparingInt(Tag::getWeight).reversed().thenComparing(Tag::getName)).map(Tag::getName).limit(maxTags);
     }
 
 
