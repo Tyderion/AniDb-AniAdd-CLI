@@ -90,10 +90,7 @@ public class AnidbCommand {
         if (config.isRecursivelyDeleteEmptyFolders() && inputDirectory != null) {
             processing.addListener(event -> {
                 if (event == EpisodeProcessing.ProcessingEvent.Done) {
-                    executorService.execute(() -> {
-                        log.info("File moving done. Deleting empty directories.");
-                        executorService.execute(new DeleteEmptyChildDirectoriesRecursively(Paths.get(inputDirectory)));
-                    });
+                    fileSystem.run(new DeleteEmptyChildDirectoriesRecursively(Paths.get(inputDirectory)));
                 }
             });
         }
