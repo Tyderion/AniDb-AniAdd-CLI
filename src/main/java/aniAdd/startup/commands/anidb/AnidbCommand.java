@@ -93,7 +93,6 @@ public class AnidbCommand {
             });
         }
 
-
         val aniAdd = new AniAdd(configuration.get(), udpApi, terminateOnCompletion, fileProcessor, processing, _ -> {
             log.info("Shutdown complete");
             executorService.shutdownNow();

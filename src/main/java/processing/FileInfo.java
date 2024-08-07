@@ -29,7 +29,6 @@ public class FileInfo {
     private String renamedFolder;
     @Getter @Setter private Boolean watched;
     @Getter @Setter private boolean hashed;
-    @Getter @Setter private boolean isFinal;
     @Getter @Setter private AniConfiguration configuration;
     @Getter @Setter private boolean isCached = false;
 

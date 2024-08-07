@@ -80,6 +80,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     }
 
     private void nextStep(FileAction currentStep, FileInfo fileInfo) {
+        log.info(STR."Finished with \{currentStep} for file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()}");
         val configuration = fileInfo.getConfiguration();
         switch (currentStep) {
             case Init -> {
@@ -108,14 +109,10 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     renameFile(fileInfo);
                 }
             }
-            case MyListAddCmd -> {
-                // If we don't do anything except add it to mylist, we finalize here
-                if (!configuration.isEnableFileRenaming() && !configuration.isEnableFileMove()) {
+            case MyListAddCmd, Rename -> {
+                if (fileInfo.allDone()) {
                     finalize(fileInfo);
                 }
-            }
-            case Rename -> {
-                finalize(fileInfo);
             }
 
         }
@@ -145,15 +142,16 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     }
 
     private void addToMyList(FileInfo procFile) {
-        if (!procFile.isActionInProcess(FileAction.MyListAddCmd) && !procFile.isActionDone(FileAction.MyListAddCmd)) {
-            procFile.startAction(FileAction.MyListAddCmd);
-            api.queueCommand(MylistAddCommand.Create(
-                    procFile.getId(),
-                    procFile.getFile().length(),
-                    procFile.getEd2k(),
-                    procFile.getConfiguration().getSetStorageType().getValue(),
-                    procFile.getWatched() != null && procFile.getWatched()));
+        if (procFile.isActionInProcess(FileAction.MyListAddCmd) || procFile.isActionDone(FileAction.MyListAddCmd)) {
+            return;
         }
+        procFile.startAction(FileAction.MyListAddCmd);
+        api.queueCommand(MylistAddCommand.Create(
+                procFile.getId(),
+                procFile.getFile().length(),
+                procFile.getEd2k(),
+                procFile.getConfiguration().getSetStorageType().getValue(),
+                procFile.getWatched() != null && procFile.getWatched()));
     }
 
     private void hashFile(FileInfo fileInfo) {
@@ -233,6 +231,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 || replyStatus == ReplyStatus.MYLIST_ENTRY_EDITED) {
             procFile.actionDone(FileAction.MyListAddCmd);
             log.info(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} successfully added/edited on MyList");
+            procFile.actionDone(FileAction.MyListAddCmd);
+            nextStep(FileAction.MyListAddCmd, procFile);
         } else if (replyStatus == ReplyStatus.FILE_ALREADY_IN_MYLIST) {
             if (configuration.isOverwriteMLEntries()) {
                 api.queueCommand(query.getCommand().WithEdit());
@@ -272,9 +272,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     }
 
     private void finalize(FileInfo procFile) {
-        if (procFile.allDone()) {
-            procFile.setFinal(true);
-        } else {
+        if (!procFile.allDone()) {
             log.warning("Tried to finalize file that still has actions in progress");
             return;
         }
