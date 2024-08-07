@@ -2,19 +2,20 @@ package kodi.tvdb;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
-import lombok.ToString;
 
 import java.util.List;
 
 @Data
 public class TvDbSeasonResponse {
     int id;
-    SeriesStatus status;
+    @SerializedName("status")
+    SeriesStatus seriesStatus;
     List<Season> seasons;
 
     @Data
-    public class SeriesStatus {
+    public static class SeriesStatus {
         int id;
+        @SerializedName("name")
         Status status;
 
         enum Status {
