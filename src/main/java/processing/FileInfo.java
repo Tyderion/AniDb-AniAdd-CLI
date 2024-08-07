@@ -62,6 +62,10 @@ public class FileInfo {
     public Path getFinalFilePath() {
         return renamedFile != null ? renamedFile : file.toPath();
     }
+    
+    public String getEd2k() {
+        return data.get(TagSystemTags.Ed2kHash);
+    }
 
     public AniDBFileData toAniDBFileData() {
         val builder = AniDBFileData.builder()

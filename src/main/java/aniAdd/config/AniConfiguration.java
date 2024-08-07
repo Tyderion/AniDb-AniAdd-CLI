@@ -112,6 +112,8 @@ public class AniConfiguration {
 
     @Builder.Default private boolean generateKodiMetadata = false;
 
+    @Builder.Default private int cacheTTLInDays = 30;
+
     public String getEpisodePath(String relativePath) {
         return Paths.get(tvShowFolder, relativePath).toString();
     }

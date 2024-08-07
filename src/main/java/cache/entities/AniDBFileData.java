@@ -4,12 +4,15 @@ import jakarta.persistence.*;
 import kodi.common.UniqueId;
 import kodi.nfo.Episode;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import processing.tagsystem.TagSystemTags;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @Entity
@@ -19,6 +22,7 @@ import java.util.Map;
 @AllArgsConstructor
 @IdClass(AniDBFileData.AniDBFileId.class)
 public class AniDBFileData {
+
     @Id
     @Column(nullable = false)
     @NonNull
@@ -41,7 +45,17 @@ public class AniDBFileData {
     @CollectionTable(joinColumns = {
             @JoinColumn(name = "file_ed2k", nullable = false, referencedColumnName = "ed2k"),
             @JoinColumn(name = "file_size", nullable = false, referencedColumnName = "size")})
+
     private Map<TagSystemTags, String> tags;
+
+    @CreationTimestamp
+    @Column(updatable = false)
+    @Setter(value = AccessLevel.NONE)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Setter(value = AccessLevel.NONE)
+    private LocalDateTime updatedAt;
 
 
     @Data
@@ -96,18 +110,11 @@ public class AniDBFileData {
                 .subtitles(List.of(tags.get(TagSystemTags.FileSubtitleLanguage).split("'")))
                 .build();
 
-        val epNo = tags.get(TagSystemTags.EpisodeNumber);
-        int episodeNumber = 0;
-        int season = 1;
-        if (epNo.matches("[0-9]+")) {
-            episodeNumber = Integer.parseInt(epNo);
-        } else {
-            episodeNumber = Integer.parseInt(epNo.replaceAll("[^0-9]", ""));
-            season = 0;
-        }
+        int episodeNumber = episodeNumber();
+        int season = seasonNumber();
+
         return Episode.builder()
                 .title(tags.get(TagSystemTags.EpisodeNameEnglish))
-                .plot("TODO TVDB")
                 .season(season)
                 .episode(episodeNumber)
                 .runtimeInSeconds(Integer.parseInt(tags.get(TagSystemTags.FileDuration)))
