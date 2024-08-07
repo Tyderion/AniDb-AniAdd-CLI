@@ -128,12 +128,12 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             return;
         }
         procFile.startAction(FileAction.FileCmd);
-        val cachedData = fileRepository.getAniDBFileData(procFile.getEd2k(), procFile.getFile().length());
+        val cachedData = fileRepository.getAniDBFileData(procFile.getEd2k(), procFile.getFileSize());
         cachedData.ifPresentOrElse(fd -> {
             log.info(STR."Got cached data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
             if (fd.getUpdatedAt() == null || fd.getUpdatedAt().plusDays(procFile.getConfiguration().getCacheTTLInDays()).isBefore(LocalDateTime.now())) {
                 log.info(STR."Cached data for file \{procFile.getFile().getAbsolutePath()} with Hash \{procFile.getEd2k()} is outdated, loading new info");
-                api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFile().length(), procFile.getEd2k()));
+                api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFileSize(), procFile.getEd2k()));
                 return;
             }
             procFile.setCached(true);
@@ -142,7 +142,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             nextStep(FileAction.FileCmd, procFile);
         }, () -> {
             log.info(STR."Requesting data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
-            api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFile().length(), procFile.getEd2k()));
+            api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFileSize(), procFile.getEd2k()));
         });
     }
 
@@ -268,9 +268,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             } else {
                 procFile.actionFailed(FileAction.Rename);
             }
-            if (!procFile.isCached()) {
-                fileRepository.saveAniDBFileData(procFile.toAniDBFileData());
-            }
+            fileRepository.saveAniDBFileData(procFile.toAniDBFileData());
             nextStep(FileAction.Rename, procFile);
         });
     }

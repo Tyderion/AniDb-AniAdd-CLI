@@ -3,7 +3,6 @@ package processing;
 import aniAdd.config.AniConfiguration;
 import cache.entities.AniDBFileData;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.val;
 import processing.tagsystem.TagSystemTags;
@@ -14,7 +13,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 
-@RequiredArgsConstructor
 public class FileInfo {
 
     private final EnumSet<FileAction> actionsDone = EnumSet.noneOf(FileAction.class);
@@ -23,12 +21,31 @@ public class FileInfo {
     @Getter private final Map<TagSystemTags, String> data = new HashMap<>();
     @Getter private final File file;
     @Getter private final int id;
-    @Getter @Setter private Path renamedFile;
+    @Getter private final long fileSize;
+    private final String originalFileName;
+    private final String originalFolder;
+    @Getter private Path renamedFile;
+    private String renamedFileName;
+    private String renamedFolder;
     @Getter @Setter private Boolean watched;
     @Getter @Setter private boolean hashed;
     @Getter @Setter private boolean isFinal;
     @Getter @Setter private AniConfiguration configuration;
     @Getter @Setter private boolean isCached = false;
+
+    public FileInfo(File file, int id) {
+        this.file = file;
+        this.id = id;
+        this.fileSize = file.length();
+        this.originalFileName = file.getName();
+        this.originalFolder = file.getParentFile().getName();
+    }
+
+    public void setRenamedFile(Path renamedFile) {
+        this.renamedFile = renamedFile;
+        this.renamedFileName = renamedFile.getFileName().toString();
+        this.renamedFolder = renamedFile.getParent().getFileName().toString();
+    }
 
     public enum FileAction {Init, HashFile, FileCmd, MyListAddCmd, Rename,}
 
@@ -71,14 +88,13 @@ public class FileInfo {
                 .ed2k(data.get(TagSystemTags.Ed2kHash))
                 .tags(data);
 
+        builder.size(fileSize);
         if (renamedFile != null) {
-            builder.fileName(renamedFile.getFileName().toString());
-            builder.size(renamedFile.toFile().length());
-            builder.folderName(renamedFile.getParent().getFileName().toString());
+            builder.fileName(renamedFileName);
+            builder.folderName(renamedFolder);
         } else {
-            builder.fileName(file.getName());
-            builder.size(getFile().length());
-            builder.folderName(file.getParentFile().getName());
+            builder.fileName(originalFileName);
+            builder.folderName(originalFolder);
 
         }
         return builder.build();
