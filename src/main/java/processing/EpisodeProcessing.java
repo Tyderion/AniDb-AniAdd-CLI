@@ -87,16 +87,14 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             }
             case HashFile -> {
                 if (fileInfo.hasActionFailed(FileAction.HashFile)) {
-                    log.severe(STR."File \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()} failed to get data. Skipping all other steps");
+                    log.severe(STR."File \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()} failed to hash. Skipping all other steps");
                     finalize(fileInfo);
                     return;
                 }
                 if (configuration.isEnableFileRenaming() || configuration.isEnableFileMove()) {
-                    // These steps need file info
                     loadFileInfo(fileInfo);
                 }
                 if (configuration.isAddToMylist()) {
-                    // If we don't need file info, we can skip the file info step
                     addToMyList(fileInfo);
                 }
             }
