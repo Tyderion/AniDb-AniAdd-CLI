@@ -21,6 +21,7 @@ import udpapi.UdpApi;
 import udpapi.command.FileCommand;
 import udpapi.command.LogoutCommand;
 import udpapi.command.MylistAddCommand;
+import udpapi.command.MylistCommand;
 import udpapi.query.Query;
 import udpapi.reply.ReplyStatus;
 
@@ -69,8 +70,9 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             }
         });
 
-        api.registerCallback(FileCommand.class, this::aniDBInfoReply);
-        api.registerCallback(MylistAddCommand.class, this::aniDBMyListReply);
+        api.registerCallback(FileCommand.class, this::onAniDbFileReply);
+        api.registerCallback(MylistAddCommand.class, this::onAniDbMyListAddReply);
+        api.registerCallback(MylistCommand.class, this::onAniDbMyListReply);
     }
 
     public void addListener(ICallBack<ProcessingEvent> handler) {
@@ -149,7 +151,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             return;
         }
         fileInfo.startAction(FileAction.LoadWatchedState);
-        // TODO
+        api.queueCommand(MylistCommand.Create(fileInfo.getAniDbFileId(), fileInfo.getId()));
     }
 
     private void generateKodiMetadata(FileInfo procFile) {
@@ -157,7 +159,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             return;
         }
         procFile.startAction(FileAction.GenerateKodiMetadata);
-        kodiMetadataGenerator.generateMetadata(procFile, false, false, () -> {
+        kodiMetadataGenerator.generateMetadata(procFile, true, true, () -> {
             procFile.actionDone(FileAction.GenerateKodiMetadata);
             nextStep(FileAction.GenerateKodiMetadata, procFile);
         });
@@ -227,7 +229,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         }
     }
 
-    private void aniDBInfoReply(Query<FileCommand> query) {
+    private void onAniDbFileReply(Query<FileCommand> query) {
         int fileId = query.getTag();
         if (!files.contains(KeyType.Id, fileId)) {
             return;
@@ -256,7 +258,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 nextStep(FileAction.FileCmd, procFile);
             }
         } else {
-            query.getCommand().AddReplyToDict(procFile.getData(), query.getReply(), procFile.getWatched());
+            FileCommand.AddReplyToDict(procFile.getData(), query.getReply(), procFile.getWatched());
             fileRepository.saveAniDBFileData(procFile.toAniDBFileData());
             log.fine(STR."Got DB Info for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
             procFile.actionDone(FileAction.FileCmd);
@@ -264,7 +266,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         }
     }
 
-    private void aniDBMyListReply(Query<MylistAddCommand> query) {
+    private void onAniDbMyListAddReply(Query<MylistAddCommand> query) {
         val replyStatus = query.getReply().getReplyStatus();
 
         int fileId = query.getTag();
@@ -301,6 +303,20 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             procFile.actionFailed(FileAction.MyListAddCmd);
             nextStep(FileAction.MyListAddCmd, procFile);
         }
+    }
+
+    private void onAniDbMyListReply(Query<MylistCommand> query) {
+        int fileId = query.getTag();
+        if (!files.contains(KeyType.Id, fileId)) {
+            // This shouldn't actually happen
+            return;
+        }
+        FileInfo fileInfo = files.get(KeyType.Id, fileId);
+
+        MylistCommand.setWatchedDate(query.getReply(), fileInfo);
+
+        fileInfo.actionDone(FileAction.LoadWatchedState);
+        nextStep(FileAction.LoadWatchedState, fileInfo);
     }
 
     private void renameFile(FileInfo procFile) {
