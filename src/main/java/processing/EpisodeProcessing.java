@@ -159,7 +159,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             return;
         }
         procFile.startAction(FileAction.GenerateKodiMetadata);
-        kodiMetadataGenerator.generateMetadata(procFile, true, true, () -> {
+        kodiMetadataGenerator.generateMetadata(procFile, () -> {
             procFile.actionDone(FileAction.GenerateKodiMetadata);
             nextStep(FileAction.GenerateKodiMetadata, procFile);
         });

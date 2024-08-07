@@ -4,6 +4,7 @@ import kodi.common.UniqueId;
 import kodi.nfo.Actor;
 import kodi.nfo.Series;
 import lombok.*;
+import udpapi.reply.ReplyStatus;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -19,7 +20,7 @@ public class Anime {
     private static final int maxTags = 25;
     private int id;
 
-    String type;
+    Type type;
     int episodeCount;
     private LocalDate startDate;
     private LocalDate endDate;
@@ -102,6 +103,22 @@ public class Anime {
 
         public enum Type {
             REVIEW, TEMPORARY, PERMANENT;
+        }
+    }
+
+    @RequiredArgsConstructor
+    public enum Type {
+        TV_Series("TV Series"), OVA("OVA"), MOVIE("Movie"), OTHER("Other"), WEB("Web"), TV_SPECIAL("TV Special"), MUSIC_VIDEO("Music Video");
+
+        private final String value;
+
+        public static Type fromString(String value) {
+            for (Type status : Type.values()) {
+                if (String.valueOf(status.value).equals(value)) {
+                    return status;
+                }
+            }
+            return null;
         }
     }
 }

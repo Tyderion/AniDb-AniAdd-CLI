@@ -42,7 +42,7 @@ public class AnimeDetailsLoader {
                             animeId = getIntAttribute(startElement, "id");
                             anime.id(animeId);
                         }
-                        case "type" -> anime.type(reader.getElementText());
+                        case "type" -> anime.type(Anime.Type.fromString(reader.getElementText()));
                         case "episodecount" -> anime.episodeCount(Integer.parseInt(reader.getElementText()));
                         case "startdate" -> anime.startDate(LocalDate.parse(reader.getElementText()));
                         case "enddate" -> anime.endDate(LocalDate.parse(reader.getElementText()));

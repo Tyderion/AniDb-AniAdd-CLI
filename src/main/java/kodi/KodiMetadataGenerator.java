@@ -1,16 +1,15 @@
 package kodi;
 
 import kodi.anime_details.AnimeDetailsLoader;
+import kodi.anime_details.model.Anime;
 import kodi.anime_mapping.AnimeMappingLoader;
 import kodi.anime_mapping.model.AnimeMapping;
 import kodi.nfo.Episode;
 import kodi.nfo.Series;
+import kodi.tvdb.TvDbAllData;
 import kodi.tvdb.TvDbApi;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import lombok.extern.java.Log;
-import lombok.val;
 import processing.FileInfo;
 import processing.tagsystem.TagSystemTags;
 
@@ -19,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Log
 @RequiredArgsConstructor
@@ -30,54 +30,70 @@ public class KodiMetadataGenerator {
     private final DownloadHelper downloadHelper;
     private final TvDbApi tvDbApi;
     private final String animeMappingUrl;
+    private final OverwriteConfiguration overwriteConfiguration;
 
     private Map<Long, AnimeMapping> initAnimeMapping() {
         return new AnimeMappingLoader(animeMappingUrl).getAnimeMapping();
     }
 
-    public void generateMetadata(FileInfo fileInfo, boolean overwriteSeries, boolean overwriteEpisode, OnDone onDone) {
+    public void generateMetadata(FileInfo fileInfo, OnDone onDone) {
         log.info(STR."Generating metadata for \{fileInfo.getFile().getName()}");
         val aniDbAnimeId = Integer.parseInt(fileInfo.getData().get(TagSystemTags.AnimeId));
         var anime = AnimeDetailsLoader.parseXml(getXmlInput(aniDbAnimeId));
         log.info(STR."Anime: \{anime.getId()} - \{anime.getTitles().stream().findFirst()}");
         val tvDbId = this.getAnimeMapping().get((long) aniDbAnimeId).getTvDbId();
-        tvDbApi.getAllTvDbData(tvDbId, data -> {
-            data.ifPresent(tvDbData -> {
-                log.info(STR."TVDB: \{tvDbData.getSeriesId()} - \{tvDbData.getSeriesName()}");
-                NfoGenerator generator;
-                if (nfoGenerators.containsKey((long) aniDbAnimeId)) {
-                    generator = nfoGenerators.get((long) aniDbAnimeId);
-                } else {
-                    generator = NfoGenerator.forSeries(tvDbData.updateSeries(anime.toSeries()).build());
-                    nfoGenerators.put((long) aniDbAnimeId, generator);
-                }
 
-                val episodeFileData = fileInfo.toAniDBFileData();
-                val filePath = fileInfo.getFinalFilePath();
-                val fileName = filePath.getFileName().toString();
-                val extension = fileName.substring(fileName.lastIndexOf("."));
-                val fileNameWithoutExtension = fileName.substring(0, fileName.lastIndexOf("."));
-                val episode = episodeFileData.toEpisode();
-                anime.updateEpisode(episode, episodeFileData.aniDbEpisodeNumber());
-                tvDbData.updateEpisode(episode, episodeFileData.seasonNumber(), episodeFileData.episodeNumber());
-
-                val watchDate = fileInfo.getWatchedDate();
-                if (watchDate != null) {
-                    episode.lastPlayed(fileInfo.getWatchedDate().toLocalDate());
-                }
-
-                val episodeData = episode
-                        .filePath(filePath)
-                        .fileExtension(extension)
-                        .fileNameWithoutExtension(fileNameWithoutExtension)
-                        .build();
-
-
-                generator.writeNfoFiles(episodeData, overwriteSeries, overwriteEpisode);
-                exportImages(generator.getSeries(), episodeData);
-                onDone.onDone();
+        if (anime.getType() == Anime.Type.TV_Series) {
+            tvDbApi.getAllTvDbData(tvDbId, tvDbAllData -> {
+                generateData(tvDbAllData, fileInfo, anime, aniDbAnimeId, onDone);
             });
+        } else {
+            generateData(Optional.empty(), fileInfo, anime, aniDbAnimeId, onDone);
+        }
+
+
+    }
+
+    private void generateData(Optional<TvDbAllData> tvDbAllData, FileInfo fileInfo, Anime anime, int aniDbAnimeId, OnDone onDone) {
+        val series = anime.toSeries();
+        tvDbAllData.ifPresent(tvDbData -> {
+            log.info(STR."TVDB: \{tvDbData.getSeriesId()} - \{tvDbData.getSeriesName()}");
+            tvDbData.updateSeries(series);
         });
+        NfoGenerator generator;
+        if (nfoGenerators.containsKey((long) aniDbAnimeId)) {
+            generator = nfoGenerators.get((long) aniDbAnimeId);
+        } else {
+            generator = NfoGenerator.forSeries(series.build());
+            nfoGenerators.put((long) aniDbAnimeId, generator);
+        }
+
+        val episodeFileData = fileInfo.toAniDBFileData();
+        val filePath = fileInfo.getFinalFilePath();
+        val fileName = filePath.getFileName().toString();
+        val extension = fileName.substring(fileName.lastIndexOf("."));
+        val fileNameWithoutExtension = fileName.substring(0, fileName.lastIndexOf("."));
+        val episode = episodeFileData.toEpisode();
+        anime.updateEpisode(episode, episodeFileData.aniDbEpisodeNumber());
+        tvDbAllData.ifPresent(tvDbData -> {
+            tvDbData.updateEpisode(episode, episodeFileData.seasonNumber(), episodeFileData.episodeNumber());
+        });
+
+        val watchDate = fileInfo.getWatchedDate();
+        if (watchDate != null) {
+            episode.lastPlayed(fileInfo.getWatchedDate().toLocalDate());
+        }
+
+        val episodeData = episode
+                .filePath(filePath)
+                .fileExtension(extension)
+                .fileNameWithoutExtension(fileNameWithoutExtension)
+                .build();
+
+
+        generator.writeNfoFiles(episodeData, overwriteConfiguration.isOverwriteSeries(), overwriteConfiguration.isOverwriteEpisode());
+        exportImages(generator.getSeries(), episodeData);
+        onDone.onDone();
     }
 
     private void exportImages(Series series, Episode episode) {
@@ -103,7 +119,7 @@ public class KodiMetadataGenerator {
     }
 
     private void writeFile(String url, Path path) {
-        if (Files.exists(path)) {
+        if (Files.exists(path) || overwriteConfiguration.isOverwriteArtwork()) {
             return;
         }
         try {
@@ -128,5 +144,12 @@ public class KodiMetadataGenerator {
 
     public interface OnDone {
         void onDone();
+    }
+
+    @Value
+    public static class OverwriteConfiguration {
+        boolean overwriteSeries;
+        boolean overwriteEpisode;
+        boolean overwriteArtwork;
     }
 }
