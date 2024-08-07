@@ -3,7 +3,6 @@ package processing;
 import aniAdd.config.AniConfiguration;
 import cache.entities.AniDBFileData;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.val;
 import processing.tagsystem.TagSystemTags;
@@ -14,27 +13,28 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 
-@RequiredArgsConstructor
 public class FileInfo {
 
-    private final EnumSet<FileAction> actionsTodo = EnumSet.of(FileAction.Process);
     private final EnumSet<FileAction> actionsDone = EnumSet.noneOf(FileAction.class);
     private final EnumSet<FileAction> actionsError = EnumSet.noneOf(FileAction.class);
+    private final EnumSet<FileAction> actionsInProcess = EnumSet.noneOf(FileAction.class);
     @Getter private final Map<TagSystemTags, String> data = new HashMap<>();
     @Getter private final File file;
     @Getter private final int id;
-    @Getter @Setter private Path renamedFile;
+    @Getter private final long fileSize;
+    private final String originalFileName;
+    private final String originalFolder;
+    @Getter private Path renamedFile;
+    private String renamedFileName;
+    private String renamedFolder;
     @Getter @Setter private Boolean watched;
     @Getter @Setter private boolean hashed;
-    @Getter @Setter private boolean isFinal;
     @Getter @Setter private AniConfiguration configuration;
-    @Getter @Setter private boolean isCached = false;
 
-    // TODO: Load watched state before generating kodi metadata
     public enum FileAction {Process, FileCmd, MyListCmd, VoteCmd, Rename, LoadWatchedState, GenerateKodiMetadata}
 
     public void actionDone(FileAction action) {
-        actionsTodo.remove(action);
+        actionsInProcess.remove(action);
         actionsDone.add(action);
     }
 
@@ -42,21 +42,17 @@ public class FileInfo {
         return actionsDone.contains(action);
     }
 
-    public void addTodo(FileAction action) {
-        actionsTodo.add(action);
-    }
-
-    public boolean isActionTodo(FileAction action) {
-        return actionsTodo.contains(action);
-    }
-
     public void actionFailed(FileAction action) {
-        actionsTodo.remove(action);
+        actionsInProcess.remove(action);
         actionsError.add(action);
     }
 
+    public boolean hasActionFailed(FileAction action) {
+        return actionsError.contains(action);
+    }
+
     public boolean allDone() {
-        return actionsTodo.isEmpty();
+        return actionsInProcess.isEmpty();
     }
 
     public Path getFinalFilePath() {
@@ -72,14 +68,13 @@ public class FileInfo {
                 .ed2k(data.get(TagSystemTags.Ed2kHash))
                 .tags(data);
 
+        builder.size(fileSize);
         if (renamedFile != null) {
-            builder.fileName(renamedFile.getFileName().toString());
-            builder.size(renamedFile.toFile().length());
-            builder.folderName(renamedFile.getParent().getFileName().toString());
+            builder.fileName(renamedFileName);
+            builder.folderName(renamedFolder);
         } else {
-            builder.fileName(file.getName());
-            builder.size(getFile().length());
-            builder.folderName(file.getParentFile().getName());
+            builder.fileName(originalFileName);
+            builder.folderName(originalFolder);
 
         }
         return builder.build();

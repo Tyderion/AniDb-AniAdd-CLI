@@ -8,7 +8,6 @@ import aniAdd.startup.validation.validators.min.Min;
 import aniAdd.startup.validation.validators.nonempty.NonEmpty;
 import aniAdd.startup.validation.validators.port.Port;
 import cache.AniDBFileRepository;
-import cache.PersistenceConfiguration;
 import fileprocessor.DeleteEmptyChildDirectoriesRecursively;
 import fileprocessor.FileProcessor;
 import kodi.DownloadHelper;
@@ -19,6 +18,7 @@ import lombok.extern.java.Log;
 import lombok.val;
 import org.hibernate.SessionFactory;
 import picocli.CommandLine;
+import processing.DoOnFileSystem;
 import processing.FileHandler;
 import processing.EpisodeProcessing;
 import udpapi.UdpApi;
@@ -71,12 +71,10 @@ public class AnidbCommand {
     }
 
     private UdpApi getUdpApi(AniConfiguration configuration, ScheduledExecutorService executorService) {
-        val udpApi = new UdpApi(executorService, localPort, username, password);
-        udpApi.Initialize(configuration);
-        return udpApi;
+        return new UdpApi(executorService, localPort, username, password, configuration);
     }
 
-    public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService, String inputDirectory, SessionFactory sessionFactory) {
+    public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService, DoOnFileSystem fileSystem, String inputDirectory, SessionFactory sessionFactory) {
         val configuration = getConfiguration();
         if (configuration.isEmpty()) {
             log.severe(STR."No configuration loaded. Check the path to the config file. \{configPath}");
@@ -89,20 +87,16 @@ public class AnidbCommand {
         val fileRepository = new AniDBFileRepository(sessionFactory);
         val tvDbApi = new TvDbApi(System.getenv("TVDB_APIKEY"), executorService);
         val kodiMetadataGenerator = new KodiMetadataGenerator(new DownloadHelper(executorService), tvDbApi, sessionFactory, config.getAnimeMappingUrl());
-        val processing = new EpisodeProcessing(config, udpApi, executorService, kodiMetadataGenerator, fileHandler, fileRepository);
+        val processing = new EpisodeProcessing(config, udpApi, fileSystem, fileHandler, fileRepository);
         val fileProcessor = new FileProcessor(processing, config, executorService);
 
         if (config.isRecursivelyDeleteEmptyFolders() && inputDirectory != null) {
             processing.addListener(event -> {
                 if (event == EpisodeProcessing.ProcessingEvent.Done) {
-                    executorService.execute(() -> {
-                        log.info("File moving done. Deleting empty directories.");
-                        executorService.execute(new DeleteEmptyChildDirectoriesRecursively(Paths.get(inputDirectory)));
-                    });
+                    fileSystem.run(new DeleteEmptyChildDirectoriesRecursively(Paths.get(inputDirectory)));
                 }
             });
         }
-
 
         val aniAdd = new AniAdd(configuration.get(), udpApi, terminateOnCompletion, fileProcessor, processing, _ -> {
             log.info("Shutdown complete");

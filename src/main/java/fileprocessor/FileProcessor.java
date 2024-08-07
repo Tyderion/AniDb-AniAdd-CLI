@@ -33,7 +33,6 @@ public class FileProcessor {
         File file = new File(path);
         if (file.exists()) {
             processor.addFiles(List.of(file), configuration);
-            processor.start();
         }
     }
 
@@ -48,7 +47,6 @@ public class FileProcessor {
             } else {
                 sendEvent(FileProcessor.EventType.Processing);
                 processor.addFiles(files);
-                processor.start();
             }
         } catch (InterruptedException e) {
             log.severe(STR."Find Files was interrupted \{e.getMessage()}");
@@ -72,7 +70,5 @@ public class FileProcessor {
         void addFiles(Collection<File> newFiles);
 
         void addFiles(Collection<File> newFiles, AniConfiguration configuration);
-
-        void start();
     }
 }
