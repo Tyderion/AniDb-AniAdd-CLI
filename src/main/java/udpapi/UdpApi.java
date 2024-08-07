@@ -165,6 +165,10 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     }
 
     private void scheduleNextCommand() {
+        if (shutdown) {
+            log.info("Shutdown scheduled, not scheduling next command");
+            return;
+        }
         if (getCommandInFlight() != null) {
             log.fine("Command in flight, not scheduling next command");
             return;
