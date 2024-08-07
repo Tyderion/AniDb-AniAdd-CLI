@@ -9,7 +9,23 @@ import java.util.List;
 @Data
 public class TvDbSeasonResponse {
     int id;
+    SeriesStatus status;
     List<Season> seasons;
+
+    @Data
+    public class SeriesStatus {
+        int id;
+        Status status;
+
+        enum Status {
+            @SerializedName("Continuing")
+            CONTINUING,
+            @SerializedName("Ended")
+            ENDED,
+            @SerializedName("Upcoming")
+            UPCOMING;
+        }
+    }
 
     @Data
     public class Season {

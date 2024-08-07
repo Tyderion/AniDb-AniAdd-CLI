@@ -71,7 +71,16 @@ public class KodiMetadataGenerator {
                 val fileName = filePath.getFileName().toString();
                 val extension = fileName.substring(fileName.lastIndexOf("."));
                 val fileNameWithoutExtension = fileName.substring(0, fileName.lastIndexOf("."));
-                val episodeData = tvDbData.updateEpisode(anime.updateEpisode(episodeFileData.toEpisode(), episodeFileData.aniDbEpisodeNumber()), episodeFileData.seasonNumber(), episodeFileData.episodeNumber())
+                val episode = episodeFileData.toEpisode();
+                anime.updateEpisode(episode, episodeFileData.aniDbEpisodeNumber());
+                tvDbData.updateEpisode(episode, episodeFileData.seasonNumber(), episodeFileData.episodeNumber());
+
+                val watchDate = fileInfo.getWatchedDate();
+                if (watchDate != null) {
+                    episode.lastPlayed(fileInfo.getWatchedDate().toLocalDate());
+                }
+
+                val episodeData = episode
                         .filePath(filePath)
                         .fileExtension(extension)
                         .fileNameWithoutExtension(fileNameWithoutExtension)

@@ -114,10 +114,15 @@ public class NfoGenerator {
             writeTag("runtime", Duration.ofSeconds(episode.getRuntimeInSeconds()).toMinutes());
             writeTag("thumb", episode.getThumbnail());
             writeTag("playcount", episode.isWatched() ? "1" : "0");
+            val lastPlayed = episode.getLastPlayed();
+            if (lastPlayed != null) {
+                writeTag("lastplayed", lastPlayed.format(DateTimeFormatter.ISO_LOCAL_DATE));
+            }
             for (UniqueId uniqueId : episode.getUniqueIds()) {
                 writeTag("uniqueid", uniqueId.getValue(), attributes("type", uniqueId.getType().getName()));
             }
 
+            writeTag("studio", series.getStudio());
             for (String genre : episode.getGenres()) {
                 writeTag("genre", genre);
             }
@@ -186,6 +191,7 @@ public class NfoGenerator {
             });
             writeTag("plot", series.getPlot());
             writeTag("playcount", series.isWatched() ? "1" : "0");
+            writeTag("status", series.getStatus());
 
             for (Series.Artwork artwork : series.getArtworks()) {
                 val attributes = switch (artwork.getType()) {

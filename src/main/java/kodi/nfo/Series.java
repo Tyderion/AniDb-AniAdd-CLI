@@ -33,6 +33,8 @@ public class Series {
     int year;
     String studio;
 
+    String status;
+
     @Singular
     List<Actor> actors;
 

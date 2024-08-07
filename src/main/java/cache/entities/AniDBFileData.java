@@ -118,7 +118,6 @@ public class AniDBFileData {
                 .season(season)
                 .episode(episodeNumber)
                 .runtimeInSeconds(Integer.parseInt(tags.get(TagSystemTags.FileDuration)))
-                .watched(Boolean.parseBoolean(tags.get(TagSystemTags.Watched)))
                 .streamDetails(streamDetails)
                 .uniqueId(UniqueId.AniDbFileId(Long.parseLong(tags.get(TagSystemTags.FileId))))
                 .uniqueId(UniqueId.AniDbAnimeId(Long.parseLong(tags.get(TagSystemTags.AnimeId))))

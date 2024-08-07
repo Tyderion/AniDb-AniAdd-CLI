@@ -8,6 +8,7 @@ import lombok.Value;
 
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Builder
@@ -25,7 +26,6 @@ public class Episode {
     String plot;
 
     int runtimeInSeconds;
-    boolean watched;
 
     Path filePath;
     String fileExtension;
@@ -50,13 +50,15 @@ public class Episode {
     List<String> directors;
 
     LocalDate premiered;
-    String studio;
 
     StreamDetails streamDetails;
     LocalDate dateAdded;
 
-    @Singular
-    List<Actor> actors;
+    LocalDate lastPlayed;
+
+    public boolean isWatched() {
+        return lastPlayed != null;
+    }
 
     @Value
     @Builder

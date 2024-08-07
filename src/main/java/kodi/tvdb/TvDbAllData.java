@@ -19,9 +19,9 @@ public class TvDbAllData {
     List<TvDbSeasonResponse.Season> seasons;
     int seriesId;
     String seriesName;
+    TvDbSeasonResponse.SeriesStatus.Status status;
 
     public Series.SeriesBuilder updateSeries(Series.SeriesBuilder builder) {
-        // TODO
         builder.plot(plot);
         seasons
                 .stream().filter(season -> season.getType().getType() == TvDbSeasonResponse.SeasonType.Type.OFFICIAL && season.getSeasonPoster() != null)
@@ -61,6 +61,12 @@ public class TvDbAllData {
 
         });
 
+        switch (status) {
+            case CONTINUING -> builder.status("Continuing");
+            case ENDED -> builder.status("Ended");
+            case UPCOMING -> builder.status("Upcoming");
+        }
+
         return builder;
     }
 
@@ -78,12 +84,10 @@ public class TvDbAllData {
         };
     }
 
-    public Episode.EpisodeBuilder updateEpisode(Episode.EpisodeBuilder builder, int seasonNumber, int episodeNumber) {
+    public void updateEpisode(Episode.EpisodeBuilder builder, int seasonNumber, int episodeNumber) {
         // TODO
         val episode = episodes.stream().filter(e -> e.getSeasonNumber() == seasonNumber && e.getNumber() == episodeNumber).findFirst().orElseThrow();
         builder.plot(episode.getPlot());
         builder.thumbnail(STR."https://artworks.thetvdb.com\{episode.getImage()}");
-
-        return builder;
     }
 }

@@ -77,6 +77,7 @@ public class TvDbApi {
         log.info(STR."Fetching seasons for series \{seriesId}");
         tvDbClient.getSeasons(seriesId).enqueue(new RequestCallback<>(data -> {
             allData.seasons(data.getSeasons());
+            allData.status(data.getStatus().getStatus());
             requestsDone.setSeasons(true);
             log.info(STR."Successfully fetched all \{data.getSeasons().size()} seasons for series \{seriesId}");
             notify(onReceive, allData, requestsDone);

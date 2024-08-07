@@ -63,13 +63,13 @@ public class Anime {
     String description;
     String picture;
 
-    public kodi.nfo.Episode.EpisodeBuilder updateEpisode(kodi.nfo.Episode.EpisodeBuilder builder, int anidbEpisodeNumber) {
-        val episode = episodes.stream().filter(e -> e.getId() == anidbEpisodeNumber).findFirst().orElse(null);
-        if (episode != null) {
-            return builder.voteCount(episode.getVoteCount()).rating(episode.getRating());
-        }
-
-        return builder;
+    public void updateEpisode(kodi.nfo.Episode.EpisodeBuilder builder, int anidbEpisodeNumber) {
+        episodes.stream().filter(e -> e.getId() == anidbEpisodeNumber).findFirst()
+                .ifPresent(episode -> builder.voteCount(episode.getVoteCount()).rating(episode.getRating()));
+        tags.stream().sorted(Comparator.comparingInt(AnimeTag::getWeight).reversed()).limit(8).map(t -> t.getTag().getName()).forEach(builder::genre);
+        creators.stream().filter(c -> c.getType() == AnimeCreator.Type.DIRECTION).map(c -> c.getCreator().getName()).findFirst().ifPresent(builder::director);
+        creators.stream().filter(c -> c.getType() == AnimeCreator.Type.CHARACTER_DESIGNER).map(c -> c.getCreator().getName()).findFirst().ifPresent(builder::credit);
+        creators.stream().filter(c -> c.getType() == AnimeCreator.Type.ORIGINAL_WORK).map(c -> c.getCreator().getName()).findFirst().ifPresent(builder::credit);
     }
 
     public Series.SeriesBuilder toSeries() {
