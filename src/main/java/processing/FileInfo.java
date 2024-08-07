@@ -30,7 +30,6 @@ public class FileInfo {
     @Getter @Setter private Boolean watched;
     @Getter @Setter private boolean hashed;
     @Getter @Setter private AniConfiguration configuration;
-    @Getter @Setter private boolean isCached = false;
 
     public FileInfo(File file, int id) {
         this.file = file;

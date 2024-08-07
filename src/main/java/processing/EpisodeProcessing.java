@@ -79,10 +79,10 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         eventHandlers.forEach(handler -> handler.invoke(event));
     }
 
-    private void nextStep(FileAction currentStep, FileInfo fileInfo) {
-        log.info(STR."Finished with \{currentStep} for file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()}");
+    private void nextStep(FileAction finishedStep, FileInfo fileInfo) {
+        log.info(STR."Finished with \{finishedStep} for file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()}");
         val configuration = fileInfo.getConfiguration();
-        switch (currentStep) {
+        switch (finishedStep) {
             case Init -> {
                 hashFile(fileInfo);
             }
@@ -114,7 +114,6 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     finalize(fileInfo);
                 }
             }
-
         }
     }
 
@@ -131,7 +130,6 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFileSize(), procFile.getEd2k()));
                 return;
             }
-            procFile.setCached(true);
             procFile.getData().putAll(fd.getTags());
             procFile.actionDone(FileAction.FileCmd);
             nextStep(FileAction.FileCmd, procFile);
@@ -166,23 +164,26 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     }
 
     private void onHashComputed(Integer tag, String hash) {
+        if (!files.contains(KeyType.Id, tag)) {
+            // This shouldn't actually happen
+            return;
+        }
         FileInfo procFile = files.get(KeyType.Id, tag);
-        if (procFile != null && hash != null) {
+        if (hash != null) {
             procFile.getData().put(TagSystemTags.Ed2kHash, hash);
             log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} has been hashed");
             procFile.actionDone(FileAction.HashFile);
             nextStep(FileAction.HashFile, procFile);
-        } else if (procFile != null) {
+        } else {
             procFile.actionFailed(FileAction.HashFile);
             nextStep(FileAction.HashFile, procFile);
-            log.warning(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} could not be hashed");
         }
     }
 
     private void aniDBInfoReply(Query<FileCommand> query) {
         int fileId = query.getTag();
         if (!files.contains(KeyType.Id, fileId)) {
-            return; //File not found (Todo: throw error)
+            return;
         }
         FileInfo procFile = files.get(KeyType.Id, fileId);
         val replyStatus = query.getReply().getReplyStatus();
@@ -196,7 +197,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 case MULTIPLE_FILES_FOUND -> "Multiple files found";
                 default -> "Unknown error";
             };
-            log.warning(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned error: \{errorMessage}");
+            log.warning(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned error: \{replyStatus} - \{errorMessage}");
             if (replyStatus == ReplyStatus.NO_SUCH_FILE && procFile.getConfiguration().isMoveUnknownFiles()) {
                 fileSystem.run(() -> {
                     File currentFile = procFile.getFile();
@@ -289,18 +290,19 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     public void addFiles(Collection<File> newFiles, AniConfiguration configuration) {
         Boolean watched = configuration.isSetWatched() ? true : null;
 
-        for (File cf : newFiles) {
-            if (files.contains(KeyType.Path, cf.getAbsolutePath())) {
-                log.info(STR."File \{cf.getAbsolutePath()} already in processing/processed");
+        for (File file : newFiles) {
+            if (files.contains(KeyType.Path, file.getAbsolutePath())) {
+                log.info(STR."File \{file.getAbsolutePath()} already in processing/processed");
                 continue;
             }
 
-            FileInfo fileInfo = new FileInfo(cf, lastFileId);
+            FileInfo fileInfo = new FileInfo(file, lastFileId);
             fileInfo.setConfiguration(configuration);
             fileInfo.setWatched(watched);
 
             files.put(fileInfo);
             lastFileId++;
+            fileInfo.actionDone(FileAction.Init);
             nextStep(FileAction.Init, fileInfo);
         }
         log.fine(STR."File Count changed to \{files.size()}");
