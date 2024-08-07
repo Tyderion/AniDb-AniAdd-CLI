@@ -111,6 +111,8 @@ public class AniConfiguration {
     @NotNull @NonNull @Builder.Default private String animeMappingUrl = "https://raw.githubusercontent.com/Anime-Lists/anime-lists/master/anime-list.xml";
 
     @Builder.Default private boolean generateKodiMetadata = false;
+    
+    @Builder.Default private boolean syncWatchedStateToKodi = false;
 
     @Builder.Default private int cacheTTLInDays = 30;
 
