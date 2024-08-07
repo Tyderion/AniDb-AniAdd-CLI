@@ -2,6 +2,7 @@ package kodi;
 
 import kodi.common.UniqueId;
 import kodi.nfo.Actor;
+import kodi.nfo.Artwork;
 import kodi.nfo.Episode;
 import kodi.nfo.Series;
 import kodi.tvdb.TvDbArtworksResponse;
@@ -192,7 +193,7 @@ public class NfoGenerator {
             writeTag("plot", series.getPlot());
             writeTag("status", series.getStatus());
 
-            for (Series.Artwork artwork : series.getArtworks()) {
+            for (Artwork artwork : series.getArtworks()) {
                 val attributes = switch (artwork.getType()) {
                     case SERIES_POSTER, SERIES_BACKGROUND -> List.of(attribute("aspect", "poster"));
                     case SERIES_BANNER -> List.of(attribute("aspect", "banner"));
@@ -211,7 +212,7 @@ public class NfoGenerator {
                 writeTag("thumb", artwork.getUrl(), attributes);
             }
             writeTag("fanart", () -> {
-                for (Series.Artwork artwork : series.getFanarts()) {
+                for (Artwork artwork : series.getFanarts()) {
                     writeTag("thumb", artwork.getUrl());
                 }
             });

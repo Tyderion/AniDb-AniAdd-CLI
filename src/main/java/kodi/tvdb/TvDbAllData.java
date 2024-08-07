@@ -1,5 +1,6 @@
 package kodi.tvdb;
 
+import kodi.nfo.Artwork;
 import kodi.nfo.Episode;
 import kodi.nfo.Series;
 import lombok.Builder;
@@ -26,10 +27,10 @@ public class TvDbAllData {
         seasons
                 .stream().filter(season -> season.getType().getType() == TvDbSeasonResponse.SeasonType.Type.OFFICIAL && season.getSeasonPoster() != null)
                 .forEach(season -> {
-            builder.artwork(Series.Artwork.builder()
+            builder.artwork(Artwork.builder()
                     .url(season.getSeasonPoster())
                     .season(season.getNumber())
-                    .type(Series.ArtworkType.SEASON_POSTER)
+                    .type(Artwork.ArtworkType.SEASON_POSTER)
                     .build()
             );
         });
@@ -45,13 +46,13 @@ public class TvDbAllData {
                         a.getType() == TvDbArtworksResponse.Artwork.Type.SERIES_CLEARLOGO
         ).forEach(a -> {
             if (a.getImage().contains("fanart")) {
-                builder.fanart(Series.Artwork.builder()
+                builder.fanart(Artwork.builder()
                         .url(a.getImage())
                         .type(mapType(a.getType()))
                         .build()
                 );
             } else {
-                builder.artwork(Series.Artwork.builder()
+                builder.artwork(Artwork.builder()
                         .url(a.getImage())
                         .type(mapType(a.getType()))
                         .build()
@@ -70,16 +71,16 @@ public class TvDbAllData {
         return builder;
     }
 
-    private Series.ArtworkType mapType(TvDbArtworksResponse.Artwork.Type type) {
+    private Artwork.ArtworkType mapType(TvDbArtworksResponse.Artwork.Type type) {
         return switch (type) {
-            case SERIES_BANNER -> Series.ArtworkType.SERIES_BANNER;
-            case SERIES_POSTER -> Series.ArtworkType.SERIES_POSTER;
-            case SERIES_BACKGROUND -> Series.ArtworkType.SERIES_BACKGROUND;
-            case SEASON_BANNER -> Series.ArtworkType.SEASON_BANNER;
-            case SEASON_POSTER -> Series.ArtworkType.SEASON_POSTER;
-            case SEASON_BACKGROUND -> Series.ArtworkType.SEASON_BACKGROUND;
-            case SERIES_CLEARART -> Series.ArtworkType.CLEARART;
-            case SERIES_CLEARLOGO -> Series.ArtworkType.CLEARLOGO;
+            case SERIES_BANNER -> Artwork.ArtworkType.SERIES_BANNER;
+            case SERIES_POSTER -> Artwork.ArtworkType.SERIES_POSTER;
+            case SERIES_BACKGROUND -> Artwork.ArtworkType.SERIES_BACKGROUND;
+            case SEASON_BANNER -> Artwork.ArtworkType.SEASON_BANNER;
+            case SEASON_POSTER -> Artwork.ArtworkType.SEASON_POSTER;
+            case SEASON_BACKGROUND -> Artwork.ArtworkType.SEASON_BACKGROUND;
+            case SERIES_CLEARART -> Artwork.ArtworkType.CLEARART;
+            case SERIES_CLEARLOGO -> Artwork.ArtworkType.CLEARLOGO;
             default -> throw new IllegalArgumentException(STR."Unknown type: \{type}");
         };
     }

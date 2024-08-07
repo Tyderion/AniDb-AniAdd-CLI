@@ -2,6 +2,7 @@ package kodi.anime_details.model;
 
 import kodi.common.UniqueId;
 import kodi.nfo.Actor;
+import kodi.nfo.Artwork;
 import kodi.nfo.Series;
 import lombok.*;
 import udpapi.reply.ReplyStatus;
@@ -67,7 +68,7 @@ public class Anime {
                 .originalTitle(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle())
                 .voteCount(ratings.stream().filter(r -> r.getType() == Rating.Type.PERMANENT).findFirst().orElse(Rating.builder().count(0).build()).getCount())
                 .rating(ratings.stream().filter(r -> r.getType() == Rating.Type.PERMANENT).findFirst().orElse(Rating.builder().rating(0).build()).getRating())
-                .artwork(Series.Artwork.builder().url(STR."http://img7.anidb.net/pics/anime/\{picture}").type(Series.ArtworkType.SERIES_POSTER).build())
+                .artwork(Artwork.builder().url(STR."http://img7.anidb.net/pics/anime/\{picture}").type(Artwork.ArtworkType.SERIES_POSTER).build())
                 .plot(description)
                 .uniqueId(UniqueId.AniDbAnimeId(id))
                 .genres(getTags().toList())

@@ -4,6 +4,7 @@ import kodi.anime_details.AnimeDetailsLoader;
 import kodi.anime_details.model.Anime;
 import kodi.anime_mapping.AnimeMappingLoader;
 import kodi.anime_mapping.model.AnimeMapping;
+import kodi.nfo.Artwork;
 import kodi.nfo.Episode;
 import kodi.nfo.Series;
 import kodi.tvdb.TvDbAllData;
@@ -106,10 +107,10 @@ public class KodiMetadataGenerator {
             val name = i == 0 ? "fanart" : STR."fanart\{i}";
             writeFile(url, seriesFolder.resolve(STR."\{name}\{extension}"));
         }
-        series.getArtworks().stream().filter(a -> a.getType() == Series.ArtworkType.SERIES_POSTER).findFirst().ifPresent(
+        series.getArtworks().stream().filter(a -> a.getType() == Artwork.ArtworkType.SERIES_POSTER).findFirst().ifPresent(
                 a -> writeFile(a.getUrl(), seriesFolder.resolve("poster.jpg"))
         );
-        series.getArtworks().stream().filter(a -> a.getType() == Series.ArtworkType.SERIES_BANNER).findFirst().ifPresent(
+        series.getArtworks().stream().filter(a -> a.getType() == Artwork.ArtworkType.SERIES_BANNER).findFirst().ifPresent(
                 a -> writeFile(a.getUrl(), seriesFolder.resolve("banner.jpg"))
         );
         val actorPath = seriesFolder.resolve(".actors");
