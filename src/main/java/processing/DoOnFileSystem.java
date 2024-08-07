@@ -19,6 +19,6 @@ public class DoOnFileSystem implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        executor.shutdown();
+        executor.close();
     }
 }
