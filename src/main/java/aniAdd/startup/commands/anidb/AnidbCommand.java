@@ -68,9 +68,7 @@ public class AnidbCommand {
     }
 
     private UdpApi getUdpApi(AniConfiguration configuration, ScheduledExecutorService executorService) {
-        val udpApi = new UdpApi(executorService, localPort, username, password);
-        udpApi.Initialize(configuration);
-        return udpApi;
+        return new UdpApi(executorService, localPort, username, password, configuration);
     }
 
     public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService, DoOnFileSystem fileSystem, String inputDirectory, SessionFactory sessionFactory) {
