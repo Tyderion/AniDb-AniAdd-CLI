@@ -29,7 +29,7 @@ import udpapi.reply.ReplyStatus;
 public class EpisodeProcessing implements FileProcessor.Processor {
 
     private final UdpApi api;
-    private final AniConfiguration configuration;
+    private final AniConfiguration defaultConfiguration;
     private final DoOnFileSystem fileSystem;
     private final FileRenamer fileRenamer;
     private final IAniDBFileRepository fileRepository;
@@ -52,7 +52,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                              DoOnFileSystem fileSystem,
                              IFileHandler fileHandler,
                              IAniDBFileRepository fileRepository) {
-        this.configuration = configuration;
+        this.defaultConfiguration = configuration;
         this.api = udpApi;
         this.fileHandler = fileHandler;
         this.fileRenamer = new FileRenamer(fileHandler);
@@ -131,7 +131,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         val cachedData = fileRepository.getAniDBFileData(procFile.getEd2k(), procFile.getFile().length());
         cachedData.ifPresentOrElse(fd -> {
             log.info(STR."Got cached data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
-            if (fd.getUpdatedAt() == null || fd.getUpdatedAt().plusDays(configuration.getCacheTTLInDays()).isBefore(LocalDateTime.now())) {
+            if (fd.getUpdatedAt() == null || fd.getUpdatedAt().plusDays(procFile.getConfiguration().getCacheTTLInDays()).isBefore(LocalDateTime.now())) {
                 log.info(STR."Cached data for file \{procFile.getFile().getAbsolutePath()} with Hash \{procFile.getEd2k()} is outdated, loading new info");
                 api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFile().length(), procFile.getEd2k()));
                 return;
@@ -201,10 +201,15 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 default -> "Unknown error";
             };
             log.warning(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned error: \{errorMessage}");
-            if (replyStatus == ReplyStatus.NO_SUCH_FILE && configuration.isMoveUnknownFiles()) {
-                File currentFile = procFile.getFile();
-                val unknownTargetPath = Paths.get(configuration.getUnknownFolder(), currentFile.getParentFile().getName(), currentFile.getName());
-                fileHandler.renameFile(currentFile.toPath(), unknownTargetPath);
+            if (replyStatus == ReplyStatus.NO_SUCH_FILE && procFile.getConfiguration().isMoveUnknownFiles()) {
+                fileSystem.run(() -> {
+                    File currentFile = procFile.getFile();
+                    val unknownTargetPath = Paths.get(procFile.getConfiguration().getUnknownFolder(), currentFile.getParentFile().getName(), currentFile.getName());
+                    fileHandler.enameFile(currentFile.toPath(), unknownTargetPath);
+                    nextStep(FileAction.FileCmd, procFile);
+                });
+            } else {
+                nextStep(FileAction.FileCmd, procFile);
             }
         } else {
             query.getCommand().AddReplyToDict(procFile.getData(), query.getReply(), procFile.getWatched());
@@ -284,7 +289,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     }
 
     public void addFiles(Collection<File> newFiles) {
-        addFiles(newFiles, configuration);
+        addFiles(newFiles, defaultConfiguration);
     }
 
     public void addFiles(Collection<File> newFiles, AniConfiguration configuration) {
@@ -297,6 +302,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             }
 
             FileInfo fileInfo = new FileInfo(cf, lastFileId);
+            fileInfo.setConfiguration(configuration);
             fileInfo.setWatched(watched);
 
             files.put(fileInfo);
