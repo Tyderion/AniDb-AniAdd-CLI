@@ -31,7 +31,29 @@ public class FileInfo {
     @Getter @Setter private boolean hashed;
     @Getter @Setter private AniConfiguration configuration;
 
-    public enum FileAction {Process, FileCmd, MyListCmd, VoteCmd, Rename, LoadWatchedState, GenerateKodiMetadata}
+    public FileInfo(File file, int id) {
+        this.file = file;
+        this.id = id;
+        this.fileSize = file.length();
+        this.originalFileName = file.getName();
+        this.originalFolder = file.getParentFile().getName();
+    }
+
+    public void setRenamedFile(Path renamedFile) {
+        this.renamedFile = renamedFile;
+        this.renamedFileName = renamedFile.getFileName().toString();
+        this.renamedFolder = renamedFile.getParent().getFileName().toString();
+    }
+
+    public enum FileAction {Init, HashFile, FileCmd, MyListAddCmd, VoteCmd, Rename, LoadWatchedState, GenerateKodiMetadata}
+
+    public void startAction(FileAction action) {
+        actionsInProcess.add(action);
+    }
+
+    public boolean isActionInProcess(FileAction action) {
+        return actionsInProcess.contains(action);
+    }
 
     public void actionDone(FileAction action) {
         actionsInProcess.remove(action);

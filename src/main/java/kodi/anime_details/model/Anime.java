@@ -66,7 +66,7 @@ public class Anime {
     public kodi.nfo.Episode.EpisodeBuilder updateEpisode(kodi.nfo.Episode.EpisodeBuilder builder, int anidbEpisodeNumber) {
         val episode = episodes.stream().filter(e -> e.getId() == anidbEpisodeNumber).findFirst().orElse(null);
         if (episode != null) {
-            return builder.voteCount(episode.getVoteCount()).rating(episode.getRating())
+            return builder.voteCount(episode.getVoteCount()).rating(episode.getRating());
         }
 
         return builder;

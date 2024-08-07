@@ -16,8 +16,6 @@ import processing.FileInfo.FileAction;
 
 import aniAdd.misc.MultiKeyDict;
 
-import java.util.concurrent.ExecutorService;
-
 import processing.tagsystem.TagSystemTags;
 import udpapi.UdpApi;
 import udpapi.command.FileCommand;
@@ -96,7 +94,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     finalize(fileInfo);
                     return;
                 }
-                if (configuration.isEnableFileRenaming() || configuration.isEnableFileMove()) {
+                if (configuration.isEnableFileRenaming() || configuration.isEnableFileMove() || configuration.isGenerateKodiMetadata()) {
                     loadFileInfo(fileInfo);
                 }
                 if (configuration.isAddToMylist()) {
@@ -111,15 +109,60 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 }
                 if (configuration.isEnableFileRenaming() || configuration.isEnableFileMove()) {
                     renameFile(fileInfo);
+                } else if (configuration.isGenerateKodiMetadata()) {
+                    if (configuration.isSyncWatchedStateToKodi()) {
+                        loadWatchedState(fileInfo);
+                    } else {
+                        generateKodiMetadata(fileInfo);
+                    }
                 }
             }
-            case MyListAddCmd, Rename -> {
+            case Rename ->  {
+                if (configuration.isGenerateKodiMetadata()) {
+                    if (configuration.isSyncWatchedStateToKodi()) {
+                        loadWatchedState(fileInfo);
+                    } else {
+                        generateKodiMetadata(fileInfo);
+                    }
+                } else {
+                    if (fileInfo.allDone()) {
+                        finalize(fileInfo);
+                    }
+                }
+            }
+            case LoadWatchedState -> {
+                if (configuration.isGenerateKodiMetadata()) {
+                    generateKodiMetadata(fileInfo);
+                }
+            }
+            case MyListAddCmd, GenerateKodiMetadata -> {
                 if (fileInfo.allDone()) {
                     finalize(fileInfo);
                 }
             }
+
         }
     }
+
+    private void loadWatchedState(FileInfo fileInfo) {
+        if (fileInfo.isActionInProcess(FileAction.LoadWatchedState) || fileInfo.isActionDone(FileAction.LoadWatchedState)) {
+            return;
+        }
+        fileInfo.startAction(FileAction.LoadWatchedState);
+        // TODO
+    }
+
+    private void generateKodiMetadata(FileInfo procFile) {
+        if (procFile.isActionInProcess(FileAction.GenerateKodiMetadata) || procFile.isActionDone(FileAction.GenerateKodiMetadata)) {
+            return;
+        }
+        procFile.startAction(FileAction.GenerateKodiMetadata);
+        kodiMetadataGenerator.generateMetadata(procFile, false, false, () -> {
+            procFile.actionDone(FileAction.GenerateKodiMetadata);
+            nextStep(FileAction.GenerateKodiMetadata, procFile);
+        });
+    }
+
 
     private void loadFileInfo(FileInfo procFile) {
         if (procFile.isActionInProcess(FileAction.FileCmd) || procFile.isActionDone(FileAction.FileCmd)) {

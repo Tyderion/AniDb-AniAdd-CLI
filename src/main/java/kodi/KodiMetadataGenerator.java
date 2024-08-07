@@ -1,6 +1,5 @@
 package kodi;
 
-import aniAdd.misc.ICallBack;
 import cache.AnimeRepository;
 import kodi.anime_details.AnimeDetailsLoader;
 import kodi.anime_mapping.AnimeMappingLoader;
@@ -13,24 +12,15 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 import lombok.val;
-import okhttp3.OkHttpClient;
 import org.hibernate.SessionFactory;
 import processing.FileInfo;
 import processing.tagsystem.TagSystemTags;
 
 import java.io.*;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Log
 @RequiredArgsConstructor

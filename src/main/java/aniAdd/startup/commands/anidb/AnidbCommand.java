@@ -87,7 +87,7 @@ public class AnidbCommand {
         val fileRepository = new AniDBFileRepository(sessionFactory);
         val tvDbApi = new TvDbApi(System.getenv("TVDB_APIKEY"), executorService);
         val kodiMetadataGenerator = new KodiMetadataGenerator(new DownloadHelper(executorService), tvDbApi, sessionFactory, config.getAnimeMappingUrl());
-        val processing = new EpisodeProcessing(config, udpApi, fileSystem, fileHandler, fileRepository);
+        val processing = new EpisodeProcessing(config, udpApi, kodiMetadataGenerator, fileSystem, fileHandler, fileRepository);
         val fileProcessor = new FileProcessor(processing, config, executorService);
 
         if (config.isRecursivelyDeleteEmptyFolders() && inputDirectory != null) {
