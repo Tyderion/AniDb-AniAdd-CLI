@@ -156,7 +156,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
 
     private void hashFile(FileInfo fileInfo) {
         if (fileInfo.isActionInProcess(FileAction.HashFile) || fileInfo.isActionDone(FileAction.HashFile)) {
-            nextStep(FileAction.HashFile, fileInfo);
+            // This should technically not happen
             return;
         }
 
