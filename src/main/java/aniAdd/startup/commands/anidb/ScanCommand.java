@@ -4,6 +4,7 @@ import aniAdd.startup.validation.validators.nonempty.NonEmpty;
 import cache.PersistenceConfiguration;
 import lombok.val;
 import picocli.CommandLine;
+import processing.DoOnFileSystem;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -20,8 +21,10 @@ public class ScanCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        try (val executorService = Executors.newScheduledThreadPool(10); val sessionFactory = PersistenceConfiguration.getSessionFactory(parent.getDbPath())) {
-            val aniAddO = parent.initializeAniAdd(true, executorService, directory, sessionFactory);
+        try (val executorService = Executors.newScheduledThreadPool(10);
+             val sessionFactory = PersistenceConfiguration.getSessionFactory(parent.getDbPath());
+             val filesystem = new DoOnFileSystem()) {
+            val aniAddO = parent.initializeAniAdd(true, executorService,filesystem , directory, sessionFactory);
             if (aniAddO.isEmpty()) {
                 executorService.shutdownNow();
                 return 1;

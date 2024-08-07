@@ -30,15 +30,13 @@ public class EpisodeProcessing implements FileProcessor.Processor {
 
     private final UdpApi api;
     private final AniConfiguration configuration;
-    private final ExecutorService executorService;
+    private final DoOnFileSystem fileSystem;
     private final FileRenamer fileRenamer;
     private final IAniDBFileRepository fileRepository;
     private final IFileHandler fileHandler;
     private final List<ICallBack<ProcessingEvent>> eventHandlers = new ArrayList<>();
 
-    private boolean isProcessing;
     private int lastFileId = 0;
-    private int filesBeingMoved;
     private boolean shouldShutdown;
 
 
@@ -51,15 +49,15 @@ public class EpisodeProcessing implements FileProcessor.Processor {
 
     public EpisodeProcessing(AniConfiguration configuration,
                              UdpApi udpApi,
-                             ExecutorService executorService,
+                             DoOnFileSystem fileSystem,
                              IFileHandler fileHandler,
                              IAniDBFileRepository fileRepository) {
         this.configuration = configuration;
         this.api = udpApi;
-        this.executorService = executorService;
         this.fileHandler = fileHandler;
         this.fileRenamer = new FileRenamer(fileHandler);
         this.fileRepository = fileRepository;
+        this.fileSystem = fileSystem;
 
         api.registerCallback(LogoutCommand.class, cmd -> {
             // Remove files after we automatically log out
@@ -159,6 +157,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     procFile.getWatched() != null && procFile.getWatched()));
         }
     }
+
     private void hashFile(FileInfo fileInfo) {
         if (fileInfo.isActionInProcess(FileAction.HashFile) || fileInfo.isActionDone(FileAction.HashFile)) {
             nextStep(FileAction.HashFile, fileInfo);
@@ -167,19 +166,11 @@ public class EpisodeProcessing implements FileProcessor.Processor {
 
         fileInfo.startAction(FileAction.HashFile);
         log.fine(STR."Processing file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()}");
-
-        while (filesBeingMoved > 0) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ex) {
-            }
-        }
-        executorService.execute(new FileParser(fileInfo.getFile(), fileInfo.getId(), this::onHashComputed, () -> shouldShutdown));
+        fileSystem.run(new FileParser(fileInfo.getFile(), fileInfo.getId(), this::onHashComputed, () -> shouldShutdown));
     }
 
     private void onHashComputed(Integer tag, String hash) {
         FileInfo procFile = files.get(KeyType.Id, tag);
-
         if (procFile != null && hash != null) {
             procFile.getData().put(TagSystemTags.Ed2kHash, hash);
             log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} has been hashed");
@@ -225,13 +216,12 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     }
 
     private void aniDBMyListReply(Query<MylistAddCommand> query) {
-        //System.out.println("Got ML Reply");
         val replyStatus = query.getReply().getReplyStatus();
 
         int fileId = query.getTag();
         if (!files.contains(KeyType.Id, fileId)) {
-            //System.out.println("MLCmd: Id not found");
-            return; //File not found (Todo: throw error)
+            // This shouldn't actually happen
+            return;
         }
         FileInfo procFile = files.get(KeyType.Id, fileId);
         val configuration = procFile.getConfiguration();
@@ -267,37 +257,17 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             return;
         }
         procFile.startAction(FileAction.Rename);
-        while (filesBeingMoved > 0) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ex) {
-            }
-        }
-
-        synchronized (this) {
-            filesBeingMoved++;
-        }
-
-        try {
+        fileSystem.run(() -> {
             if (fileRenamer.renameFile(procFile)) {
                 procFile.actionDone(FileAction.Rename);
             } else {
                 procFile.actionFailed(FileAction.Rename);
-
-
             }
             if (!procFile.isCached()) {
                 fileRepository.saveAniDBFileData(procFile.toAniDBFileData());
-
             }
-        } catch (Exception e) {
-        }
-
-        synchronized (this) {
-            filesBeingMoved--;
-        }
-
-        nextStep(FileAction.Rename, procFile);
+            nextStep(FileAction.Rename, procFile);
+        });
     }
 
     private void finalize(FileInfo procFile) {
@@ -336,15 +306,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         log.fine(STR."File Count changed to \{files.size()}");
     }
 
-    @Override
-    public void start() {
-        isProcessing = true;
-        log.info("Starting processing");
-        processEps();
-    }
-
     public void Terminate() {
-        isProcessing = false;
         shouldShutdown = true;
     }
 
