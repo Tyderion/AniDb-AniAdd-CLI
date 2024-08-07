@@ -3,7 +3,6 @@ package processing;
 import java.io.*;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import aniAdd.config.AniConfiguration;
@@ -82,25 +81,100 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         eventHandlers.forEach(handler -> handler.invoke(event));
     }
 
-    private void processEps() {
-        for (FileInfo procFile : files.values()) {
-            if (!procFile.isHashed()) {
-                procFile.setHashed(true);
-                log.fine(STR."Processing file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
-
-                while (filesBeingMoved > 0) {
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException ex) {
-                    }
+    private void nextStep(FileAction currentStep, FileInfo fileInfo) {
+        val configuration = fileInfo.getConfiguration();
+        switch (currentStep) {
+            case Init -> {
+                hashFile(fileInfo);
+            }
+            case HashFile -> {
+                if (fileInfo.hasActionFailed(FileAction.HashFile)) {
+                    log.severe(STR."File \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()} failed to get data. Skipping all other steps");
+                    finalize(fileInfo);
+                    return;
                 }
+                if (configuration.isEnableFileRenaming() || configuration.isEnableFileMove()) {
+                    // These steps need file info
+                    loadFileInfo(fileInfo);
+                }
+                if (configuration.isAddToMylist()) {
+                    // If we don't need file info, we can skip the file info step
+                    addToMyList(fileInfo);
+                }
+            }
+            case FileCmd -> {
+                if (fileInfo.hasActionFailed(FileAction.FileCmd)) {
+                    // Error, file data not found, skip continuing with dependant steps
+                    log.warning(STR."FileCommand for file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()} failed to get data. Skipping dependant steps");
+                    return;
+                }
+                if (configuration.isEnableFileRenaming() || configuration.isEnableFileMove()) {
+                    renameFile(fileInfo);
+                }
+            }
+            case MyListAddCmd -> {
+                // If we don't do anything except add it to mylist, we finalize here
+                if (!configuration.isEnableFileRenaming() && !configuration.isEnableFileMove()) {
+                    finalize(fileInfo);
+                }
+            }
+            case Rename -> {
+                finalize(fileInfo);
+            }
 
-                executorService.execute(new FileParser(procFile.getFile(), procFile.getId(), this::onHashComputed, () -> shouldShutdown));
+        }
+    }
+
+    private void loadFileInfo(FileInfo procFile) {
+        if (procFile.isActionInProcess(FileAction.FileCmd) || procFile.isActionDone(FileAction.FileCmd)) {
+            return;
+        }
+        procFile.startAction(FileAction.FileCmd);
+        val cachedData = fileRepository.getAniDBFileData(procFile.getEd2k(), procFile.getFile().length());
+        cachedData.ifPresentOrElse(fd -> {
+            log.info(STR."Got cached data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
+            if (fd.getUpdatedAt() == null || fd.getUpdatedAt().plusDays(configuration.getCacheTTLInDays()).isBefore(LocalDateTime.now())) {
+                log.info(STR."Cached data for file \{procFile.getFile().getAbsolutePath()} with Hash \{procFile.getEd2k()} is outdated, loading new info");
+                api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFile().length(), procFile.getEd2k()));
                 return;
             }
+            procFile.setCached(true);
+            procFile.getData().putAll(fd.getTags());
+            procFile.actionDone(FileAction.FileCmd);
+            nextStep(FileAction.FileCmd, procFile);
+        }, () -> {
+            log.info(STR."Requesting data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
+            api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFile().length(), procFile.getEd2k()));
+        });
+    }
+
+    private void addToMyList(FileInfo procFile) {
+        if (!procFile.isActionInProcess(FileAction.MyListAddCmd) && !procFile.isActionDone(FileAction.MyListAddCmd)) {
+            procFile.startAction(FileAction.MyListAddCmd);
+            api.queueCommand(MylistAddCommand.Create(
+                    procFile.getId(),
+                    procFile.getFile().length(),
+                    procFile.getEd2k(),
+                    procFile.getConfiguration().getSetStorageType().getValue(),
+                    procFile.getWatched() != null && procFile.getWatched()));
         }
-        isProcessing = false;
-        log.info("Initial Processing done");
+    }
+    private void hashFile(FileInfo fileInfo) {
+        if (fileInfo.isActionInProcess(FileAction.HashFile) || fileInfo.isActionDone(FileAction.HashFile)) {
+            nextStep(FileAction.HashFile, fileInfo);
+            return;
+        }
+
+        fileInfo.startAction(FileAction.HashFile);
+        log.fine(STR."Processing file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()}");
+
+        while (filesBeingMoved > 0) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ex) {
+            }
+        }
+        executorService.execute(new FileParser(fileInfo.getFile(), fileInfo.getId(), this::onHashComputed, () -> shouldShutdown));
     }
 
     private void onHashComputed(Integer tag, String hash) {
@@ -108,50 +182,13 @@ public class EpisodeProcessing implements FileProcessor.Processor {
 
         if (procFile != null && hash != null) {
             procFile.getData().put(TagSystemTags.Ed2kHash, hash);
-            procFile.actionDone(FileAction.Process);
             log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} has been hashed");
-
-            boolean sendML = procFile.isActionTodo(FileAction.MyListCmd);
-            boolean sendFile = procFile.isActionTodo(FileAction.FileCmd);
-
-            if (procFile.isActionTodo(FileAction.FileCmd)) {
-                val cachedData = fileRepository.getAniDBFileData(procFile.getEd2k(), procFile.getFile().length());
-                cachedData.ifPresentOrElse(fd -> {
-                    log.info(STR."Got cached data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
-                    if (fd.getUpdatedAt() == null ||  fd.getUpdatedAt().plusDays(configuration.getCacheTTLInDays()).isBefore(LocalDateTime.now())) {
-                        log.info(STR."Cached data for file \{procFile.getFile().getAbsolutePath()} with Hash \{procFile.getEd2k()} is outdated, loading new info");
-                        api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFile().length(), procFile.getEd2k()));
-                        return;
-                    }
-                    procFile.setCached(true);
-                    procFile.getData().putAll(fd.getTags());
-                    procFile.actionDone(FileAction.FileCmd);
-                    if (shouldRunFinalProcessing(procFile)) {
-                        finalProcessing(procFile);
-                    }
-                }, () -> {
-                    log.info(STR."Requesting data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
-                    api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFile().length(), procFile.getEd2k()));
-                });
-            }
-            if (sendML) {
-                api.queueCommand(MylistAddCommand.Create(
-                        procFile.getId(),
-                        procFile.getFile().length(),
-                        procFile.getEd2k(),
-                        procFile.getConfiguration().getSetStorageType().getValue(),
-                        procFile.getWatched() != null && procFile.getWatched()));
-            }
-
-            log.fine(STR."Requested Data for file with Id \{procFile.getId()}: SendFile: \{sendFile}, SendML: \{sendML}");
-
+            procFile.actionDone(FileAction.HashFile);
+            nextStep(FileAction.HashFile, procFile);
         } else if (procFile != null) {
-            procFile.actionFailed(FileAction.Process);
+            procFile.actionFailed(FileAction.HashFile);
+            nextStep(FileAction.HashFile, procFile);
             log.warning(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} could not be hashed");
-        }
-
-        if (isProcessing) {
-            processEps();
         }
     }
 
@@ -179,16 +216,11 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 fileHandler.renameFile(currentFile.toPath(), unknownTargetPath);
             }
         } else {
-            procFile.actionDone(FileAction.FileCmd);
             query.getCommand().AddReplyToDict(procFile.getData(), query.getReply(), procFile.getWatched());
-            if (!procFile.isActionTodo(FileAction.Rename)) {
-                fileRepository.saveAniDBFileData(procFile.toAniDBFileData());
-            }
+            fileRepository.saveAniDBFileData(procFile.toAniDBFileData());
             log.fine(STR."Got DB Info for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
-        }
-
-        if (shouldRunFinalProcessing(procFile)) {
-            finalProcessing(procFile);
+            procFile.actionDone(FileAction.FileCmd);
+            nextStep(FileAction.FileCmd, procFile);
         }
     }
 
@@ -206,7 +238,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
 
         if (replyStatus == ReplyStatus.MYLIST_ENTRY_ADDED
                 || replyStatus == ReplyStatus.MYLIST_ENTRY_EDITED) {
-            procFile.actionDone(FileAction.MyListCmd);
+            procFile.actionDone(FileAction.MyListAddCmd);
             log.info(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} successfully added/edited on MyList");
         } else if (replyStatus == ReplyStatus.FILE_ALREADY_IN_MYLIST) {
             if (configuration.isOverwriteMLEntries()) {
@@ -214,10 +246,10 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} already added on MyList, retrying with edit");
             } else {
                 log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} already added on MyList. Continuing with next step.");
-                procFile.actionDone(FileAction.MyListCmd);
+                procFile.actionDone(FileAction.MyListAddCmd);
+                nextStep(FileAction.MyListAddCmd, procFile);
             }
         } else {
-            procFile.actionFailed(FileAction.MyListCmd);
             if (replyStatus == ReplyStatus.NO_SUCH_FILE
                     || replyStatus == ReplyStatus.NO_SUCH_ANIME
                     || replyStatus == ReplyStatus.NO_SUCH_GROUP) {
@@ -225,53 +257,58 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             } else {
                 log.warning(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned error \{replyStatus}");
             }
-        }
-
-        if (shouldRunFinalProcessing(procFile)) {
-            finalProcessing(procFile);
+            procFile.actionFailed(FileAction.MyListAddCmd);
+            nextStep(FileAction.MyListAddCmd, procFile);
         }
     }
 
-    private boolean shouldRunFinalProcessing(FileInfo procFile) {
-        return !procFile.isFinal() && !(procFile.isActionTodo(FileAction.FileCmd) || (procFile.isActionTodo(FileAction.MyListCmd)));
-    }
-
-    private void finalProcessing(FileInfo procFile) {
-        procFile.setFinal(true);
-
-        if (procFile.isActionTodo(FileAction.Rename) && procFile.isActionDone(FileAction.FileCmd)) {
-
-            while (filesBeingMoved > 0) {
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException ex) {
-                }
-            }
-
-            synchronized (this) {
-                filesBeingMoved++;
-            }
-
+    private void renameFile(FileInfo procFile) {
+        if (procFile.isActionInProcess(FileAction.Rename) || procFile.isActionDone(FileAction.Rename)) {
+            return;
+        }
+        procFile.startAction(FileAction.Rename);
+        while (filesBeingMoved > 0) {
             try {
-                if (fileRenamer.renameFile(procFile)) {
-                    procFile.actionDone(FileAction.Rename);
-
-                } else {
-                    procFile.actionFailed(FileAction.Rename);
-                }
-                if (!procFile.isCached()) {
-                    fileRepository.saveAniDBFileData(procFile.toAniDBFileData());
-                }
-            } catch (Exception e) {
-            }
-
-            synchronized (this) {
-                filesBeingMoved--;
+                Thread.sleep(100);
+            } catch (InterruptedException ex) {
             }
         }
 
+        synchronized (this) {
+            filesBeingMoved++;
+        }
+
+        try {
+            if (fileRenamer.renameFile(procFile)) {
+                procFile.actionDone(FileAction.Rename);
+            } else {
+                procFile.actionFailed(FileAction.Rename);
+
+
+            }
+            if (!procFile.isCached()) {
+                fileRepository.saveAniDBFileData(procFile.toAniDBFileData());
+
+            }
+        } catch (Exception e) {
+        }
+
+        synchronized (this) {
+            filesBeingMoved--;
+        }
+
+        nextStep(FileAction.Rename, procFile);
+    }
+
+    private void finalize(FileInfo procFile) {
+        if (procFile.allDone()) {
+            procFile.setFinal(true);
+        } else {
+            log.warning("Tried to finalize file that still has actions in progress");
+            return;
+        }
         log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} done");
-        if (files.values().stream().allMatch(FileInfo::isFinal)) {
+        if (files.values().stream().allMatch(FileInfo::allDone)) {
             sendEvent(ProcessingEvent.Done);
         }
     }
@@ -290,23 +327,11 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             }
 
             FileInfo fileInfo = new FileInfo(cf, lastFileId);
-            fileInfo.addTodo(FileAction.Process);
-            if (configuration.isEnableFileRenaming() || configuration.isEnableFileMove()) {
-                fileInfo.addTodo(FileAction.FileCmd);
-            }
-            fileInfo.setConfiguration(configuration);
-
-            if (configuration.isAddToMylist()) {
-                fileInfo.addTodo(FileAction.MyListCmd);
-            }
-            if (configuration.isEnableFileRenaming()) {
-                fileInfo.addTodo(FileAction.Rename);
-            }
-
             fileInfo.setWatched(watched);
 
             files.put(fileInfo);
             lastFileId++;
+            nextStep(FileAction.Init, fileInfo);
         }
         log.fine(STR."File Count changed to \{files.size()}");
     }

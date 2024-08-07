@@ -17,9 +17,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class FileInfo {
 
-    private final EnumSet<FileAction> actionsTodo = EnumSet.of(FileAction.Process);
     private final EnumSet<FileAction> actionsDone = EnumSet.noneOf(FileAction.class);
     private final EnumSet<FileAction> actionsError = EnumSet.noneOf(FileAction.class);
+    private final EnumSet<FileAction> actionsInProcess = EnumSet.noneOf(FileAction.class);
     @Getter private final Map<TagSystemTags, String> data = new HashMap<>();
     @Getter private final File file;
     @Getter private final int id;
@@ -30,10 +30,18 @@ public class FileInfo {
     @Getter @Setter private AniConfiguration configuration;
     @Getter @Setter private boolean isCached = false;
 
-    public enum FileAction {Process, FileCmd, MyListCmd, VoteCmd, Rename,}
+    public enum FileAction {Init, HashFile, FileCmd, MyListAddCmd, Rename,}
+
+    public void startAction(FileAction action) {
+        actionsInProcess.add(action);
+    }
+
+    public boolean isActionInProcess(FileAction action) {
+        return actionsInProcess.contains(action);
+    }
 
     public void actionDone(FileAction action) {
-        actionsTodo.remove(action);
+        actionsInProcess.remove(action);
         actionsDone.add(action);
     }
 
@@ -41,17 +49,17 @@ public class FileInfo {
         return actionsDone.contains(action);
     }
 
-    public void addTodo(FileAction action) {
-        actionsTodo.add(action);
-    }
-
-    public boolean isActionTodo(FileAction action) {
-        return actionsTodo.contains(action);
-    }
-
     public void actionFailed(FileAction action) {
-        actionsTodo.remove(action);
+        actionsInProcess.remove(action);
         actionsError.add(action);
+    }
+
+    public boolean hasActionFailed(FileAction action) {
+        return actionsError.contains(action);
+    }
+
+    public boolean allDone() {
+        return actionsInProcess.isEmpty();
     }
 
     public String getEd2k() {
