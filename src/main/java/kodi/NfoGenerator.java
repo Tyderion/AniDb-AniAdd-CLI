@@ -190,7 +190,6 @@ public class NfoGenerator {
                         });
             });
             writeTag("plot", series.getPlot());
-            writeTag("playcount", series.isWatched() ? "1" : "0");
             writeTag("status", series.getStatus());
 
             for (Series.Artwork artwork : series.getArtworks()) {

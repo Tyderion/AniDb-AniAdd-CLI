@@ -86,6 +86,10 @@ public class TvDbAllData {
 
     public void updateEpisode(Episode.EpisodeBuilder builder, int seasonNumber, int episodeNumber) {
         // TODO
+        if (seasonNumber == 0) {
+            // Specials often cannot be mapped correctly to tvdb
+            return;
+        }
         val episode = episodes.stream().filter(e -> e.getSeasonNumber() == seasonNumber && e.getNumber() == episodeNumber).findFirst().orElseThrow();
         builder.plot(episode.getPlot());
         builder.thumbnail(STR."https://artworks.thetvdb.com\{episode.getImage()}");

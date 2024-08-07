@@ -18,7 +18,6 @@ public class Series {
     int voteCount;
     double rating;
     String plot;
-    boolean watched;
 
     @Singular
     List<UniqueId> uniqueIds;

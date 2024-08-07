@@ -48,13 +48,18 @@ public class Anime {
 
     public Series.SeriesBuilder toSeries() {
         val actors = new ArrayList<Actor>();
+        var order = 0;
         val mainCharacters = characters.stream().filter(c -> c.getRole() == Character.Role.MAIN).toList();
-        for (int i = 0; i < mainCharacters.size(); i++) {
-            actors.add(mainCharacters.get(i).toActor(i));
+        for (Character character : mainCharacters) {
+            actors.add(character.toActor(++order));
         }
         val secondaryCharacters = characters.stream().filter(c -> c.getRole() == Character.Role.SECONDARY && c.getSeiyuu() != null).toList();
-        for (int i = 0; i < secondaryCharacters.size(); i++) {
-            actors.add(secondaryCharacters.get(i).toActor(i + mainCharacters.size()));
+        for (Character character : secondaryCharacters) {
+            actors.add(character.toActor(++order));
+        }
+        val rest = characters.stream().filter(c -> c.getRole() == Character.Role.APPEARS_IN && c.getSeiyuu() != null).toList();
+        for (Character character : rest) {
+            actors.add(character.toActor(++order));
         }
         return Series.builder()
                 .title(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle())
@@ -63,7 +68,6 @@ public class Anime {
                 .rating(ratings.stream().filter(r -> r.getType() == Rating.Type.PERMANENT).findFirst().orElse(Rating.builder().rating(0).build()).getRating())
                 .artwork(Series.Artwork.builder().url(STR."http://img7.anidb.net/pics/anime/\{picture}").type(Series.ArtworkType.SERIES_POSTER).build())
                 .plot(description)
-                .watched(false)
                 .uniqueId(UniqueId.AniDbAnimeId(id))
                 .genres(getTags().toList())
                 .premiered(startDate)
