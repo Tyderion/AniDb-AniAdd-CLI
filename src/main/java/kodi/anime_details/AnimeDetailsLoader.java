@@ -4,15 +4,12 @@ import kodi.anime_details.model.*;
 import kodi.anime_details.model.Character;
 import lombok.extern.java.Log;
 import lombok.val;
-import udpapi.UdpApiConfiguration;
 
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.StartElement;
 import java.io.*;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -194,18 +191,17 @@ public class AnimeDetailsLoader {
         return null;
     }
 
-    private static Set<AnimeTag> parseTags(XMLEventReader reader, StartElement rootElement, int animeId) throws XMLStreamException {
-        val tags = new HashSet<AnimeTag>();
+    private static Set<Tag> parseTags(XMLEventReader reader, StartElement rootElement, int animeId) throws XMLStreamException {
+        val tags = new HashSet<Tag>();
         var currentTag = Tag.builder();
-        var currentAnimeTag = AnimeTag.builder();
         while (reader.hasNext()) {
             val event = reader.nextEvent();
             if (event.isStartElement()) {
                 val startElement = event.asStartElement();
                 switch (startElement.getName().getLocalPart()) {
                     case "tag" -> {
-                        currentTag = Tag.builder().id(getIntAttribute(startElement, "id"));
-                        currentAnimeTag = AnimeTag.builder().weight(getIntAttribute(startElement, "weight"));
+                        currentTag = Tag.builder().id(getIntAttribute(startElement, "id"))
+                                .weight(getIntAttribute(startElement, "weight"));
                     }
                     case "name" -> currentTag.name(reader.getElementText());
                     case "description" -> currentTag.description(reader.getElementText());
@@ -215,11 +211,8 @@ public class AnimeDetailsLoader {
                 switch (event.asEndElement().getName().getLocalPart()) {
                     case "tag" -> {
                         val tag = currentTag.build();
-                        currentAnimeTag.tag(tag);
-                        currentAnimeTag.animeId(animeId).tagId(tag.getId());
-                        val animeTag = currentAnimeTag.build();
-                        if (animeTag.getWeight() > 0) {
-                            tags.add(animeTag);
+                        if (tag.getWeight() > 0) {
+                            tags.add(tag);
                         }
                     }
                     case "tags" -> {
@@ -294,8 +287,8 @@ public class AnimeDetailsLoader {
     }
 
 
-    private static Set<AnimeCreator> parseCreators(XMLEventReader reader, StartElement rootElement, int animeId) throws XMLStreamException {
-        val creators = new HashSet<AnimeCreator>();
+    private static Set<Creator> parseCreators(XMLEventReader reader, StartElement rootElement, int animeId) throws XMLStreamException {
+        val creators = new HashSet<Creator>();
         while (reader.hasNext()) {
             val event = reader.nextEvent();
             if (event.isStartElement()) {
@@ -303,20 +296,17 @@ public class AnimeDetailsLoader {
                 if (startElement.getName().getLocalPart().equals("name")) {
                     val creator = Creator.builder()
                             .id(getIntAttribute(startElement, "id"))
-                            .name(reader.getElementText())
-                            .build();
+                            .name(reader.getElementText());
                     val type = getStringAttribute(startElement, "type");
-                    val animeCreator = AnimeCreator.builder()
-                            .creator(creator);
                     switch (type) {
-                        case "Direction" -> animeCreator.type(AnimeCreator.Type.DIRECTION);
-                        case "Original Work" -> animeCreator.type(AnimeCreator.Type.ORIGINAL_WORK);
-                        case "Character Design" -> animeCreator.type(AnimeCreator.Type.CHARACTER_DESIGNER);
-                        case "Animation Work" -> animeCreator.type(AnimeCreator.Type.ANIMATION_WORK);
+                        case "Direction" -> creator.type(Creator.Type.DIRECTION);
+                        case "Original Work" -> creator.type(Creator.Type.ORIGINAL_WORK);
+                        case "Character Design" -> creator.type(Creator.Type.CHARACTER_DESIGNER);
+                        case "Animation Work" -> creator.type(Creator.Type.ANIMATION_WORK);
                     }
-                    val ac = animeCreator.build();
-                    if (ac.getType() != null) {
-                        creators.add(ac);
+                    val c = creator.build();
+                    if (c.getType() != null) {
+                        creators.add(c);
                     }
                 }
             }

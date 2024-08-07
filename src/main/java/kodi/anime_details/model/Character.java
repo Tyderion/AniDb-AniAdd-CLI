@@ -1,21 +1,14 @@
 package kodi.anime_details.model;
 
-import jakarta.persistence.*;
 import kodi.nfo.Actor;
-import kodi.nfo.Series;
 import lombok.*;
 
-import java.util.Set;
-
-@Entity
 @Builder
 @Data
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
 public class Character {
-    @Id
-    @Column(nullable = false)
     int id;
 
     String name;
@@ -24,8 +17,6 @@ public class Character {
     String gender;
     String picture;
 
-    @ToString.Exclude
-    @ManyToOne(fetch = FetchType.EAGER, targetEntity = Creator.class)
     Creator seiyuu;
 
     public Actor toActor(int order) {
@@ -40,7 +31,6 @@ public class Character {
                 .build();
     }
 
-    @Embeddable
     @Data
     @Builder
     @AllArgsConstructor

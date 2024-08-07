@@ -18,13 +18,6 @@ public class PersistenceConfiguration {
                 .setProperty("hibernate.show_sql", "false")
                 .setProperty("hibernate.format_sql", "false")
                 .setProperty("hibernate.hbm2ddl.auto", "update")
-                .addAnnotatedClass(cache.entities.AniDBFileData.class)
-                .addAnnotatedClass(Anime.class)
-                .addAnnotatedClass(AnimeCreator.class)
-                .addAnnotatedClass(AnimeTag.class)
-                .addAnnotatedClass(Character.class)
-                .addAnnotatedClass(Creator.class)
-                .addAnnotatedClass(Episode.class)
-                .addAnnotatedClass(Tag.class);
+                .addAnnotatedClass(cache.entities.AniDBFileData.class);
     }
 }

@@ -1,6 +1,5 @@
 package kodi;
 
-import cache.AnimeRepository;
 import kodi.anime_details.AnimeDetailsLoader;
 import kodi.anime_mapping.AnimeMappingLoader;
 import kodi.anime_mapping.model.AnimeMapping;
@@ -12,7 +11,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 import lombok.val;
-import org.hibernate.SessionFactory;
 import processing.FileInfo;
 import processing.tagsystem.TagSystemTags;
 
@@ -31,28 +29,16 @@ public class KodiMetadataGenerator {
     private final Map<Long, NfoGenerator> nfoGenerators = new HashMap<>();
     private final DownloadHelper downloadHelper;
     private final TvDbApi tvDbApi;
-    private final SessionFactory sessionFactory;
     private final String animeMappingUrl;
-
-    @Getter(lazy = true, value = AccessLevel.PRIVATE)
-    private final AnimeRepository animeRepository = initAnimeRepository();
 
     private Map<Long, AnimeMapping> initAnimeMapping() {
         return new AnimeMappingLoader(animeMappingUrl).getAnimeMapping();
     }
 
-    private AnimeRepository initAnimeRepository() {
-        return new cache.AnimeRepository(sessionFactory);
-    }
-
     public void generateMetadata(FileInfo fileInfo, boolean overwriteSeries, boolean overwriteEpisode, OnDone onDone) {
         log.info(STR."Generating metadata for \{fileInfo.getFile().getName()}");
         val aniDbAnimeId = Integer.parseInt(fileInfo.getData().get(TagSystemTags.AnimeId));
-        var anime = this.getAnimeRepository().getByAnimeId(aniDbAnimeId).orElseGet(() -> {
-            val details = AnimeDetailsLoader.parseXml(getXmlInput(aniDbAnimeId));
-            this.getAnimeRepository().saveAnime(details);
-            return details;
-        });
+        var anime = AnimeDetailsLoader.parseXml(getXmlInput(aniDbAnimeId));
         log.info(STR."Anime: \{anime.getId()} - \{anime.getTitles().stream().findFirst()}");
         val tvDbId = this.getAnimeMapping().get((long) aniDbAnimeId).getTvDbId();
         tvDbApi.getAllTvDbData(tvDbId, data -> {

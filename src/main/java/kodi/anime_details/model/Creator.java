@@ -1,14 +1,9 @@
 package kodi.anime_details.model;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import lombok.*;
 
-import java.util.Set;
-
-@Entity
 @Builder
 @Data
 @NoArgsConstructor
@@ -21,4 +16,10 @@ public class Creator {
     String name;
 
     String picture;
+
+    Type type;
+
+    public enum Type {
+        ORIGINAL_WORK, DIRECTION, CHARACTER_DESIGNER, ANIMATION_WORK;
+    }
 }

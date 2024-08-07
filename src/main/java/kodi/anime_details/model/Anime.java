@@ -1,6 +1,5 @@
 package kodi.anime_details.model;
 
-import jakarta.persistence.*;
 import kodi.common.UniqueId;
 import kodi.nfo.Actor;
 import kodi.nfo.Series;
@@ -9,54 +8,27 @@ import lombok.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Set;
 
-@Entity
 @Builder
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Anime {
-    @Id
-    @Column(nullable = false)
     private int id;
 
     String type;
     int episodeCount;
-    @Column(columnDefinition = "DATE")
     private LocalDate startDate;
-
-    @Column(columnDefinition = "DATE")
     private LocalDate endDate;
 
-    @Singular
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(joinColumns = {
-            @JoinColumn(name = "anime_id", nullable = false, referencedColumnName = "id")})
     private Set<Title> titles;
+    private Set<Rating> ratings;
 
-    @Singular
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(joinColumns = {
-            @JoinColumn(name = "anime_id", nullable = false, referencedColumnName = "id")})
-    private List<Rating> ratings;
+    Set<Creator> creators;
+    Set<Tag> tags;
 
-    @OneToMany(mappedBy = "anime", fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
-    Set<AnimeCreator> creators;
-
-    @OneToMany(mappedBy = "anime", fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
-    Set<AnimeTag> tags;
-
-    @ToString.Exclude
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "anime_characters",
-            joinColumns = @JoinColumn(name = "anime_id", referencedColumnName = "id"),
-            inverseJoinColumns = @JoinColumn(name = "character_id", referencedColumnName = "id"))
     Set<Character> characters;
-
-    @OneToMany(fetch = FetchType.EAGER)
     Set<Episode> episodes;
 
     @ToString.Exclude
@@ -66,10 +38,10 @@ public class Anime {
     public void updateEpisode(kodi.nfo.Episode.EpisodeBuilder builder, int anidbEpisodeNumber) {
         episodes.stream().filter(e -> e.getId() == anidbEpisodeNumber).findFirst()
                 .ifPresent(episode -> builder.voteCount(episode.getVoteCount()).rating(episode.getRating()));
-        tags.stream().sorted(Comparator.comparingInt(AnimeTag::getWeight).reversed()).limit(8).map(t -> t.getTag().getName()).forEach(builder::genre);
-        creators.stream().filter(c -> c.getType() == AnimeCreator.Type.DIRECTION).map(c -> c.getCreator().getName()).findFirst().ifPresent(builder::director);
-        creators.stream().filter(c -> c.getType() == AnimeCreator.Type.CHARACTER_DESIGNER).map(c -> c.getCreator().getName()).findFirst().ifPresent(builder::credit);
-        creators.stream().filter(c -> c.getType() == AnimeCreator.Type.ORIGINAL_WORK).map(c -> c.getCreator().getName()).findFirst().ifPresent(builder::credit);
+        tags.stream().sorted(Comparator.comparingInt(Tag::getWeight).reversed()).limit(8).map(Tag::getName).forEach(builder::genre);
+        creators.stream().filter(c -> c.getType() == Creator.Type.DIRECTION).map(Creator::getName).findFirst().ifPresent(builder::director);
+        creators.stream().filter(c -> c.getType() == Creator.Type.CHARACTER_DESIGNER).map(Creator::getName).findFirst().ifPresent(builder::credit);
+        creators.stream().filter(c -> c.getType() == Creator.Type.ORIGINAL_WORK).map(Creator::getName).findFirst().ifPresent(builder::credit);
     }
 
     public Series.SeriesBuilder toSeries() {
@@ -91,15 +63,14 @@ public class Anime {
                 .plot(description)
                 .watched(false)
                 .uniqueId(UniqueId.AniDbAnimeId(id))
-                .genres(tags.stream().sorted(Comparator.comparingInt(AnimeTag::getWeight).reversed()).limit(8).map(t -> t.getTag().getName()).toList())
+                .genres(tags.stream().sorted(Comparator.comparingInt(Tag::getWeight).reversed()).limit(8).map(Tag::getName).toList())
                 .premiered(startDate)
                 .year(startDate.getYear())
-                .studio(creators.stream().filter(c -> c.getType() == AnimeCreator.Type.ANIMATION_WORK).map(c -> c.getCreator().getName()).findFirst().orElse(""))
+                .studio(creators.stream().filter(c -> c.getType() == Creator.Type.ANIMATION_WORK).map(Creator::getName).findFirst().orElse(""))
                 .actors(actors);
     }
 
 
-    @Embeddable
     @Data
     @Builder
     @AllArgsConstructor
@@ -110,7 +81,6 @@ public class Anime {
         private String type;
     }
 
-    @Embeddable
     @Data
     @Builder
     @AllArgsConstructor
