@@ -13,8 +13,8 @@ public class PersistenceConfiguration {
                 .setProperty("hibernate.connection.driver_class", "org.sqlite.JDBC")
                 .setProperty("hibernate.connection.url", STR."jdbc:sqlite:\{dbPath}")
                 .setProperty("hibernate.dialect", "org.hibernate.community.dialect.SQLiteDialect")
-                .setProperty("hibernate.show_sql", "true")
-                .setProperty("hibernate.format_sql", "true")
+                .setProperty("hibernate.show_sql", "false")
+                .setProperty("hibernate.format_sql", "false")
                 .setProperty("hibernate.hbm2ddl.auto", "update")
                 .addAnnotatedClass(cache.entities.AniDBFileData.class);
     }

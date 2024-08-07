@@ -8,6 +8,7 @@ import cache.PersistenceConfiguration;
 import lombok.extern.java.Log;
 import lombok.val;
 import picocli.CommandLine;
+import processing.DoOnFileSystem;
 
 import java.net.URI;
 
@@ -44,8 +45,10 @@ public class WatchAndKodiCommand implements Callable<Integer> {
     public Integer call() throws Exception {
         log.info(STR."Connecting to kodi at \{kodiUrl} on port \{port}");
 
-        try (val executorService = Executors.newScheduledThreadPool(10); val sessionFactory = PersistenceConfiguration.getSessionFactory(parent.getDbPath())) {
-            val aniAddO = parent.initializeAniAdd(false, executorService, directory, sessionFactory);
+        try (val executorService = Executors.newScheduledThreadPool(10);
+             val sessionFactory = PersistenceConfiguration.getSessionFactory(parent.getDbPath());
+             val filesystem = new DoOnFileSystem()) {
+            val aniAddO = parent.initializeAniAdd(false, executorService, filesystem, directory, sessionFactory);
             if (aniAddO.isEmpty()) {
                 executorService.shutdownNow();
                 return 1;

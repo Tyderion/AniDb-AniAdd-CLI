@@ -20,10 +20,8 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.logging.Logger;
 
 @Log
-@RequiredArgsConstructor
 public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integration, ParseReply.Integration {
     final Queue<Command> commandQueue = new ConcurrentLinkedQueue<>();
     final Map<String, Query<?>> queries = new ConcurrentHashMap<>();
@@ -52,6 +50,14 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     private Future<?> receiveFuture;
     private ICallBack<Void> onShutdownFinished;
 
+    public UdpApi(ScheduledExecutorService executorService, int localPort, String username, String password, AniConfiguration configuration) {
+        this.executorService = executorService;
+        this.localPort = localPort;
+        this.username = username;
+        this.password = password;
+        Initialize(configuration);
+    }
+
     public <T extends Command> void registerCallback(Class<T> command, IQueryCallback<T> callback) {
         if (commandCallbacks.containsKey(command)) {
             commandCallbacks.get(command).add(callback);
@@ -68,7 +74,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         }
     }
 
-    public boolean Initialize(AniConfiguration configuration) {
+    private void Initialize(AniConfiguration configuration) {
         registerCallback(LoginCommand.class, query -> {
             switch (query.getReply().getReplyStatus()) {
                 case LOGIN_ACCEPTED, LOGIN_ACCEPTED_NEW_VERSION -> {
@@ -98,14 +104,13 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             aniDbPort = configuration.getAnidbPort();
         } catch (SocketException e) {
             log.severe(STR."Failed to create socket \{e.getMessage()}");
-            return false;
+            return;
         } catch (UnknownHostException e) {
             log.severe(STR."Failed to resolve host \{e.getMessage()}");
-            return false;
+            return;
         }
         receiveFuture = executorService.submit(new Receive(this));
         isInitialized = true;
-        return true;
     }
 
 
@@ -160,6 +165,10 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     }
 
     private void scheduleNextCommand() {
+        if (shutdown) {
+            log.info("Shutdown scheduled, not scheduling next command");
+            return;
+        }
         if (getCommandInFlight() != null) {
             log.fine("Command in flight, not scheduling next command");
             return;
