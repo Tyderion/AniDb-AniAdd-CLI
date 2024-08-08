@@ -29,6 +29,31 @@ public class ParseReplyTest {
     }
 
     @Test
+    public void Should_CorrectlyParse_MyListCommandSuccessUnwatchedReply() {
+        testReply("ml:1-0 221 MYLIST\n390610226|225856|48910|3395|495|1723031774|2|0||||0", reply -> {
+            assertEquals("ml:1-0", reply.getFullTag());
+            assertEquals(ReplyStatus.MYLIST, reply.getReplyStatus());
+        });
+    }
+
+    @Test
+    public void Should_CorrectlyParse_MyListCommandSuccessWatchedReply() {
+        testReply("ml:1-0 221 MYLIST\n388489429|27719|2394|202|0|1720283884|1|1720291873||||0", reply -> {
+            assertEquals("ml:1-0", reply.getFullTag());
+            assertEquals(ReplyStatus.MYLIST, reply.getReplyStatus());
+        });
+    }
+
+    @Test
+    public void Should_CorrectlyParse_MyListCommandNotExistingReply() {
+        testReply("ml:1-0 321 NO SUCH ENTRY", reply -> {
+            assertEquals("ml:1-0", reply.getFullTag());
+            assertEquals(ReplyStatus.NO_SUCH_ENTRY, reply.getReplyStatus());
+        });
+    }
+
+
+    @Test
     public void Should_CorrectlyParse_FileCommandReply() {
         String[] expectedResponseData = {"2570297","12743","194767","11111","0","","0","1","9d68fcae","10","very high","Blu-ray","OPUS","HEVC","1920x1080","japanese","english","90","1515024000","Yuru Camp - C1 - Opening - [Hi10](9d68fcae).mkv","","12","12","2018-2018","TV Series","","Yuru Camp","ゆるキャン△","Laid-Back Camp","ゆるキャン△'Laid-Back Camp'유루 캠프'مخيم الاسترخاء'摇曳露营△","C1","Opening","","","Hi10 Anime","Hi10"};
         testReply(
@@ -44,7 +69,7 @@ public class ParseReplyTest {
     }
 
     @Test
-    public void Should_CorrectlyParse_MyListCommandReply() {
+    public void Should_CorrectlyParse_MyListAddCommandReply() {
         String[] expectedResponseData = {"389792755"};
         testReply(
                 "mladd:0-2 210 MYLIST ENTRY ADDED\n389792755\n"

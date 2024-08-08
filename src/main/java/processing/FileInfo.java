@@ -9,6 +9,7 @@ import processing.tagsystem.TagSystemTags;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,6 +31,7 @@ public class FileInfo {
     @Getter @Setter private Boolean watched;
     @Getter @Setter private boolean hashed;
     @Getter @Setter private AniConfiguration configuration;
+    @Getter @Setter private LocalDateTime watchedDate;
 
     public FileInfo(File file, int id) {
         this.file = file;
@@ -45,7 +47,7 @@ public class FileInfo {
         this.renamedFolder = renamedFile.getParent().getFileName().toString();
     }
 
-    public enum FileAction {Init, HashFile, FileCmd, MyListAddCmd, Rename,}
+    public enum FileAction {Init, HashFile, FileCmd, MyListAddCmd, VoteCmd, Rename, LoadWatchedState, GenerateKodiMetadata}
 
     public void startAction(FileAction action) {
         actionsInProcess.add(action);
@@ -77,8 +79,16 @@ public class FileInfo {
         return actionsInProcess.isEmpty();
     }
 
+    public Path getFinalFilePath() {
+        return renamedFile != null ? renamedFile : file.toPath();
+    }
+    
     public String getEd2k() {
         return data.get(TagSystemTags.Ed2kHash);
+    }
+
+    public long getAniDbFileId() {
+        return Long.parseLong(data.get(TagSystemTags.FileId));
     }
 
     public AniDBFileData toAniDBFileData() {

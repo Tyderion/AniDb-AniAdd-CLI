@@ -16,7 +16,7 @@ import java.util.Optional;
         version = "1.0",
         scope = CommandLine.ScopeType.INHERIT,
         description = "The main command.",
-        subcommands = {AnidbCommand.class, ConfigCommand.class, FileMoveCommand.class, TagsCommand.class})
+        subcommands = {AnidbCommand.class, ConfigCommand.class, FileMoveCommand.class, TagsCommand.class, TestCommand.class})
 public class CliCommand {
 
     @CommandLine.Option(names = {"--tagging-system"}, description = "the path to a file containing the Tagging System definition", required = false, scope = CommandLine.ScopeType.INHERIT)

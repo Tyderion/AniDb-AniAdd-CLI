@@ -33,7 +33,7 @@ public class FileCommand extends Command {
                 .build();
     }
 
-    public void AddReplyToDict(Map<TagSystemTags, String> map, Reply reply, Boolean forceWatchedState) {
+    public static void AddReplyToDict(Map<TagSystemTags, String> map, Reply reply, Boolean forceWatchedState) {
         ArrayDeque<String> df = new ArrayDeque<>(reply.getResponseData());
         map.put(TagSystemTags.FileId, df.poll());
         map.put(TagSystemTags.AnimeId, df.poll());

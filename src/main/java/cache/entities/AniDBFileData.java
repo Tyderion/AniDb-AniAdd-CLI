@@ -1,12 +1,17 @@
 package cache.entities;
 
 import jakarta.persistence.*;
+import kodi.common.UniqueId;
+import kodi.nfo.Episode;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import processing.tagsystem.TagSystemTags;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -60,5 +65,64 @@ public class AniDBFileData {
     public static class AniDBFileId {
         private String ed2k;
         private long size;
+    }
+
+    @Transient
+    public int seasonNumber() {
+        val epNo = tags.get(TagSystemTags.EpisodeNumber);
+        if (epNo.matches("[0-9]+")) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
+    @Transient
+    public int episodeNumber() {
+        val epNo = tags.get(TagSystemTags.EpisodeNumber);
+        if (epNo.matches("[0-9]+")) {
+            return Integer.parseInt(epNo);
+        } else {
+            return epNo.replaceAll("[^0-9]", "").isEmpty() ? 0 : Integer.parseInt(epNo.replaceAll("[^0-9]", ""));
+        }
+    }
+
+    @Transient
+    public int aniDbEpisodeNumber() {
+        return Integer.parseInt(tags.get(TagSystemTags.EpisodeId));
+    }
+
+    public Episode.EpisodeBuilder toEpisode() {
+        val video = Episode.Video.builder()
+                .codec(tags.get(TagSystemTags.FileVideoCodec))
+                .durationInSeconds(Integer.parseInt(tags.get(TagSystemTags.FileDuration)));
+        val resolution = tags.get(TagSystemTags.FileVideoResolution);
+        if (resolution != null) {
+            val wxh = resolution.split("x");
+            video.width(Integer.parseInt(wxh[0]));
+            video.height(Integer.parseInt(wxh[1]));
+        }
+        val streamDetails = Episode.StreamDetails.builder()
+                .audio(Episode.Audio.builder()
+                        .language(tags.get(TagSystemTags.FileAudioLanguage))
+                        .build())
+                .video(video.build())
+                .subtitles(List.of(tags.get(TagSystemTags.FileSubtitleLanguage).split("'")))
+                .build();
+
+        int episodeNumber = episodeNumber();
+        int season = seasonNumber();
+
+        return Episode.builder()
+                .title(tags.get(TagSystemTags.EpisodeNameEnglish))
+                .season(season)
+                .episode(episodeNumber)
+                .runtimeInSeconds(Integer.parseInt(tags.get(TagSystemTags.FileDuration)))
+                .streamDetails(streamDetails)
+                .uniqueId(UniqueId.AniDbFileId(Long.parseLong(tags.get(TagSystemTags.FileId))))
+                .uniqueId(UniqueId.AniDbAnimeId(Long.parseLong(tags.get(TagSystemTags.AnimeId))))
+                .uniqueId(UniqueId.AniDbEpisodeId(this.aniDbEpisodeNumber()))
+                .premiered(LocalDate.ofInstant(Instant.ofEpochSecond(Long.parseLong(tags.get(TagSystemTags.EpisodeAirDate))), ZoneId.systemDefault()));
+
     }
 }

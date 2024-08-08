@@ -43,7 +43,13 @@ dependencies {
     implementation("org.hibernate.orm:hibernate-community-dialects:6.5.2.Final")
     implementation("org.xerial:sqlite-jdbc:3.46.0.0")
     implementation("org.slf4j:slf4j-simple:2.0.13")
+    implementation("org.dom4j:dom4j:2.1.4")
 
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    // https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // https://mvnrepository.com/artifact/com.squareup.retrofit2/converter-gson
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
 }
 
 tasks.register<Jar>("fatJar") {
@@ -177,7 +183,7 @@ tasks {
         options.isDeprecation = true
         options.compilerArgs.add("-Aproject=${project.group}/${project.name}")
         options.compilerArgs.add("--enable-preview")
-        options.compilerArgs.add("-Xlint:unchecked")
+//        options.compilerArgs.add("-Xlint:unchecked")
     }
     withType<Test> {
         useJUnitPlatform()
