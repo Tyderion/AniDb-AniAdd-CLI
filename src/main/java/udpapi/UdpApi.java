@@ -49,6 +49,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     private boolean shutdown;
     private Future<?> receiveFuture;
     private ICallBack<Void> onShutdownFinished;
+    private Future<?> requeueFuture;
 
     public UdpApi(ScheduledExecutorService executorService, int localPort, String username, String password, AniConfiguration configuration) {
         this.executorService = executorService;
@@ -211,6 +212,10 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     private void scheduleCommand(@NotNull Command command, Duration delay) {
         log.info(STR."Scheduling command \{command.toString()} in \{delay.toMillis()}ms at \{formatDelay(delay)}");
         executorService.schedule(new Send<>(this, command, aniDbIp, aniDbPort), delay.toMillis(), TimeUnit.MILLISECONDS);
+        requeueFuture = executorService.schedule(() -> {
+            log.info(STR."Did not receive a response for \{command.toString()} in \{UdpApiConfiguration.MAX_RESPONSE_WAIT_TIME.toSeconds()}s. Assuming it was lost in transit. Rescheduling command and sending next one.");
+            rescheduleCommandInFlight();
+        }, delay.plus(UdpApiConfiguration.MAX_RESPONSE_WAIT_TIME).toMillis(), TimeUnit.MILLISECONDS);
         isSendScheduled = true;
         setCommandInFlight(command);
     }
@@ -222,7 +227,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         if (lastSentDate == null) {
             return Duration.ZERO;
         }
-        val nextSend = UdpApiConfiguration.COMMAND_INTERVAL_MS.minus(Duration.ofMillis(new Date().getTime() - lastSentDate.getTime()));
+        val nextSend = UdpApiConfiguration.COMMAND_INTERVAL.minus(Duration.ofMillis(new Date().getTime() - lastSentDate.getTime()));
         if (nextSend.isNegative()) {
             return Duration.ZERO;
         }
@@ -327,6 +332,10 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     @Override
     public void onReceiveRawMessage(String message) {
+        log.info(STR."Received message: \{message}, cancelling check for lost command.");
+        if (requeueFuture != null) {
+            requeueFuture.cancel(false);
+        }
         executorService.execute(new ParseReply(this, message));
     }
 
