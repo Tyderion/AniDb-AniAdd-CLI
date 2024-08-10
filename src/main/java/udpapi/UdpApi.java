@@ -20,7 +20,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.logging.Logger;
 
 @Log
 @RequiredArgsConstructor
@@ -218,7 +217,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         if (lastSentDate == null) {
             return Duration.ZERO;
         }
-        val nextSend = UdpApiConfiguration.COMMAND_INTERVAL_MS.minus(Duration.ofMillis(new Date().getTime() - lastSentDate.getTime()));
+        val nextSend = UdpApiConfiguration.COMMAND_INTERVAL.minus(Duration.ofMillis(new Date().getTime() - lastSentDate.getTime()));
         if (nextSend.isNegative()) {
             return Duration.ZERO;
         }
