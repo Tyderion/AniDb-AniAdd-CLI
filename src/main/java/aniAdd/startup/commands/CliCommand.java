@@ -4,13 +4,13 @@ import aniAdd.config.AniConfiguration;
 import aniAdd.config.ConfigFileLoader;
 import aniAdd.startup.commands.anidb.AnidbCommand;
 import aniAdd.startup.commands.config.ConfigCommand;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
 
 import java.util.Optional;
 
-@Log
+@Slf4j
 @CommandLine.Command(name = "aniadd-cli.jar",
         mixinStandardHelpOptions = true,
         version = "1.0",

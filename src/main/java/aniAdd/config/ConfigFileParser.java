@@ -1,6 +1,6 @@
 package aniAdd.config;
 
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.LoaderOptions;
@@ -16,7 +16,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-@Log
+@Slf4j
 public class ConfigFileParser<T> {
 
     private final Class<T> mClazz;
@@ -26,13 +26,13 @@ public class ConfigFileParser<T> {
     public ConfigFileParser(String configFilePath, Class<T> clazz) {
         mConfigFilePath = configFilePath;
         mClazz = clazz;
-        log.warning("If you upgrade from an old configuration file make sure to check the new one and adjust paths if necessary. Check the documentation of AniConfiguration.");
+        log.warn("If you upgrade from an old configuration file make sure to check the new one and adjust paths if necessary. Check the documentation of AniConfiguration.");
 
         var loaderoptions = new LoaderOptions();
         TagInspector taginspector =
                 tag -> {
                     if (tag.getClassName().equals("aniAdd.config.XBMCDefaultConfiguration")) {
-                        log.warning("Converted from old configuration file.");
+                        log.warn("Converted from old configuration file.");
                         return true;
                     }
                     return tag.getClassName().equals(AniConfiguration.class.getName()) || tag.getClassName().equals("aniAdd.config.AniConfiguration");
@@ -53,7 +53,7 @@ public class ConfigFileParser<T> {
         try {
             input = new FileInputStream(mConfigFilePath);
         } catch (FileNotFoundException e) {
-            log.severe(STR."File not found at: \{mConfigFilePath}");
+            log.error(STR."File not found at: \{mConfigFilePath}");
             if (!useDefault) {
                 return Optional.empty();
             }
@@ -62,7 +62,7 @@ public class ConfigFileParser<T> {
             return Optional.of(mYaml.loadAs(input, mClazz));
         } else {
             try {
-                log.warning("Using default configuration");
+                log.warn("Using default configuration");
                 return Optional.of(mClazz.getDeclaredConstructor().newInstance());
             } catch (InstantiationException | IllegalAccessException | NoSuchMethodException |
                      InvocationTargetException e) {

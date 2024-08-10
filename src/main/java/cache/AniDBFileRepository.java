@@ -3,14 +3,14 @@ package cache;
 import cache.entities.AniDBFileData;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.hibernate.SessionFactory;
 import org.hibernate.exception.GenericJDBCException;
 
 import java.util.Optional;
 
-@Log
+@Slf4j
 @RequiredArgsConstructor
 public class AniDBFileRepository implements IAniDBFileRepository {
     private final SessionFactory sessionFactory;

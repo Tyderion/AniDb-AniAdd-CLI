@@ -2,7 +2,7 @@ package udpapi;
 
 import aniAdd.misc.Misc;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import udpapi.reply.Reply;
 import udpapi.reply.ReplyStatus;
@@ -10,7 +10,7 @@ import udpapi.reply.ReplyStatus;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-@Log
+@Slf4j
 @RequiredArgsConstructor
 public class ParseReply implements Runnable {
 
@@ -22,7 +22,7 @@ public class ParseReply implements Runnable {
         try {
             parseReply();
         } catch (Exception e) {
-            log.warning(STR."Parse Error: \{e.toString()}");
+            log.warn(STR."Parse Error: \{e.toString()}");
             e.printStackTrace();
         }
     }
@@ -35,7 +35,7 @@ public class ParseReply implements Runnable {
 
     private void parseReply() {
         if (message == null || message.isEmpty()) {
-            log.warning("Server reply is an empty string... ignoring");
+            log.warn("Server reply is an empty string... ignoring");
             return;
         }
         log.info(STR."Reply: \{message.replace("\n", "\\n")}");

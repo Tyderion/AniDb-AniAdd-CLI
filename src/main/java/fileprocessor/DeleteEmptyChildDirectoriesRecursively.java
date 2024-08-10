@@ -1,7 +1,7 @@
 package fileprocessor;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.io.IOException;
@@ -11,7 +11,7 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.stream.Collectors;
 
-@Log
+@Slf4j
 @RequiredArgsConstructor
 public class DeleteEmptyChildDirectoriesRecursively implements Runnable{
     private final Path root;

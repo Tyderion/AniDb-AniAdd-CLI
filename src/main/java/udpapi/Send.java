@@ -2,7 +2,7 @@ package udpapi;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jetbrains.annotations.Nullable;
 import udpapi.command.Command;
@@ -13,7 +13,7 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.util.Date;
 
-@Log
+@Slf4j
 @RequiredArgsConstructor
 class Send<T extends Command> implements Runnable {
 
@@ -26,13 +26,13 @@ class Send<T extends Command> implements Runnable {
 
     @Override
     public void run() {
-        log.fine( STR."Send command \{commandToSend.getIdentifier()}");
+        log.debug( STR."Send command \{commandToSend.getIdentifier()}");
         val query = createQuery(commandToSend);
         integration.addQuery(query);
         try {
             integration.sendPacket(query.getBytes(integration.getSession(), aniDbIp, port));
         } catch (IOException e) {
-            log.severe(STR."Failed to send packet \{e.getMessage()}");
+            log.error(STR."Failed to send packet \{e.getMessage()}");
         }
         integration.onSent();
     }

@@ -5,7 +5,7 @@ import aniAdd.startup.validation.validators.min.Min;
 import aniAdd.startup.validation.validators.nonempty.NonEmpty;
 import aniAdd.startup.validation.validators.port.Port;
 import cache.PersistenceConfiguration;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
@@ -16,7 +16,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-@Log
+@Slf4j
 @CommandLine.Command(name = "watch-and-kodi", mixinStandardHelpOptions = true, version = "1.0",
         description = "Watches a folder to scan and also connects to a kodi instance via websockets and marks watched episodes as watched on anidb as well. Filepath must contain 'anime' (configurable)")
 public class WatchAndKodiCommand implements Callable<Integer> {

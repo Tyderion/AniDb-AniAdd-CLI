@@ -9,7 +9,7 @@ import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
 import cache.IAniDBFileRepository;
 import fileprocessor.FileProcessor;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import processing.FileInfo.FileAction;
 
@@ -25,7 +25,7 @@ import udpapi.command.MylistAddCommand;
 import udpapi.query.Query;
 import udpapi.reply.ReplyStatus;
 
-@Log
+@Slf4j
 public class EpisodeProcessing implements FileProcessor.Processor {
 
     private final UdpApi api;
@@ -88,7 +88,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             }
             case HashFile -> {
                 if (fileInfo.hasActionFailed(FileAction.HashFile)) {
-                    log.severe(STR."File \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()} failed to hash. Skipping all other steps");
+                    log.error(STR."File \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()} failed to hash. Skipping all other steps");
                     finalize(fileInfo);
                     return;
                 }
@@ -102,7 +102,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             case FileCmd -> {
                 if (fileInfo.hasActionFailed(FileAction.FileCmd)) {
                     // Error, file data not found, skip continuing with dependant steps
-                    log.warning(STR."FileCommand for file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()} failed to get data. Skipping dependant steps");
+                    log.warn(STR."FileCommand for file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()} failed to get data. Skipping dependant steps");
                     return;
                 }
                 if (configuration.isEnableFileRenaming() || configuration.isEnableFileMove()) {
@@ -159,7 +159,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         }
 
         fileInfo.startAction(FileAction.HashFile);
-        log.fine(STR."Processing file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()}");
+        log.debug(STR."Processing file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()}");
         fileSystem.run(new FileParser(fileInfo.getFile(), fileInfo.getId(), this::onHashComputed, () -> shouldShutdown));
     }
 
@@ -171,7 +171,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         FileInfo procFile = files.get(KeyType.Id, tag);
         if (hash != null) {
             procFile.getData().put(TagSystemTags.Ed2kHash, hash);
-            log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} has been hashed");
+            log.debug(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} has been hashed");
             procFile.actionDone(FileAction.HashFile);
             nextStep(FileAction.HashFile, procFile);
         } else {
@@ -197,7 +197,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 case MULTIPLE_FILES_FOUND -> "Multiple files found";
                 default -> "Unknown error";
             };
-            log.warning(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned error: \{replyStatus} - \{errorMessage}");
+            log.warn(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned error: \{replyStatus} - \{errorMessage}");
             if (replyStatus == ReplyStatus.NO_SUCH_FILE && procFile.getConfiguration().isMoveUnknownFiles()) {
                 fileSystem.run(() -> {
                     File currentFile = procFile.getFile();
@@ -211,7 +211,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         } else {
             query.getCommand().AddReplyToDict(procFile.getData(), query.getReply(), procFile.getWatched());
             fileRepository.saveAniDBFileData(procFile.toAniDBFileData());
-            log.fine(STR."Got DB Info for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
+            log.debug(STR."Got DB Info for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
             procFile.actionDone(FileAction.FileCmd);
             nextStep(FileAction.FileCmd, procFile);
         }
@@ -237,9 +237,9 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         } else if (replyStatus == ReplyStatus.FILE_ALREADY_IN_MYLIST) {
             if (configuration.isOverwriteMLEntries()) {
                 api.queueCommand(query.getCommand().WithEdit());
-                log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} already added on MyList, retrying with edit");
+                log.debug(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} already added on MyList, retrying with edit");
             } else {
-                log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} already added on MyList. Continuing with next step.");
+                log.debug(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} already added on MyList. Continuing with next step.");
                 procFile.actionDone(FileAction.MyListAddCmd);
                 nextStep(FileAction.MyListAddCmd, procFile);
             }
@@ -247,9 +247,9 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             if (replyStatus == ReplyStatus.NO_SUCH_FILE
                     || replyStatus == ReplyStatus.NO_SUCH_ANIME
                     || replyStatus == ReplyStatus.NO_SUCH_GROUP) {
-                log.warning(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned not found status");
+                log.warn(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned not found status");
             } else {
-                log.warning(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned error \{replyStatus}");
+                log.warn(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned error \{replyStatus}");
             }
             procFile.actionFailed(FileAction.MyListAddCmd);
             nextStep(FileAction.MyListAddCmd, procFile);
@@ -274,10 +274,10 @@ public class EpisodeProcessing implements FileProcessor.Processor {
 
     private void finalize(FileInfo procFile) {
         if (!procFile.allDone()) {
-            log.warning("Tried to finalize file that still has actions in progress");
+            log.warn("Tried to finalize file that still has actions in progress");
             return;
         }
-        log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} done");
+        log.debug(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} done");
         if (files.values().stream().allMatch(FileInfo::allDone)) {
             sendEvent(ProcessingEvent.Done);
         }
@@ -305,7 +305,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             fileInfo.actionDone(FileAction.Init);
             nextStep(FileAction.Init, fileInfo);
         }
-        log.fine(STR."File Count changed to \{files.size()}");
+        log.debug(STR."File Count changed to \{files.size()}");
     }
 
     public void Terminate() {

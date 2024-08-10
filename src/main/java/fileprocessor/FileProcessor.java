@@ -3,7 +3,7 @@ package fileprocessor;
 import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
 import lombok.*;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-@Log
+@Slf4j
 @RequiredArgsConstructor
 public class FileProcessor {
     private final Processor processor;
@@ -42,17 +42,17 @@ public class FileProcessor {
         try {
             val files = findFiles.get();
             if (files.isEmpty()) {
-                log.warning("No files found");
+                log.warn("No files found");
                 sendEvent(FileProcessor.EventType.NothingToProcess);
             } else {
                 sendEvent(FileProcessor.EventType.Processing);
                 processor.addFiles(files);
             }
         } catch (InterruptedException e) {
-            log.severe(STR."Find Files was interrupted \{e.getMessage()}");
+            log.error(STR."Find Files was interrupted \{e.getMessage()}");
             sendEvent(FileProcessor.EventType.ErrorFindingFiles);
         } catch (ExecutionException e) {
-            log.severe(STR."Find Files was cancelled \{e.getCause().getMessage()}");
+            log.error(STR."Find Files was cancelled \{e.getCause().getMessage()}");
             sendEvent(FileProcessor.EventType.ErrorFindingFiles);
             throw new RuntimeException(e);
         }

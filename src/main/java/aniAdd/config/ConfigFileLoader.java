@@ -1,7 +1,7 @@
 package aniAdd.config;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.io.IOException;
@@ -13,7 +13,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-@Log
+@Slf4j
 @RequiredArgsConstructor
 public final class ConfigFileLoader {
 
@@ -50,7 +50,7 @@ public final class ConfigFileLoader {
             return configParser.loadFromFile(useDefault);
         }
         if (useDefault) {
-            log.warning("Using default configuration");
+            log.warn("Using default configuration");
             return Optional.of(new AniConfiguration());
         }
         return Optional.empty();
