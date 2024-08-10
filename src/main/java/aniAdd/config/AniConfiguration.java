@@ -104,6 +104,8 @@ public class AniConfiguration {
      */
     @Builder.Default private String anidbHost = "api.anidb.net";
 
+    @Builder.Default private int cacheTTLInDays = 30;
+
     public String getEpisodePath(String relativePath) {
         return Paths.get(tvShowFolder, relativePath).toString();
     }

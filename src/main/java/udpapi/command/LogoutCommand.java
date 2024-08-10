@@ -15,7 +15,7 @@ public class LogoutCommand extends Command {
                 .action(ACTION)
                 .identifier(ACTION.toLowerCase())
                 .queryId(QueryId.Next())
-                .needsLogin(false)
+                .needsLogin(true)
                 .tag(null)
                 .isAutomatic(isAutomatic)
                 .build();
