@@ -1,6 +1,5 @@
 package utils;
 
-import lombok.Getter;
 import lombok.val;
 import okhttp3.Dispatcher;
 import okhttp3.OkHttpClient;
