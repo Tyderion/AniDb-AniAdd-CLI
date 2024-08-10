@@ -9,4 +9,5 @@ public final class UdpApiConfiguration {
     public static final Duration COMMAND_INTERVAL_MS = Duration.ofSeconds(4);
     public static final Duration LONG_WAIT_TIME = Duration.ofMinutes(60);
     public static final Duration LOGOUT_AFTER = Duration.ofMinutes(30);
+    public static final Duration MAX_RESPONSE_WAIT_TIME = Duration.ofSeconds(30);
 }

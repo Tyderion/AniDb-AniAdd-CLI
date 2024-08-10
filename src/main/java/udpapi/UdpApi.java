@@ -51,6 +51,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     private boolean shutdown;
     private Future<?> receiveFuture;
     private ICallBack<Void> onShutdownFinished;
+    private Future<?> requeueFuture;
 
     public <T extends Command> void registerCallback(Class<T> command, IQueryCallback<T> callback) {
         if (commandCallbacks.containsKey(command)) {
@@ -202,6 +203,10 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     private void scheduleCommand(@NotNull Command command, Duration delay) {
         log.info(STR."Scheduling command \{command.toString()} in \{delay.toMillis()}ms at \{formatDelay(delay)}");
         executorService.schedule(new Send<>(this, command, aniDbIp, aniDbPort), delay.toMillis(), TimeUnit.MILLISECONDS);
+        requeueFuture = executorService.schedule(() -> {
+            log.info(STR."Did not receive a response for \{command.toString()} in \{UdpApiConfiguration.MAX_RESPONSE_WAIT_TIME.toSeconds()}s. Assuming it was lost in transit. Rescheduling command and sending next one.");
+            rescheduleCommandInFlight();
+        }, delay.plus(UdpApiConfiguration.MAX_RESPONSE_WAIT_TIME).toMillis(), TimeUnit.MILLISECONDS);
         isSendScheduled = true;
         setCommandInFlight(command);
     }
@@ -318,6 +323,10 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     @Override
     public void onReceiveRawMessage(String message) {
+        log.info(STR."Received message: \{message}, cancelling check for lost command.");
+        if (requeueFuture != null) {
+            requeueFuture.cancel(false);
+        }
         executorService.execute(new ParseReply(this, message));
     }
 
