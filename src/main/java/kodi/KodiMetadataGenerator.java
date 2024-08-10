@@ -42,12 +42,15 @@ public class KodiMetadataGenerator {
         val aniDbAnimeId = Integer.parseInt(fileInfo.getData().get(TagSystemTags.AnimeId));
         var anime = AnimeDetailsLoader.parseXml(getXmlInput(aniDbAnimeId));
         log.info(STR."Anime: \{anime.getId()} - \{anime.getTitles().stream().findFirst()}");
-        val tvDbId = this.getAnimeMapping().get((long) aniDbAnimeId).getTvDbId();
+
 
         if (anime.getType() == Anime.Type.TV_Series) {
+            val tvDbId = this.getAnimeMapping().get((long) aniDbAnimeId).getTvDbId();
             tvDbApi.getAllTvDbData(tvDbId, tvDbAllData -> {
                 generateData(tvDbAllData, fileInfo, anime, aniDbAnimeId, onDone);
             });
+        } else if (anime.getType() == Anime.Type.MOVIE) {
+            val imDbId = this.getAnimeMapping().get((long) aniDbAnimeId).getImdbId();
         } else {
             generateData(Optional.empty(), fileInfo, anime, aniDbAnimeId, onDone);
         }
