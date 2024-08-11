@@ -47,8 +47,8 @@ public class KodiMetadataGenerator {
 
         if (anime.getType() == Anime.Type.TV_Series) {
             val tvDbId = this.getAnimeMapping().get((long) aniDbAnimeId).getTvDbId();
-            tvDbApi.getAllTvDbData(tvDbId, tvDbAllData -> {
-                generateData(tvDbAllData, fileInfo, anime, aniDbAnimeId, onDone);
+            tvDbApi.getTvSeriesData(tvDbId, tvDbAllData -> {
+                generateData(Optional.ofNullable(tvDbAllData), fileInfo, anime, aniDbAnimeId, onDone);
             });
         } else if (anime.getType() == Anime.Type.MOVIE) {
             val imDbId = this.getAnimeMapping().get((long) aniDbAnimeId).getImdbId();

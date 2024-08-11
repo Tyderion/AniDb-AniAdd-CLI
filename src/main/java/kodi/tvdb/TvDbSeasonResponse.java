@@ -24,7 +24,8 @@ public class TvDbSeasonResponse {
             @SerializedName("Ended")
             ENDED,
             @SerializedName("Upcoming")
-            UPCOMING;
+            UPCOMING,
+            UNKNOWN;
         }
     }
 

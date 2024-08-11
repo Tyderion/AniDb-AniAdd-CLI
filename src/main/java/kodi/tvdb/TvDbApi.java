@@ -1,6 +1,5 @@
 package kodi.tvdb;
 
-import lombok.Data;
 import lombok.extern.java.Log;
 import lombok.val;
 import okhttp3.Dispatcher;
@@ -9,7 +8,6 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 import java.io.IOException;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
 @Log
@@ -26,90 +24,70 @@ public class TvDbApi {
         this.tvDbClient = initClient(apiKey);
     }
 
-    public void getAllTvDbData(int seriesId, IAllDataCallback onReceive) {
+    public void getTvSeriesData(int seriesId, ITvSeriesCallback onReceive) {
         log.info(STR."Getting all data for tvdb series \{seriesId}");
-        val requestsDone = new RequestsDone();
         val allData = TVSeriesData.builder();
 
         if (!loggedIn) {
-            onReceive.received(Optional.empty());
+            onReceive.received(null);
             return;
         }
 
-        getAllEpisodeData(seriesId, 0, requestsDone, allData, onReceive);
-        getSeasons(seriesId, requestsDone, allData, onReceive);
-        getArtworks(seriesId, requestsDone, allData, onReceive);
-        getPlot(seriesId, requestsDone, allData, onReceive);
+        getAllEpisodeData(seriesId, 0, allData, onReceive);
+        getSeasons(seriesId, allData, onReceive);
+        getArtworks(seriesId, allData, onReceive);
+        getPlot(seriesId, allData, onReceive);
     }
 
-    private void getArtworks(int seriesId, RequestsDone requestsDone, TVSeriesData.TVSeriesDataBuilder allData, IAllDataCallback onReceive) {
+    private void getArtworks(int seriesId, TVSeriesData.TVSeriesDataBuilder builder, ITvSeriesCallback onReceive) {
         log.info(STR."Fetching artworks for series \{seriesId}");
-        tvDbClient.getArtworks(seriesId, "eng", null).enqueue(new RequestCallback<>(data -> {
-            allData.artworks(data.getArtworks());
-            allData.seriesId(data.getId());
-            requestsDone.setArtworks(true);
+        tvDbClient.getArtworks(seriesId, "eng", null).enqueue(new RequestCallback<>(builder, onReceive, data -> {
+            builder.artworks(data);
             log.info(STR."Successfully fetched all \{data.getArtworks().size()} artworks for series \{seriesId}");
-            notify(onReceive, allData, requestsDone);
         }, () -> {
             login(tvDbClient, apiKey);
-            getArtworks(seriesId, requestsDone, allData, onReceive);
+            getArtworks(seriesId, builder, onReceive);
         }));
     }
 
-    private void getPlot(int seriesId, RequestsDone requestsDone, TVSeriesData.TVSeriesDataBuilder allData, IAllDataCallback onReceive) {
+    private void getPlot(int seriesId, TVSeriesData.TVSeriesDataBuilder builder, ITvSeriesCallback onReceive) {
         log.info(STR."Fetching plot for series \{seriesId}");
-        tvDbClient.getPlot(seriesId).enqueue(new RequestCallback<>(data -> {
-            allData.plot(data.getPlot());
-            requestsDone.setPlot(true);
+        tvDbClient.getPlot(seriesId).enqueue(new RequestCallback<>(builder, onReceive, data -> {
+            builder.description(data);
             log.info(STR."Successfully fetched plot for series \{seriesId}");
-            notify(onReceive, allData, requestsDone);
         }, () -> {
             login(tvDbClient, apiKey);
-            getPlot(seriesId, requestsDone, allData, onReceive);
+            getPlot(seriesId, builder, onReceive);
         }));
     }
 
-    private void getSeasons(int seriesId, RequestsDone requestsDone, TVSeriesData.TVSeriesDataBuilder allData, IAllDataCallback onReceive) {
+    private void getSeasons(int seriesId, TVSeriesData.TVSeriesDataBuilder builder, ITvSeriesCallback onReceive) {
         log.info(STR."Fetching seasons for series \{seriesId}");
-        tvDbClient.getSeasons(seriesId).enqueue(new RequestCallback<>(data -> {
-            allData.seasons(data.getSeasons());
-            allData.status(data.getSeriesStatus().getStatus());
-            requestsDone.setSeasons(true);
+        tvDbClient.getSeasons(seriesId).enqueue(new RequestCallback<>(builder, onReceive, data -> {
+            builder.seasons(data);
             log.info(STR."Successfully fetched all \{data.getSeasons().size()} seasons for series \{seriesId}");
-            notify(onReceive, allData, requestsDone);
         }, () -> {
             login(tvDbClient, apiKey);
-            getSeasons(seriesId, requestsDone, allData, onReceive);
+            getSeasons(seriesId, builder, onReceive);
         }));
     }
 
-    private void getAllEpisodeData(int seriesId, int page, RequestsDone requestsDone, TVSeriesData.TVSeriesDataBuilder allData, IAllDataCallback onReceive) {
+    private void getAllEpisodeData(int seriesId, int page, TVSeriesData.TVSeriesDataBuilder builder, ITvSeriesCallback onReceive) {
         log.info(STR."Fetching episodes page \{page} for series \{seriesId}");
-        tvDbClient.getEpisodes(seriesId, page).enqueue(new utils.http.RequestCallback<>(data -> {
-            data.getData().getEpisodes().forEach(allData::episode);
-            allData.seriesName(data.getData().getName());
-            if (data.getLinks().getPagesize() * (page + 1) > data.getLinks().getTotalItems()) {
-                requestsDone.setEpisodes(true);
-                log.info(STR."Successfully fetched all \{data.getLinks().getTotalItems()} episodes for series \{seriesId}");
-                notify(onReceive, allData, requestsDone);
-                return;
+        tvDbClient.getEpisodes(seriesId, page).enqueue(new RootRequestCallback<>(builder, onReceive, data -> {
+            val hasMore = data.getLinks().getPagesize() * (page + 1) < data.getLinks().getTotalItems();
+            builder.episodes(data.getData(), !hasMore);
+            if (hasMore) {
+                getAllEpisodeData(seriesId, page + 1, builder, onReceive);
             } else {
-                getAllEpisodeData(seriesId, page + 1, requestsDone, allData, onReceive);
+                log.info(STR."Successfully fetched all \{data.getLinks().getTotalItems()} episodes for series \{seriesId}");
             }
         }, () -> {
             login(tvDbClient, apiKey);
-            getAllEpisodeData(seriesId, page, requestsDone, allData, onReceive);
+            getAllEpisodeData(seriesId, page, builder, onReceive);
         }) {
         });
     }
-
-    private void notify(IAllDataCallback onReceive, TVSeriesData.TVSeriesDataBuilder allData, RequestsDone requestsDone) {
-        log.info(STR."Checking if all requests are done for series \{requestsDone}");
-        if (requestsDone.allDone()) {
-            onReceive.received(Optional.of(allData.build()));
-        }
-    }
-
 
     private TVDbClient initClient(String apiKey) {
         Retrofit retrofit = new Retrofit.Builder()
@@ -161,9 +139,9 @@ public class TvDbApi {
         return httpClient.build();
     }
 
-    private static class RequestCallback<T> extends utils.http.RequestCallback<TvDbResponse<T>> {
-        private RequestCallback(OnResponse<T> onResponse, OnUnauthorized onUnauthorized) {
-            super(response -> {
+    private static class RequestCallback<T> extends RootRequestCallback<T> {
+        private RequestCallback(TVSeriesData.TVSeriesDataBuilder builder, ITvSeriesCallback onComplete, OnResponse<T> onResponse, OnUnauthorized onUnauthorized) {
+            super(builder, onComplete, response -> {
                 if (response != null && response.getStatus() == TvDbResponse.Status.SUCCESS) {
                     onResponse.received(response.getData());
                 }
@@ -171,20 +149,21 @@ public class TvDbApi {
         }
     }
 
-
-    public interface IAllDataCallback {
-        void received(Optional<TVSeriesData> data);
+    private static class RootRequestCallback<T> extends utils.http.RequestCallback<TvDbResponse<T>> {
+        private RootRequestCallback(TVSeriesData.TVSeriesDataBuilder builder, ITvSeriesCallback onComplete, OnResponse<TvDbResponse<T>> onResponse, OnUnauthorized onUnauthorized) {
+            super(response -> {
+                if (response != null && response.getStatus() == TvDbResponse.Status.SUCCESS) {
+                    onResponse.received(response);
+                    if (builder.isComplete()) {
+                        onComplete.received(builder.build());
+                    }
+                }
+            }, onUnauthorized);
+        }
     }
 
-    @Data
-    private static class RequestsDone {
-        boolean seasons;
-        boolean artworks;
-        boolean episodes;
-        boolean plot;
 
-        public boolean allDone() {
-            return seasons && artworks && episodes && plot;
-        }
+    public interface ITvSeriesCallback {
+        void received(TVSeriesData data);
     }
 }
