@@ -11,7 +11,7 @@ import cache.AniDBFileRepository;
 import fileprocessor.DeleteEmptyChildDirectoriesRecursively;
 import fileprocessor.FileProcessor;
 import lombok.Getter;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.hibernate.SessionFactory;
 import picocli.CommandLine;
@@ -25,7 +25,7 @@ import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 
-@Log
+@Slf4j
 @CommandLine.Command(
         subcommands = {ScanCommand.class, KodiWatcherCommand.class, WatchCommand.class, WatchAndKodiCommand.class},
         name = "anidb",
@@ -74,7 +74,7 @@ public class AnidbCommand {
     public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService, DoOnFileSystem fileSystem, String inputDirectory, SessionFactory sessionFactory) {
         val configuration = getConfiguration();
         if (configuration.isEmpty()) {
-            log.severe(STR."No configuration loaded. Check the path to the config file. \{configPath}");
+            log.error(STR."No configuration loaded. Check the path to the config file. \{configPath}");
             return Optional.empty();
         }
         val config = configuration.get();
@@ -99,7 +99,7 @@ public class AnidbCommand {
         });
         if (exitOnBan) {
             udpApi.registerCallback(ReplyStatus.BANNED, _ -> {
-                log.severe("User is banned. Exiting.");
+                log.error("User is banned. Exiting.");
                 aniAdd.Stop();
                 // Make sure we shut down even if terminateOnCompletion is false
                 if (!executorService.isShutdown()) {

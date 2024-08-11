@@ -1,8 +1,7 @@
 package aniAdd.startup.commands;
 
-import aniAdd.startup.commands.anidb.AnidbCommand;
 import lombok.Setter;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
 import processing.tagsystem.TagSystem;
@@ -12,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-@Log
+@Slf4j
 @CommandLine.Command(name = "tags",
         mixinStandardHelpOptions = true,
         version = "1.0",
@@ -35,7 +34,7 @@ public class TagsCommand implements Callable<Integer> {
         if (optionalConfig.isEmpty() || optionalConfig.get().getTagSystemCode() == null
                 || optionalConfig.get().getTagSystemCode().isEmpty()
                 || optionalConfig.get().getTagSystemCode().isBlank()) {
-            log.severe("To test tags you must provide a non empty tagging system code");
+            log.error("To test tags you must provide a non empty tagging system code");
             return 1;
         }
         val configuration = optionalConfig.get();

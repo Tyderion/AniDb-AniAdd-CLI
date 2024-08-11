@@ -1,6 +1,5 @@
 package udpapi.command;
 
-import lombok.Getter;
 import lombok.Singular;
 import lombok.Value;
 import lombok.experimental.NonFinal;

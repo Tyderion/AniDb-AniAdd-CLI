@@ -3,7 +3,7 @@ package aniAdd.startup.commands.anidb;
 import aniAdd.startup.validation.validators.min.Min;
 import aniAdd.startup.validation.validators.nonempty.NonEmpty;
 import cache.PersistenceConfiguration;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
@@ -12,7 +12,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-@Log
+@Slf4j
 @CommandLine.Command(name = "watch", mixinStandardHelpOptions = true, version = "1.0",
         description = "Periodically scans the directory for files and adds them to AniDb")
 public class WatchCommand implements Callable<Integer> {

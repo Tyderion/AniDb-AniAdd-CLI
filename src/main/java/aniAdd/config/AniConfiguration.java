@@ -2,11 +2,11 @@ package aniAdd.config;
 
 
 import lombok.*;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 
 import java.nio.file.Paths;
 
-@Log
+@Slf4j
 @Data
 @Builder(toBuilder = true)
 @NoArgsConstructor
@@ -124,7 +124,7 @@ public class AniConfiguration {
     public void fixStorageType() {
         // Fix typo in original version
         if (setStorageType == StorageType.UNKOWN) {
-            log.warning("Please update your configuration file. The storage type 'UNKOWN' is deprecated. Please use 'UNKNOWN' instead.");
+            log.warn("Please update your configuration file. The storage type 'UNKOWN' is deprecated. Please use 'UNKNOWN' instead.");
             setStorageType = StorageType.UNKNOWN;
         }
     }
