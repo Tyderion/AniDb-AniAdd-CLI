@@ -7,7 +7,7 @@ import kodi.anime_mapping.model.AnimeMapping;
 import kodi.nfo.Artwork;
 import kodi.nfo.Episode;
 import kodi.nfo.Series;
-import kodi.tvdb.TvDbAllData;
+import kodi.tvdb.TVSeriesData;
 import kodi.tvdb.TvDbApi;
 import lombok.*;
 import lombok.extern.java.Log;
@@ -59,7 +59,7 @@ public class KodiMetadataGenerator {
 
     }
 
-    private void generateData(Optional<TvDbAllData> tvDbAllData, FileInfo fileInfo, Anime anime, int aniDbAnimeId, OnDone onDone) {
+    private void generateData(Optional<TVSeriesData> tvDbAllData, FileInfo fileInfo, Anime anime, int aniDbAnimeId, OnDone onDone) {
         val series = anime.toSeries();
         tvDbAllData.ifPresent(tvDbData -> {
             log.info(STR."TVDB: \{tvDbData.getSeriesId()} - \{tvDbData.getSeriesName()}");

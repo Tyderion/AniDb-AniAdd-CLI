@@ -12,7 +12,7 @@ import java.util.List;
 
 @Builder
 @Value
-public class TvDbAllData {
+public class TVSeriesData {
     String plot;
     List<TvDbArtworksResponse.Artwork> artworks;
     @Singular
@@ -21,6 +21,15 @@ public class TvDbAllData {
     int seriesId;
     String seriesName;
     TvDbSeasonResponse.SeriesStatus.Status status;
+
+    public static class TVSeriesDataBuilder {
+        private boolean plotFailed = false;
+        private boolean artworksFailed = false;
+        private boolean episodesFailed = false;
+
+
+    }
+
 
     public Series.SeriesBuilder updateSeries(Series.SeriesBuilder builder) {
         builder.plot(plot);

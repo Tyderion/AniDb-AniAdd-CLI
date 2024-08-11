@@ -7,7 +7,6 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import utils.http.OkHttpClientFactory;
 
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
 @Slf4j
@@ -74,7 +73,6 @@ public class TmDbApi {
 
                     onComplete.received(builder.build());
                 }
-
             }, onFailure);
         }
     }

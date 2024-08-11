@@ -29,7 +29,7 @@ public class TvDbApi {
     public void getAllTvDbData(int seriesId, IAllDataCallback onReceive) {
         log.info(STR."Getting all data for tvdb series \{seriesId}");
         val requestsDone = new RequestsDone();
-        val allData = TvDbAllData.builder();
+        val allData = TVSeriesData.builder();
 
         if (!loggedIn) {
             onReceive.received(Optional.empty());
@@ -42,7 +42,7 @@ public class TvDbApi {
         getPlot(seriesId, requestsDone, allData, onReceive);
     }
 
-    private void getArtworks(int seriesId, RequestsDone requestsDone, TvDbAllData.TvDbAllDataBuilder allData, IAllDataCallback onReceive) {
+    private void getArtworks(int seriesId, RequestsDone requestsDone, TVSeriesData.TVSeriesDataBuilder allData, IAllDataCallback onReceive) {
         log.info(STR."Fetching artworks for series \{seriesId}");
         tvDbClient.getArtworks(seriesId, "eng", null).enqueue(new RequestCallback<>(data -> {
             allData.artworks(data.getArtworks());
@@ -56,7 +56,7 @@ public class TvDbApi {
         }));
     }
 
-    private void getPlot(int seriesId, RequestsDone requestsDone, TvDbAllData.TvDbAllDataBuilder allData, IAllDataCallback onReceive) {
+    private void getPlot(int seriesId, RequestsDone requestsDone, TVSeriesData.TVSeriesDataBuilder allData, IAllDataCallback onReceive) {
         log.info(STR."Fetching plot for series \{seriesId}");
         tvDbClient.getPlot(seriesId).enqueue(new RequestCallback<>(data -> {
             allData.plot(data.getPlot());
@@ -69,7 +69,7 @@ public class TvDbApi {
         }));
     }
 
-    private void getSeasons(int seriesId, RequestsDone requestsDone, TvDbAllData.TvDbAllDataBuilder allData, IAllDataCallback onReceive) {
+    private void getSeasons(int seriesId, RequestsDone requestsDone, TVSeriesData.TVSeriesDataBuilder allData, IAllDataCallback onReceive) {
         log.info(STR."Fetching seasons for series \{seriesId}");
         tvDbClient.getSeasons(seriesId).enqueue(new RequestCallback<>(data -> {
             allData.seasons(data.getSeasons());
@@ -83,7 +83,7 @@ public class TvDbApi {
         }));
     }
 
-    private void getAllEpisodeData(int seriesId, int page, RequestsDone requestsDone, TvDbAllData.TvDbAllDataBuilder allData, IAllDataCallback onReceive) {
+    private void getAllEpisodeData(int seriesId, int page, RequestsDone requestsDone, TVSeriesData.TVSeriesDataBuilder allData, IAllDataCallback onReceive) {
         log.info(STR."Fetching episodes page \{page} for series \{seriesId}");
         tvDbClient.getEpisodes(seriesId, page).enqueue(new utils.http.RequestCallback<>(data -> {
             data.getData().getEpisodes().forEach(allData::episode);
@@ -103,7 +103,7 @@ public class TvDbApi {
         });
     }
 
-    private void notify(IAllDataCallback onReceive, TvDbAllData.TvDbAllDataBuilder allData, RequestsDone requestsDone) {
+    private void notify(IAllDataCallback onReceive, TVSeriesData.TVSeriesDataBuilder allData, RequestsDone requestsDone) {
         log.info(STR."Checking if all requests are done for series \{requestsDone}");
         if (requestsDone.allDone()) {
             onReceive.received(Optional.of(allData.build()));
@@ -173,7 +173,7 @@ public class TvDbApi {
 
 
     public interface IAllDataCallback {
-        void received(Optional<TvDbAllData> data);
+        void received(Optional<TVSeriesData> data);
     }
 
     @Data
