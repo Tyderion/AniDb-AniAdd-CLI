@@ -40,7 +40,7 @@ public class FileHandler implements IFileHandler {
             Files.copy(from, to, StandardCopyOption.COPY_ATTRIBUTES);
             // Even though Files.copy should throw an exception if it fails, we still check if the file was copied correctly
             if (Files.exists(to) && Files.size(to) == Files.size(from)) {
-                log.fine(STR."Successfully copied file from \{from.toAbsolutePath()} to \{to.toAbsolutePath()}. Deleting original file.");
+                log.debug(STR."Successfully copied file from \{from.toAbsolutePath()} to \{to.toAbsolutePath()}. Deleting original file.");
                 Files.delete(from);
             }
             return true;
