@@ -3,9 +3,11 @@ package aniAdd.startup.commands.anidb;
 import aniAdd.kodi.KodiNotificationSubscriber;
 import aniAdd.startup.validation.validators.nonempty.NonEmpty;
 import aniAdd.startup.validation.validators.port.Port;
+import cache.PersistenceConfiguration;
 import lombok.extern.java.Log;
 import lombok.val;
 import picocli.CommandLine;
+import processing.DoOnFileSystem;
 
 import java.net.URI;
 
@@ -34,8 +36,10 @@ public class KodiWatcherCommand implements Callable<Integer> {
     public Integer call() throws Exception {
         log.info(STR."Connecting to kodi at \{kodiUrl} on port \{port}");
 
-        try (val executorService = Executors.newScheduledThreadPool(10)) {
-            val aniAddO = parent.initializeAniAdd(false, executorService, null);
+        try (val executorService = Executors.newScheduledThreadPool(10);
+             val sessionFactory = PersistenceConfiguration.getSessionFactory(parent.getDbPath());
+             val filesystem = new DoOnFileSystem()) {
+            val aniAddO = parent.initializeAniAdd(false, executorService, filesystem, null, sessionFactory);
             if (aniAddO.isEmpty()) {
                 executorService.shutdownNow();
                 return 1;

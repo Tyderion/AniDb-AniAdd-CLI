@@ -6,7 +6,17 @@ fi
 
 if [ -z "$KODI_PORT" ]
 then
-  java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF connect-to-kodi --kodi=$KODI_HOST
+  if [ -z "$LOCAL_CACHE_FILE" ]
+  then
+    java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF connect-to-kodi --kodi=$KODI_HOST
+  else
+    java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF --db $LOCAL_CACHE_FILE connect-to-kodi --kodi=$KODI_HOST
+  fi
  else
-   java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF connect-to-kodi --kodi=$KODI_HOST --port=$KODI_PORT
+   if [ -z "$LOCAL_CACHE_FILE" ]
+   then
+    java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF connect-to-kodi --kodi=$KODI_HOST --port=$KODI_PORT
+   else
+    java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF --db $LOCAL_CACHE_FILE connect-to-kodi --kodi=$KODI_HOST --port=$KODI_PORT
+   fi
 fi
