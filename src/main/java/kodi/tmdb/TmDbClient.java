@@ -12,6 +12,6 @@ public interface TmDbClient {
     Call<TmDbMovieImagesResponse> getArtworks(@Path("movieId") int movieId);
 
     @GET("movie/{movieId}/videos")
-    Call<TmDbMovieTrailersResponse> getTrailers(@Path("movieId") int movieId);
+    Call<TmDbMovieVideosResponse> getTrailers(@Path("movieId") int movieId);
 
 }

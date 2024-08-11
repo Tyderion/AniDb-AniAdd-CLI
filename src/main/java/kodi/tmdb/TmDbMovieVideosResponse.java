@@ -3,18 +3,17 @@ package kodi.tmdb;
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;
 
-import java.util.Comparator;
 import java.util.Optional;
 
 @Data
-public class TmDbMovieTrailersResponse {
+public class TmDbMovieVideosResponse {
     private int id;
 
     @SerializedName("results")
-    private java.util.List<Trailer> videos;
+    private java.util.List<Video> videos;
 
     @Data
-    public static class Trailer {
+    public static class Video {
         private String key;
         private String name;
         private String site;
@@ -36,13 +35,13 @@ public class TmDbMovieTrailersResponse {
         }
     }
 
-    public Optional<Trailer> getEnglishTrailer() {
+    public Optional<Video> getEnglishTrailer() {
         return videos
                 .stream()
-                .filter(trailer -> trailer.type == Trailer.Type.TRAILER)
-                .filter(trailer -> trailer.site.equals("YouTube"))
-                .filter(trailer -> trailer.official)
-                .filter(trailer -> trailer.language.equals("en"))
+                .filter(video -> video.type == Video.Type.TRAILER)
+                .filter(video -> video.site.equals("YouTube"))
+                .filter(video -> video.official)
+                .filter(video -> video.language.equals("en"))
                 .findFirst();
     }
 
