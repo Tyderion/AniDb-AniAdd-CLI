@@ -18,7 +18,7 @@ The following cli commands are available (check designated command help `--help`
 
 This version is meant to be used on headless system (like your NAS) and still have the flexibility and useability of the official applet.
 
-I suggest using a the watch command to monitor your download folder and automatically add new anime to your mylist and move them to your anime folder.
+I suggest using the watch command to monitor your download folder and automatically add new anime to your mylist and move them to your anime folder.
 
 # Tutorial
 
@@ -34,6 +34,14 @@ I suggest using a the watch command to monitor your download folder and automati
    Make sure to enable remote access to JSON-RPC in your Kodi settings
    - `java --enable-preview -jar AniAddCli.jar -u username -p password -anidb -c config.conf connect-to-kodi --kodi-url <your-kodi-ip>`.
 
+# Tagging System
+Use a small DSL to compute the new names of your files. Here is two similar examples example: [Kodi-Conf](config/tagging-system.conf) or [Other-Conf](config/tagging-system.conf)
+
+# Logging Configuration
+
+The logging configuration is done via a properties file. You can specify the path to the file via the `LOG_CONFIG_FILE` environment variable.
+Here is a sample override with the default log levels: [logging.override.properties](config/logging.override.properties);
+
 # Docker
 
 There is a docker image available : https://hub.docker.com/r/tyderion/aniadd-cli
@@ -47,8 +55,8 @@ mounts:
 Env:
 - `ANIDB_USERNAME` [required]: your username
 - `ANIDB_PASSWORD` [required]: your password e
-- `ANIDB_CONF` [required]: path to your config file, [example](https://github.com/Tyderion/AniDb-AniAdd-CLI/blob/master/.run/docker.conf), needs a corresponding mounted location of course :)
-- `LOG_CONFIG_FILE`: Path to a properties file for logging [sample](https://github.com/Tyderion/AniDb-AniAdd-CLI/blob/master/.run/logging.properties). Will be used to update logging configuration and set log levels. Defaults to the linked file.
+- `ANIDB_CONF` [required]: path to your config file, [example](config/docker.conf), needs a corresponding mounted location of course :)
+- `LOG_CONFIG_FILE`: Path to a properties file for logging [sample](config/logging.override.properties). Will be used to update logging configuration and set log levels. Defaults to the linked file.
 
 ### Scanning and watching 
 entrypoint: `/app/scan.sh` (default command of docker image)
@@ -97,3 +105,6 @@ Enables you to run any command you want by specifying it in an env variable.
 I recommend to use IntelliJ (Community Edition is enough) to develop this project.
 Be sure to install the Lombok Plugin and enable annotation processing in the settings.
 It currently only works with Java 21, higher/lower does not work due to the usage of template strings
+
+# DISCLAIMER
+This software is provided as is. I am not responsible for any damage caused by this software. Use at your own risk.

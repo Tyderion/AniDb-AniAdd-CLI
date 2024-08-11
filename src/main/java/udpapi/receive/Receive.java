@@ -1,7 +1,7 @@
 package udpapi.receive;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 
@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
-@Log
+@Slf4j
 @RequiredArgsConstructor
 public class Receive implements Runnable {
 
@@ -23,7 +23,7 @@ public class Receive implements Runnable {
 
     @Override
     public void run() {
-        log.fine("Receive thread started");
+        log.debug("Receive thread started");
         while (integration.isSocketConnected()) {
             try {
                 val packet = new DatagramPacket(new byte[1400], 1400);
@@ -42,15 +42,15 @@ public class Receive implements Runnable {
                 integration.onReceiveRawMessage(new String(replyBinary, 0, length, StandardCharsets.UTF_8));
 
             } catch (SocketException e) {
-                log.fine("Socket was closed");
+                log.debug("Socket was closed");
                 integration.disconnect();
             } catch (Exception e) {
-                log.severe(STR."Receive Error: \{e.getMessage()}");
+                log.error(STR."Receive Error: \{e.getMessage()}");
                 integration.disconnect();
             }
         }
 
-        log.fine( "Receive thread stopped");
+        log.debug( "Receive thread stopped");
     }
 
     private byte[] inflatePacket(ByteArrayInputStream stream) throws IOException {

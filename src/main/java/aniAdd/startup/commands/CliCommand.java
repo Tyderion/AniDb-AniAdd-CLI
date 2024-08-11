@@ -4,19 +4,19 @@ import aniAdd.config.AniConfiguration;
 import aniAdd.config.ConfigFileLoader;
 import aniAdd.startup.commands.anidb.AnidbCommand;
 import aniAdd.startup.commands.config.ConfigCommand;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
 
 import java.util.Optional;
 
-@Log
+@Slf4j
 @CommandLine.Command(name = "aniadd-cli.jar",
         mixinStandardHelpOptions = true,
         version = "1.0",
         scope = CommandLine.ScopeType.INHERIT,
         description = "The main command.",
-        subcommands = {AnidbCommand.class, ConfigCommand.class, FileMoveCommand.class, TagsCommand.class, TestCommand.class})
+        subcommands = {AnidbCommand.class, ConfigCommand.class, FileMoveCommand.class, TagsCommand.class})
 public class CliCommand {
 
     @CommandLine.Option(names = {"--tagging-system"}, description = "the path to a file containing the Tagging System definition", required = false, scope = CommandLine.ScopeType.INHERIT)

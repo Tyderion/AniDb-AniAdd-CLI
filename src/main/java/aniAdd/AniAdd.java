@@ -4,14 +4,14 @@ import aniAdd.config.AniConfiguration;
 
 import aniAdd.misc.ICallBack;
 import lombok.Getter;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import fileprocessor.FileProcessor;
 import processing.EpisodeProcessing;
 import udpapi.UdpApi;
 
-@Log
+@Slf4j
 public class AniAdd implements IAniAdd {
     @NotNull @Getter private final AniConfiguration configuration;
     @NotNull private final UdpApi api;
@@ -31,7 +31,7 @@ public class AniAdd implements IAniAdd {
                     Stop();
                 }
             } else {
-                log.fine(STR."File processing \{event}");
+                log.debug(STR."File processing \{event}");
             }
         });
         this.processing = processing;

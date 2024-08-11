@@ -1,11 +1,11 @@
 package processing;
 
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@Log
+@Slf4j
 public class DoOnFileSystem implements AutoCloseable {
     private final ExecutorService executor;
 

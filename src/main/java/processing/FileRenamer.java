@@ -1,7 +1,7 @@
 package processing;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.tuple.Pair;
 import processing.tagsystem.TagSystem;
@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Optional;
 
-@Log
+@Slf4j
 @RequiredArgsConstructor
 public class FileRenamer {
 
@@ -63,13 +63,13 @@ public class FileRenamer {
                 return false;
             }
             if (targetFilePath.equals(procFile.getFile().toPath().toAbsolutePath())) {
-                log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} does not need renaming.");
+                log.debug(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} does not need renaming.");
                 return true;
             }
 
             val oldFilename = procFile.getFile().getName();
             if (fileHandler.renameFile(procFile.getFile().toPath(), targetFilePath)) {
-                log.fine(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} renamed to \{targetFilePath.toString()}");
+                log.debug(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} renamed to \{targetFilePath.toString()}");
                 if (configuration.isRenameRelatedFiles()) {
                     renameRelatedFiles(procFile, oldFilename, targetFilePath.getFileName().toString(), targetFolderPath);
                 }
@@ -80,7 +80,7 @@ public class FileRenamer {
             return false;
         } catch (Exception ex) {
             ex.printStackTrace();
-            log.severe(STR."Renaming failed for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}: \{ex.getMessage()}");
+            log.error(STR."Renaming failed for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}: \{ex.getMessage()}");
             return false;
         }
     }
@@ -101,10 +101,10 @@ public class FileRenamer {
                 }
             }
             if (!relatedFileSuffixes.isEmpty()) {
-                log.fine(STR."Renamed related files for \{procFile.getFile().getAbsolutePath()} with suffixes: \{String.join(", ", relatedFileSuffixes)}");
+                log.debug(STR."Renamed related files for \{procFile.getFile().getAbsolutePath()} with suffixes: \{String.join(", ", relatedFileSuffixes)}");
             }
         } catch (Exception e) {
-            log.severe(STR."Failed to rename related files for \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}: \{e.getMessage()}");
+            log.error(STR."Failed to rename related files for \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}: \{e.getMessage()}");
         }
     }
 
@@ -118,7 +118,7 @@ public class FileRenamer {
         }
         var tsResult = tagSystemResult == null ? getPathFromTagSystem(procFile) : tagSystemResult;
         if (tsResult == null) {
-            log.severe(STR."TagSystem script failed for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}. Check your tag system code.");
+            log.error(STR."TagSystem script failed for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}. Check your tag system code.");
             return Optional.empty();
         }
 
@@ -138,7 +138,7 @@ public class FileRenamer {
 
         val tagSystemResult = getPathFromTagSystem(procFile);
         if (tagSystemResult == null) {
-            log.severe(STR."TagSystem script failed for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}. Check your tag system code.");
+            log.error(STR."TagSystem script failed for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}. Check your tag system code.");
             return Pair.of(null, null);
         }
 
@@ -153,7 +153,7 @@ public class FileRenamer {
 
         val targetFolder = Paths.get(pathName);
         if (!targetFolder.isAbsolute()) {
-            log.warning(STR."Folderpath for moving from TagSystem needs to be absolute but is \{targetFolder.toString()}");
+            log.warn(STR."Folderpath for moving from TagSystem needs to be absolute but is \{targetFolder.toString()}");
             return Pair.of(null, tagSystemResult);
         }
 
