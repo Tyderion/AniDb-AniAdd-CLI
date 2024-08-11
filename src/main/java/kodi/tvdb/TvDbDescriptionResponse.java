@@ -9,4 +9,5 @@ import java.util.List;
 public class TvDbDescriptionResponse {
     @SerializedName("overview")
     String plot;
+    String name;
 }

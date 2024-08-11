@@ -26,7 +26,6 @@ public class TVSeriesData {
     int seriesId;
     String seriesName;
     TvDbSeasonResponse.SeriesStatus.Status status;
-
     public static class TVSeriesDataBuilder {
         private boolean episodesFinished = false;
 
@@ -37,8 +36,10 @@ public class TVSeriesData {
         public TVSeriesDataBuilder description(TvDbDescriptionResponse response) {
             if (response == null) {
                 plot("");
+                seriesName("");
                 return this;
             }
+            seriesName(response.getName());
             plot(response.getPlot());
             return this;
         }
