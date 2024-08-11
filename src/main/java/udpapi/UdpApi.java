@@ -2,7 +2,6 @@ package udpapi;
 
 import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
-import lombok.RequiredArgsConstructor;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;

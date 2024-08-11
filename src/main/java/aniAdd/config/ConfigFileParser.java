@@ -13,8 +13,6 @@ import org.yaml.snakeyaml.representer.Representer;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 @Slf4j
 public class ConfigFileParser<T> {
