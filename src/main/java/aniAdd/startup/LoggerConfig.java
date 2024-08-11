@@ -15,9 +15,14 @@ public class LoggerConfig {
 
     // For some reason the logging.properties file is not loaded correctly when reading config or setting the system property
     static void configureLogger() {
+        // Make sure we get reasonable jul (java.util.logging) logs into slf4j
+        // Can be overwritten via logging override
+        System.setProperty(".level", "INFO");
+        System.setProperty("java.util.logging.ConsoleHandler.level", "INFO");
         try {
             val fileName = System.getenv("LOG_CONFIG_FILE");
             final Map<String, String> configValues = new HashMap<>();
+            configValues.put("org.jboss.logging.provider", "slf4j");
             if (fileName == null) {
                 System.out.println("No log configuration file specified. Using included logging configuration.");
             } else {
@@ -29,15 +34,10 @@ public class LoggerConfig {
                             .map(String::trim)
                             .filter(s -> !s.startsWith("#") && !s.isEmpty()).map(s -> s.split("="))
                             .forEach(s -> configValues.put(s[0], Arrays.stream(s).skip(1).collect(Collectors.joining("="))));
-                    // Make sure we get most jul (java.util.logging) logs into slf4j
-                    if (!configValues.containsKey(".level")) {
-                        configValues.put(".level", "FINE");
-                    }
-                    if (!configValues.containsKey("java.util.logging.ConsoleHandler.level")) {
-                        configValues.put("java.util.logging.ConsoleHandler.level", "FINE");
-                    }
                 }
             }
+            LogManager.getLogManager().updateConfiguration((key) -> (oldVal, newVal) ->
+                    configValues.getOrDefault(key, newVal));
             for (val entry : configValues.entrySet()) {
                 System.setProperty(entry.getKey(), entry.getValue());
             }
