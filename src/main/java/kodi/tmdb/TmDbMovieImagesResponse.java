@@ -23,6 +23,6 @@ public class TmDbMovieImagesResponse {
         @SerializedName("vote_count")
         private int voteCount;
         @SerializedName("vote_average")
-        private int voteAverage;
+        private double voteAverage;
     }
 }

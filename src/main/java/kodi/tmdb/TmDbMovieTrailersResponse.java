@@ -27,7 +27,12 @@ public class TmDbMovieTrailersResponse {
 
 
         public enum Type {
-            TRAILER, TEASER, CLIP
+            @SerializedName("Trailer")
+            TRAILER,
+            @SerializedName("Teaser")
+            TEASER,
+            @SerializedName("Clip")
+            CLIP
         }
     }
 

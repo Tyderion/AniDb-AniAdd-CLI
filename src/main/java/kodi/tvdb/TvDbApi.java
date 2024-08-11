@@ -1,17 +1,12 @@
 package kodi.tvdb;
 
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 import lombok.val;
 import okhttp3.Dispatcher;
 import okhttp3.OkHttpClient;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
-import utils.http.FullRequestCallback;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -55,7 +50,7 @@ public class TvDbApi {
             requestsDone.setArtworks(true);
             log.info(STR."Successfully fetched all \{data.getArtworks().size()} artworks for series \{seriesId}");
             notify(onReceive, allData, requestsDone);
-        }, _ -> {
+        }, () -> {
             login(tvDbClient, apiKey);
             getArtworks(seriesId, requestsDone, allData, onReceive);
         }));
@@ -68,7 +63,7 @@ public class TvDbApi {
             requestsDone.setPlot(true);
             log.info(STR."Successfully fetched plot for series \{seriesId}");
             notify(onReceive, allData, requestsDone);
-        }, _ -> {
+        }, () -> {
             login(tvDbClient, apiKey);
             getPlot(seriesId, requestsDone, allData, onReceive);
         }));
@@ -82,7 +77,7 @@ public class TvDbApi {
             requestsDone.setSeasons(true);
             log.info(STR."Successfully fetched all \{data.getSeasons().size()} seasons for series \{seriesId}");
             notify(onReceive, allData, requestsDone);
-        }, _ -> {
+        }, () -> {
             login(tvDbClient, apiKey);
             getSeasons(seriesId, requestsDone, allData, onReceive);
         }));
@@ -90,7 +85,7 @@ public class TvDbApi {
 
     private void getAllEpisodeData(int seriesId, int page, RequestsDone requestsDone, TvDbAllData.TvDbAllDataBuilder allData, IAllDataCallback onReceive) {
         log.info(STR."Fetching episodes page \{page} for series \{seriesId}");
-        tvDbClient.getEpisodes(seriesId, page).enqueue(new FullRequestCallback<>(data -> {
+        tvDbClient.getEpisodes(seriesId, page).enqueue(new utils.http.RequestCallback<>(data -> {
             data.getData().getEpisodes().forEach(allData::episode);
             allData.seriesName(data.getData().getName());
             if (data.getLinks().getPagesize() * (page + 1) > data.getLinks().getTotalItems()) {
@@ -101,7 +96,7 @@ public class TvDbApi {
             } else {
                 getAllEpisodeData(seriesId, page + 1, requestsDone, allData, onReceive);
             }
-        }, _ -> {
+        }, () -> {
             login(tvDbClient, apiKey);
             getAllEpisodeData(seriesId, page, requestsDone, allData, onReceive);
         }) {
@@ -166,8 +161,8 @@ public class TvDbApi {
         return httpClient.build();
     }
 
-    private static class RequestCallback<T> extends FullRequestCallback<TvDbResponse<T>> {
-        private RequestCallback(OnResponse<T> onResponse, OnResponse<Void> onUnauthorized) {
+    private static class RequestCallback<T> extends utils.http.RequestCallback<TvDbResponse<T>> {
+        private RequestCallback(OnResponse<T> onResponse, OnUnauthorized onUnauthorized) {
             super(response -> {
                 if (response != null && response.getStatus() == TvDbResponse.Status.SUCCESS) {
                     onResponse.received(response.getData());

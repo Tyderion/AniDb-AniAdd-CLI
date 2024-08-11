@@ -17,5 +17,5 @@ public class TmDbMovieDetailsResponse {
     private int voteCount;
 
     @SerializedName("vote_average")
-    private int voteAverage;
+    private double voteAverage;
 }
