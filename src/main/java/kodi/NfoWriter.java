@@ -27,8 +27,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public abstract class NfoWriter {
     protected XMLEventWriter writer;
@@ -59,7 +57,7 @@ public abstract class NfoWriter {
     }
 
     protected void writeDate(String tag, LocalDate date) throws XMLStreamException {
-        writeTag(tag, date.format(DateTimeFormatter.ISO_LOCAL_DATE));
+        tag(tag, date.format(DateTimeFormatter.ISO_LOCAL_DATE));
     }
 
     protected void writeGenres(List<String> genres) throws XMLStreamException {
@@ -72,11 +70,11 @@ public abstract class NfoWriter {
     }
 
     protected void writeStudio(String studio) throws XMLStreamException {
-        writeTag("studio", studio);
+        tag("studio", studio);
     }
 
     private void writeThumbnail(String thumbnail) throws XMLStreamException {
-        writeTag("thumb", thumbnail);
+        tag("thumb", thumbnail);
     }
 
     private void writeLastPlayed(LocalDate lastPlayed) throws XMLStreamException {
@@ -86,11 +84,11 @@ public abstract class NfoWriter {
     }
 
     private void writeWatched(boolean watched) throws XMLStreamException {
-        writeTag("playcount", watched ? "1" : "0");
+        tag("playcount", watched ? "1" : "0");
     }
 
     private void writeRuntime(int seconds) throws XMLStreamException {
-        writeTag("runtime", Duration.ofSeconds(seconds).toMinutes());
+        tag("runtime", Duration.ofSeconds(seconds).toMinutes());
     }
 
 
@@ -104,63 +102,63 @@ public abstract class NfoWriter {
 
     private void writeList(String tag, List<String> values) throws XMLStreamException {
         for (String value : values) {
-            writeTag(tag, value);
+            tag(tag, value);
         }
     }
 
     protected void writeFileDetails(Episode.StreamDetails streamDetails) throws XMLStreamException {
-        writeTag("fileinfo", () -> {
-            writeTag("streamdetails", () -> {
-                writeTag("video", () -> {
+        tag("fileinfo", () -> {
+            tag("streamdetails", () -> {
+                tag("video", () -> {
                     val video = streamDetails.getVideo();
-                    writeTag("codec", video.getCodec());
-                    writeTag("aspect", (double) video.getWidth() / video.getHeight());
-                    writeTag("width", video.getWidth());
-                    writeTag("height", video.getHeight());
-                    writeTag("durationinseconds", video.getDurationInSeconds());
+                    tag("codec", video.getCodec());
+                    tag("aspect", (double) video.getWidth() / video.getHeight());
+                    tag("width", video.getWidth());
+                    tag("height", video.getHeight());
+                    tag("durationinseconds", video.getDurationInSeconds());
                 });
-                writeTag("audio", () -> {
+                tag("audio", () -> {
                     val audio = streamDetails.getAudio();
-                    writeTag("codec", audio.getCodec());
-                    writeTag("language", audio.getLanguage());
-                    writeTag("channels", audio.getChannels());
+                    tag("codec", audio.getCodec());
+                    tag("language", audio.getLanguage());
+                    tag("channels", audio.getChannels());
                 });
                 for (String subtitle : streamDetails.getSubtitles()) {
-                    writeTag("subtitle", () -> writeTag("language", subtitle));
+                    tag("subtitle", () -> tag("language", subtitle));
                 }
             });
         });
     }
 
     protected void writeFanarts(List<Artwork> fanarts) throws XMLStreamException {
-        writeTag("fanart", () -> {
+        tag("fanart", () -> {
             for (Artwork artwork : fanarts) {
-                writeTag("thumb", artwork.getUrl());
+                tag("thumb", artwork.getUrl());
             }
         });
     }
 
     protected void writeActors(List<Actor> actors) throws XMLStreamException {
         for (Actor actor : actors) {
-            writeTag("actor", () -> {
-                writeTag("name", actor.getName());
-                writeTag("role", actor.getRole());
-                writeTag("thumb", actor.getThumb());
-                writeTag("order", actor.getOrder());
+            tag("actor", () -> {
+                tag("name", actor.getName());
+                tag("role", actor.getRole());
+                tag("thumb", actor.getThumb());
+                tag("order", actor.getOrder());
             });
         }
     }
 
     protected void writeRatings(List<Rating> ratings) throws XMLStreamException {
-        writeTag("ratings", () -> {
+        tag("ratings", () -> {
             for (Rating rating : ratings) {
-                writeTag("rating", List.of(
+                tag("rating", List.of(
                                 attribute("default", "true"),
                                 attribute("max", rating.getMax()),
                                 attribute("name", rating.getName())),
                         () -> {
-                            writeTag("value", rating.getRating());
-                            writeTag("votes", rating.getVoteCount());
+                            tag("value", rating.getRating());
+                            tag("votes", rating.getVoteCount());
                         });
             }
 
@@ -183,49 +181,49 @@ public abstract class NfoWriter {
         writer.add(factory.createStartDocument("UTF-8", "1.0", true));
     }
 
-    protected void writeTag(String tag, SeriesNfoWriter.IContentWriter content) throws XMLStreamException {
+    protected void tag(String tag, SeriesNfoWriter.IContentWriter content) throws XMLStreamException {
         writer.add(factory.createStartElement(QName.valueOf(tag), null, null));
         content.write();
         writer.add(factory.createEndElement(QName.valueOf(tag), null));
     }
 
-    protected void writeTag(String tag, int content) throws XMLStreamException {
+    protected void tag(String tag, int content) throws XMLStreamException {
         writer.add(factory.createStartElement(QName.valueOf(tag), null, null));
         writer.add(factory.createCharacters(String.valueOf(content)));
         writer.add(factory.createEndElement(QName.valueOf(tag), null));
     }
 
-    protected void writeTag(String tag, long content) throws XMLStreamException {
+    protected void tag(String tag, long content) throws XMLStreamException {
         writer.add(factory.createStartElement(QName.valueOf(tag), null, null));
         writer.add(factory.createCharacters(String.valueOf(content)));
         writer.add(factory.createEndElement(QName.valueOf(tag), null));
     }
 
-    protected void writeTag(String tag, long content, List<Attribute> attributes) throws XMLStreamException {
+    protected void tag(String tag, long content, List<Attribute> attributes) throws XMLStreamException {
         writer.add(factory.createStartElement(QName.valueOf(tag), attributes.iterator(), null));
         writer.add(factory.createCharacters(String.valueOf(content)));
         writer.add(factory.createEndElement(QName.valueOf(tag), null));
     }
 
-    protected void writeTag(String tag, double content) throws XMLStreamException {
+    protected void tag(String tag, double content) throws XMLStreamException {
         writer.add(factory.createStartElement(QName.valueOf(tag), null, null));
         writer.add(factory.createCharacters(String.valueOf(content)));
         writer.add(factory.createEndElement(QName.valueOf(tag), null));
     }
 
-    protected void writeTag(String tag, String content) throws XMLStreamException {
+    protected void tag(String tag, String content) throws XMLStreamException {
         writer.add(factory.createStartElement(QName.valueOf(tag), null, null));
         writer.add(factory.createCharacters(content));
         writer.add(factory.createEndElement(QName.valueOf(tag), null));
     }
 
-    protected void writeTag(String tag, String content, List<Attribute> attributes) throws XMLStreamException {
+    protected void tag(String tag, String content, List<Attribute> attributes) throws XMLStreamException {
         writer.add(factory.createStartElement(QName.valueOf(tag), attributes.iterator(), null));
         writer.add(factory.createCharacters(content));
         writer.add(factory.createEndElement(QName.valueOf(tag), null));
     }
 
-    protected void writeTag(String tag, List<Attribute> attributes, SeriesNfoWriter.IContentWriter content) throws XMLStreamException {
+    protected void tag(String tag, List<Attribute> attributes, SeriesNfoWriter.IContentWriter content) throws XMLStreamException {
         writer.add(factory.createStartElement(QName.valueOf(tag), attributes.iterator(), null));
         content.write();
         writer.add(factory.createEndElement(QName.valueOf(tag), null));

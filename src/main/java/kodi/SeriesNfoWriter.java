@@ -6,28 +6,16 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 import lombok.val;
-import org.dom4j.Document;
 import org.dom4j.DocumentException;
-import org.dom4j.DocumentHelper;
-import org.dom4j.io.OutputFormat;
-import org.dom4j.io.XMLWriter;
 
-import javax.xml.namespace.QName;
 import javax.xml.stream.*;
-import javax.xml.stream.events.Attribute;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Set;
 
 @Log
 @RequiredArgsConstructor(staticName = "forSeries")
@@ -68,13 +56,13 @@ public class SeriesNfoWriter extends NfoWriter {
         factory = XMLEventFactory.newInstance();
 
         startDocument();
-        writeTag("episodedetails", () -> {
-            writeTag("title", episode.getTitle());
-            writeTag("showtitle", series.getTitle());
+        tag("episodedetails", () -> {
+            tag("title", episode.getTitle());
+            tag("showtitle", series.getTitle());
             writeRatings(episode.getRatings());
-            writeTag("season", episode.getSeason());
-            writeTag("episode", episode.getEpisode());
-            writeTag("plot", episode.getPlot());
+            tag("season", episode.getSeason());
+            tag("episode", episode.getEpisode());
+            tag("plot", episode.getPlot());
             writeRuntime(episode.getRuntimeInSeconds());
             writeThumbnail(episode.getThumbnail());
             writeWatched(episode.isWatched());
@@ -105,13 +93,13 @@ public class SeriesNfoWriter extends NfoWriter {
         factory = XMLEventFactory.newInstance();
 
         startDocument();
-        writeTag("tvshow", () -> {
-            writeTag("title", series.getTitle());
-            writeTag("originaltitle", series.getOriginalTitle());
-            writeTag("showtitle", series.getOriginalTitle());
+        tag("tvshow", () -> {
+            tag("title", series.getTitle());
+            tag("originaltitle", series.getOriginalTitle());
+            tag("showtitle", series.getOriginalTitle());
             writeRatings(series.getRatings());
-            writeTag("plot", series.getPlot());
-            writeTag("status", series.getStatus());
+            tag("plot", series.getPlot());
+            tag("status", series.getStatus());
 
             for (Artwork artwork : series.getArtworks()) {
                 val attributes = switch (artwork.getType()) {
@@ -129,7 +117,7 @@ public class SeriesNfoWriter extends NfoWriter {
                     case CLEARART -> List.of(attribute("aspect", "clearart"));
                     case CLEARLOGO -> List.of(attribute("aspect", "clearlogo"));
                 };
-                writeTag("thumb", artwork.getUrl(), attributes);
+                tag("thumb", artwork.getUrl(), attributes);
             }
             writeFanarts(series.getFanarts());
             writeUniqueIds(series.getUniqueIds());
@@ -148,7 +136,7 @@ public class SeriesNfoWriter extends NfoWriter {
 
     private void writeUniqueIds(List<UniqueId> series) throws XMLStreamException {
         for (UniqueId uniqueId : series) {
-            writeTag("uniqueid", uniqueId.getValue(), attributes("type", uniqueId.getType().getName()));
+            tag("uniqueid", uniqueId.getValue(), attributes("type", uniqueId.getType().getName()));
         }
     }
 }

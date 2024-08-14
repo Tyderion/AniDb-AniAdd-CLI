@@ -17,8 +17,8 @@ public class Episode {
     String title;
     String showTitle;
 
-    int voteCount;
-    double rating;
+    @Singular
+    List<Rating> ratings;
 
     int season;
     int episode;
