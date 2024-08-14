@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.hibernate.SessionFactory;
 import org.hibernate.exception.GenericJDBCException;
+import processing.tagsystem.TagSystemTags;
 
 import java.util.Optional;
 
@@ -64,12 +65,9 @@ public class AniDBFileRepository implements IAniDBFileRepository {
                 log.debug(STR."loading AniDBFileData for fileId: '\{fileId}'");
                 val query = session.createQuery("from AniDBFileData as data where :fileId in elements(data.tags)", AniDBFileData.class);
                 query.setParameter("fileId", fileId);
-                val result = query.uniqueResult();
-                log.debug(STR."loaded AniDBFileData: \{result} for fileId: '\{fileId}'");
-                if (result == null) {
-                    return Optional.empty();
-                }
-                return Optional.of(result);
+                val results = query.getResultList();
+                log.debug(STR."loaded AniDBFileData: \{results} for fileId: '\{fileId}'");
+                return results.stream().filter(ele -> ele.getTags().get(TagSystemTags.FileId).equals(String.valueOf(fileId))).findFirst();
 
             } catch (GenericJDBCException e) {
                 return Optional.empty();
