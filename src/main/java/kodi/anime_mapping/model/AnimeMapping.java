@@ -13,7 +13,10 @@ public class AnimeMapping {
     long aniDbId;
     Integer tvDbId;
     Integer episodeOffset;
-    String imdbId;
+    @Singular
+    List<String> imdbIds;
+    @Singular
+    List<String> tmDbIds;
     String defaultTvDbSeason;
     @Builder.Default
     AnimeType type = AnimeType.SERIES;

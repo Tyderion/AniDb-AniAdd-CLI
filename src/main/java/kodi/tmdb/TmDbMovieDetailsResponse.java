@@ -9,6 +9,8 @@ public class TmDbMovieDetailsResponse {
     private int id;
 
     private String title;
+    @SerializedName("original_title")
+    private String originalTitle;
 
     @SerializedName("overview")
     private String plot;

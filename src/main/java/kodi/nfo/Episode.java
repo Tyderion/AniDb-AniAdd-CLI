@@ -54,28 +54,5 @@ public class Episode extends RootTag {
         return lastPlayed != null;
     }
 
-    @Value
-    @Builder
-    public static class StreamDetails {
-        Audio audio;
-        Video video;
-        List<String> subtitles;
-    }
 
-    @Value
-    @Builder
-    public static class Audio {
-        String codec;
-        String language;
-        int channels;
-    }
-
-    @Value
-    @Builder
-    public static class Video {
-        String codec;
-        int width;
-        int height;
-        int durationInSeconds;
-    }
 }

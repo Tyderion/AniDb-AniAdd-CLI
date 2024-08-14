@@ -1,16 +1,22 @@
 package kodi.tmdb;
 
+import kodi.nfo.Artwork;
+import kodi.nfo.Movie;
+import kodi.nfo.Rating;
 import lombok.*;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 @Value
 @Builder()
 public class MovieData {
+    private final static String artUrl = "https://image.tmdb.org/t/p/original";
 
     int id;
     String title;
+    String originalTitle;
     String plot;
     int voteCount;
     double voteAverage;
@@ -19,6 +25,31 @@ public class MovieData {
     Optional<TmDbMovieVideosResponse.Video> trailer;
     List<TmDbMovieImagesResponse.Image> backdrops;
     List<TmDbMovieImagesResponse.Image> posters;
+
+    public void updateMovie(Movie.MovieBuilder builder) {
+        trailer.ifPresent(trailer -> builder.trailer(STR."https://www.youtube.com/watch?v=\{trailer.getKey()}"));
+        builder.title(title)
+                .originalTitle(title)
+                .plot(plot)
+                .rating(Rating.builder().name("tmdb").max(10).rating(voteAverage).voteCount(voteCount).build());
+
+        backdrops.stream().sorted(Comparator.comparingDouble(TmDbMovieImagesResponse.Image::getVoteAverage)
+                        .thenComparingInt(TmDbMovieImagesResponse.Image::getVoteCount))
+                .limit(40)
+                .forEach(backdrop -> builder.fanart(Artwork.builder()
+                        .url(STR."\{artUrl}\{backdrop.getFilePath()}")
+                        .type(Artwork.ArtworkType.MOVIE_BACKGROUND)
+                        .build()));
+
+        posters.stream().sorted(Comparator.comparingDouble(TmDbMovieImagesResponse.Image::getVoteAverage)
+                        .thenComparingInt(TmDbMovieImagesResponse.Image::getVoteCount))
+                .limit(10)
+                .forEach(poster -> builder.fanart(Artwork.builder()
+                        .url(STR."\{artUrl}\{poster.getFilePath()}")
+                        .type(Artwork.ArtworkType.MOVIE_POSTER)
+                        .build()));
+
+    }
 
     public static class MovieDataBuilder {
         private boolean trailersFailed = false;
@@ -71,6 +102,7 @@ public class MovieData {
             }
             return this.id(details.getId())
                     .title(details.getTitle())
+                    .originalTitle(details.getOriginalTitle())
                     .plot(details.getPlot())
                     .voteCount(details.getVoteCount())
                     .voteAverage(details.getVoteAverage());

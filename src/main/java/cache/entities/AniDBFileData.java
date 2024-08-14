@@ -3,6 +3,8 @@ package cache.entities;
 import jakarta.persistence.*;
 import kodi.common.UniqueId;
 import kodi.nfo.Episode;
+import kodi.nfo.Movie;
+import kodi.nfo.StreamDetails;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -87,13 +89,42 @@ public class AniDBFileData {
         }
     }
 
+
     @Transient
-    public int aniDbEpisodeNumber() {
+    public int aniDbAnimeId() {
+        return Integer.parseInt(tags.get(TagSystemTags.AnimeId));
+    }
+
+    @Transient
+    public int aniDbEpisodeId() {
         return Integer.parseInt(tags.get(TagSystemTags.EpisodeId));
     }
 
+    public Movie.MovieBuilder toMovie() {
+        return Movie.builder()
+                .runtimeInSeconds(Integer.parseInt(tags.get(TagSystemTags.FileDuration)))
+                .streamDetails(getStreamDetails())
+                .uniqueId(UniqueId.AniDbFileId(Long.parseLong(tags.get(TagSystemTags.FileId))))
+                .uniqueId(UniqueId.AniDbAnimeId(Long.parseLong(tags.get(TagSystemTags.AnimeId))))
+                .uniqueId(UniqueId.AniDbEpisodeId(this.aniDbEpisodeId()))
+                .premiered(LocalDate.ofInstant(Instant.ofEpochSecond(Long.parseLong(tags.get(TagSystemTags.EpisodeAirDate))), ZoneId.systemDefault()));
+    }
+
     public Episode.EpisodeBuilder toEpisode() {
-        val video = Episode.Video.builder()
+        return Episode.builder()
+                .title(tags.get(TagSystemTags.EpisodeNameEnglish))
+                .season(seasonNumber())
+                .episode(episodeNumber())
+                .runtimeInSeconds(Integer.parseInt(tags.get(TagSystemTags.FileDuration)))
+                .streamDetails(getStreamDetails())
+                .uniqueId(UniqueId.AniDbFileId(Long.parseLong(tags.get(TagSystemTags.FileId))))
+                .uniqueId(UniqueId.AniDbAnimeId(Long.parseLong(tags.get(TagSystemTags.AnimeId))))
+                .uniqueId(UniqueId.AniDbEpisodeId(this.aniDbEpisodeId()))
+                .premiered(LocalDate.ofInstant(Instant.ofEpochSecond(Long.parseLong(tags.get(TagSystemTags.EpisodeAirDate))), ZoneId.systemDefault()));
+    }
+
+    private StreamDetails getStreamDetails() {
+        val video = StreamDetails.Video.builder()
                 .codec(tags.get(TagSystemTags.FileVideoCodec))
                 .durationInSeconds(Integer.parseInt(tags.get(TagSystemTags.FileDuration)));
         val resolution = tags.get(TagSystemTags.FileVideoResolution);
@@ -102,27 +133,12 @@ public class AniDBFileData {
             video.width(Integer.parseInt(wxh[0]));
             video.height(Integer.parseInt(wxh[1]));
         }
-        val streamDetails = Episode.StreamDetails.builder()
-                .audio(Episode.Audio.builder()
+        return StreamDetails.builder()
+                .audio(StreamDetails.Audio.builder()
                         .language(tags.get(TagSystemTags.FileAudioLanguage))
                         .build())
                 .video(video.build())
                 .subtitles(List.of(tags.get(TagSystemTags.FileSubtitleLanguage).split("'")))
                 .build();
-
-        int episodeNumber = episodeNumber();
-        int season = seasonNumber();
-
-        return Episode.builder()
-                .title(tags.get(TagSystemTags.EpisodeNameEnglish))
-                .season(season)
-                .episode(episodeNumber)
-                .runtimeInSeconds(Integer.parseInt(tags.get(TagSystemTags.FileDuration)))
-                .streamDetails(streamDetails)
-                .uniqueId(UniqueId.AniDbFileId(Long.parseLong(tags.get(TagSystemTags.FileId))))
-                .uniqueId(UniqueId.AniDbAnimeId(Long.parseLong(tags.get(TagSystemTags.AnimeId))))
-                .uniqueId(UniqueId.AniDbEpisodeId(this.aniDbEpisodeNumber()))
-                .premiered(LocalDate.ofInstant(Instant.ofEpochSecond(Long.parseLong(tags.get(TagSystemTags.EpisodeAirDate))), ZoneId.systemDefault()));
-
     }
 }

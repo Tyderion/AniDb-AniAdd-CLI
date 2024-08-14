@@ -59,6 +59,10 @@ public class AnimeMappingLoader {
                             case "anime" -> {
                                 currentAnime = AnimeMapping.builder();
                                 currentAnime.aniDbId(getLongAttribute(startElement, "anidbid"));
+                                val tmDbIds = getAttribute(startElement, "tmdbid").map(Attribute::getValue).orElse("");
+                                Arrays.stream(tmDbIds.split(",")).forEach(currentAnime::tmDbId);
+                                val imdbIds = getAttribute(startElement, "tmdbid").map(Attribute::getValue).orElse("");
+                                Arrays.stream(imdbIds.split(",")).forEach(currentAnime::imdbId);
                                 val tvdbId = getAttribute(startElement, "tvdbid").map(Attribute::getValue).orElseThrow();
                                 switch (tvdbId.toLowerCase()) {
                                     case "movie" -> currentAnime.type(AnimeMapping.AnimeType.MOVIE);

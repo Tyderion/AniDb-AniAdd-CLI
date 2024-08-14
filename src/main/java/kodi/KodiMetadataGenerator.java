@@ -43,23 +43,19 @@ public class KodiMetadataGenerator {
         val aniDbAnimeId = Integer.parseInt(fileInfo.getData().get(TagSystemTags.AnimeId));
         var anime = AnimeDetailsLoader.parseXml(getXmlInput(aniDbAnimeId));
         log.info(STR."Anime: \{anime.getId()} - \{anime.getTitles().stream().findFirst()}");
-
-
         if (anime.getType() == Anime.Type.TV_Series) {
             val tvDbId = this.getAnimeMapping().get((long) aniDbAnimeId).getTvDbId();
             tvDbApi.getTvSeriesData(tvDbId, tvDbAllData -> {
-                generateData(Optional.ofNullable(tvDbAllData), fileInfo, anime, aniDbAnimeId, onDone);
+                writeSeriesNfoFiles(Optional.ofNullable(tvDbAllData), fileInfo, anime, aniDbAnimeId, onDone);
             });
         } else if (anime.getType() == Anime.Type.MOVIE) {
-            val imDbId = this.getAnimeMapping().get((long) aniDbAnimeId).getImdbId();
+            val imDbId = this.getAnimeMapping().get((long) aniDbAnimeId).getImdbIds();
         } else {
-            generateData(Optional.empty(), fileInfo, anime, aniDbAnimeId, onDone);
+            writeSeriesNfoFiles(Optional.empty(), fileInfo, anime, aniDbAnimeId, onDone);
         }
-
-
     }
 
-    private void generateData(Optional<TVSeriesData> tvDbAllData, FileInfo fileInfo, Anime anime, int aniDbAnimeId, OnDone onDone) {
+    private void writeSeriesNfoFiles(Optional<TVSeriesData> tvDbAllData, FileInfo fileInfo, Anime anime, int aniDbAnimeId, OnDone onDone) {
         val series = anime.toSeries();
         tvDbAllData.ifPresent(tvDbData -> {
             log.info(STR."TVDB: \{tvDbData.getSeriesId()} - \{tvDbData.getSeriesName()}");
@@ -77,7 +73,7 @@ public class KodiMetadataGenerator {
         val filePath = fileInfo.getFinalFilePath();
         val episode = episodeFileData.toEpisode();
         episode.filePath(filePath);
-        anime.updateEpisode(episode, episodeFileData.aniDbEpisodeNumber());
+        anime.updateEpisode(episode, episodeFileData.aniDbEpisodeId());
         tvDbAllData.ifPresent(tvDbData -> {
             tvDbData.updateEpisode(episode, episodeFileData.seasonNumber(), episodeFileData.episodeNumber());
         });
@@ -88,8 +84,6 @@ public class KodiMetadataGenerator {
         }
 
         val episodeData = episode.build();
-
-
         generator.writeNfoFiles(episodeData, overwriteConfiguration.isOverwriteSeries(), overwriteConfiguration.isOverwriteEpisode());
         exportImages(generator.getSeries(), episodeData);
         onDone.onDone();

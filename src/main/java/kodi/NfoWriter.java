@@ -1,10 +1,7 @@
 package kodi;
 
 import kodi.common.UniqueId;
-import kodi.nfo.Actor;
-import kodi.nfo.Artwork;
-import kodi.nfo.Episode;
-import kodi.nfo.Rating;
+import kodi.nfo.*;
 import lombok.val;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
@@ -132,7 +129,7 @@ public abstract class NfoWriter {
         }
     }
 
-    protected void fileDetails(Episode.StreamDetails streamDetails) throws XMLStreamException {
+    protected void fileDetails(StreamDetails streamDetails) throws XMLStreamException {
         tag("fileinfo", () -> {
             tag("streamdetails", () -> {
                 tag("video", () -> {
@@ -158,9 +155,7 @@ public abstract class NfoWriter {
 
     protected void fanarts(List<Artwork> fanarts) throws XMLStreamException {
         tag("fanart", () -> {
-            for (Artwork artwork : fanarts) {
-                thumb(artwork.getUrl());
-            }
+            artworks(fanarts);
         });
     }
 
@@ -172,6 +167,28 @@ public abstract class NfoWriter {
                 thumb(actor.getThumb());
                 tag("order", actor.getOrder());
             });
+        }
+    }
+
+    protected void artworks(List<Artwork> artworks) throws XMLStreamException {
+        for (Artwork artwork : artworks) {
+            val attributes = switch (artwork.getType()) {
+                case SERIES_BACKGROUND, MOVIE_BACKGROUND -> List.of(attribute("aspect", "landscape"));
+                case SERIES_POSTER, MOVIE_POSTER -> List.of(attribute("aspect", "poster"));
+                case SERIES_BANNER -> List.of(attribute("aspect", "banner"));
+                case SEASON_BANNER -> List.of(
+                        attribute("aspect", "banner"),
+                        attribute("type", "season"),
+                        attribute("originalseason", artwork.getSeason()),
+                        attribute("season", 1));
+                case SEASON_POSTER, SEASON_BACKGROUND -> List.of(attribute("aspect", "poster"),
+                        attribute("type", "season"),
+                        attribute("originalseason", artwork.getSeason()),
+                        attribute("season", 1));
+                case CLEARART -> List.of(attribute("aspect", "clearart"));
+                case CLEARLOGO -> List.of(attribute("aspect", "clearlogo"));
+            };
+            thumb(artwork.getUrl(), attributes);
         }
     }
 

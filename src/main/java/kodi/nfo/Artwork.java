@@ -20,6 +20,8 @@ public class Artwork {
         SEASON_POSTER,
         SEASON_BACKGROUND,
         CLEARART,
-        CLEARLOGO
+        CLEARLOGO,
+        MOVIE_BACKGROUND,
+        MOVIE_POSTER
     }
 }

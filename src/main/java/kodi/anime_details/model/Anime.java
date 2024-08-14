@@ -1,16 +1,14 @@
 package kodi.anime_details.model;
 
 import kodi.common.UniqueId;
-import kodi.nfo.Actor;
-import kodi.nfo.Artwork;
-import kodi.nfo.Rating;
-import kodi.nfo.Series;
+import kodi.nfo.*;
 import lombok.*;
 import udpapi.reply.ReplyStatus;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -49,7 +47,72 @@ public class Anime {
         creators.stream().filter(c -> c.getType() == Creator.Type.ORIGINAL_WORK).map(Creator::getName).findFirst().ifPresent(builder::credit);
     }
 
+    public void updateMovie(Movie.MovieBuilder builder) {
+        builder
+                .title(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle())
+                .originalTitle(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle());
+        getTags().forEach(builder::genre);
+        creators.stream().filter(c -> c.getType() == Creator.Type.DIRECTION).map(Creator::getName).findFirst().ifPresent(builder::director);
+        creators.stream().filter(c -> c.getType() == Creator.Type.CHARACTER_DESIGNER).map(Creator::getName).findFirst().ifPresent(builder::credit);
+        creators.stream().filter(c -> c.getType() == Creator.Type.ORIGINAL_WORK).map(Creator::getName).findFirst().ifPresent(builder::credit);
+        getNfoRatings().forEach(builder::rating);
+
+        builder.thumbnail(STR."http://img7.anidb.net/pics/anime/\{picture}")
+                .plot(description)
+                .uniqueId(UniqueId.AniDbAnimeId(id))
+                .genres(getTags().toList())
+                .premiered(startDate)
+                .studio(creators.stream().filter(c -> c.getType() == Creator.Type.ANIMATION_WORK).map(Creator::getName).findFirst().orElse(""))
+                .actors(getActors());
+    }
+
     public Series.SeriesBuilder toSeries() {
+        val actors = getActors();
+        val series = Series.builder()
+                .title(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle())
+                .originalTitle(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle());
+        getNfoRatings().forEach(series::rating);
+
+        return series.artwork(Artwork.builder().url(STR."http://img7.anidb.net/pics/anime/\{picture}").type(Artwork.ArtworkType.SERIES_POSTER).build())
+                .plot(description)
+                .uniqueId(UniqueId.AniDbAnimeId(id))
+                .genres(getTags().toList())
+                .premiered(startDate)
+                .year(startDate.getYear())
+                .studio(creators.stream().filter(c -> c.getType() == Creator.Type.ANIMATION_WORK).map(Creator::getName).findFirst().orElse(""))
+                .actors(actors);
+    }
+
+    private Stream<kodi.nfo.Rating> getNfoRatings() {
+        return ratings.stream()
+                .sorted((r1, r2) -> {
+                    if (r1.getType() == Rating.Type.PERMANENT) {
+                        return -1;
+                    }
+                    if (r2.getType() == Rating.Type.PERMANENT) {
+                        return 1;
+                    }
+                    return 0;
+                }).map(rating -> {
+                    val name = switch (rating.getType()) {
+                        case REVIEW -> "anidb_review";
+                        case TEMPORARY -> "anidb_temporary";
+                        case PERMANENT -> "anidb";
+                    };
+                    return createRating(rating.getCount(), rating.getRating(), name);
+                });
+    }
+
+    private kodi.nfo.Rating createRating(int voteCount, double rating, String name) {
+        return kodi.nfo.Rating.builder()
+                .voteCount(voteCount)
+                .rating(rating)
+                .max(10)
+                .name(name)
+                .build();
+    }
+
+    private List<Actor> getActors() {
         val actors = new ArrayList<Actor>();
         var order = 0;
         val mainCharacters = characters.stream().filter(c -> c.getRole() == Character.Role.MAIN).toList();
@@ -65,45 +128,7 @@ public class Anime {
             actors.add(character.toActor(++order));
         }
 
-        val series = Series.builder()
-                .title(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle())
-                .originalTitle(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle());
-
-        ratings.stream()
-                .sorted((r1, r2) -> {
-                    if (r1.getType() == Rating.Type.PERMANENT) {
-                        return -1;
-                    }
-                    if (r2.getType() == Rating.Type.PERMANENT) {
-                        return 1;
-                    }
-                    return 0;
-                }).forEach(rating -> {
-                    val name = switch (rating.getType()) {
-                        case REVIEW -> "anidb_review";
-                        case TEMPORARY -> "anidb_temporary";
-                        case PERMANENT -> "anidb";
-                    };
-                    series.rating(createRating(rating.getCount(), rating.getRating(), name));
-                });
-
-        return series.artwork(Artwork.builder().url(STR."http://img7.anidb.net/pics/anime/\{picture}").type(Artwork.ArtworkType.SERIES_POSTER).build())
-                .plot(description)
-                .uniqueId(UniqueId.AniDbAnimeId(id))
-                .genres(getTags().toList())
-                .premiered(startDate)
-                .year(startDate.getYear())
-                .studio(creators.stream().filter(c -> c.getType() == Creator.Type.ANIMATION_WORK).map(Creator::getName).findFirst().orElse(""))
-                .actors(actors);
-    }
-
-    private kodi.nfo.Rating createRating(int voteCount, double rating, String name) {
-        return kodi.nfo.Rating.builder()
-                .voteCount(voteCount)
-                .rating(rating)
-                .max(10)
-                .name(name)
-                .build();
+        return actors;
     }
 
     private Stream<String> getTags() {
