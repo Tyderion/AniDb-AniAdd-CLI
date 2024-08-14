@@ -3,6 +3,7 @@ package kodi.anime_details.model;
 import kodi.common.UniqueId;
 import kodi.nfo.Actor;
 import kodi.nfo.Artwork;
+import kodi.nfo.Rating;
 import kodi.nfo.Series;
 import lombok.*;
 import udpapi.reply.ReplyStatus;
@@ -41,7 +42,7 @@ public class Anime {
 
     public void updateEpisode(kodi.nfo.Episode.EpisodeBuilder builder, int anidbEpisodeNumber) {
         episodes.stream().filter(e -> e.getId() == anidbEpisodeNumber).findFirst()
-                .ifPresent(episode -> builder.voteCount(episode.getVoteCount()).rating(episode.getRating()));
+                .ifPresent(episode -> createRating(episode.getVoteCount(), episode.getRating(), "anidb"));
         getTags().forEach(builder::genre);
         creators.stream().filter(c -> c.getType() == Creator.Type.DIRECTION).map(Creator::getName).findFirst().ifPresent(builder::director);
         creators.stream().filter(c -> c.getType() == Creator.Type.CHARACTER_DESIGNER).map(Creator::getName).findFirst().ifPresent(builder::credit);
@@ -63,12 +64,30 @@ public class Anime {
         for (Character character : rest) {
             actors.add(character.toActor(++order));
         }
-        return Series.builder()
+
+        val series = Series.builder()
                 .title(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle())
-                .originalTitle(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle())
-                .voteCount(ratings.stream().filter(r -> r.getType() == Rating.Type.PERMANENT).findFirst().orElse(Rating.builder().count(0).build()).getCount())
-                .rating(ratings.stream().filter(r -> r.getType() == Rating.Type.PERMANENT).findFirst().orElse(Rating.builder().rating(0).build()).getRating())
-                .artwork(Artwork.builder().url(STR."http://img7.anidb.net/pics/anime/\{picture}").type(Artwork.ArtworkType.SERIES_POSTER).build())
+                .originalTitle(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle());
+
+        ratings.stream()
+                .sorted((r1, r2) -> {
+                    if (r1.getType() == Rating.Type.PERMANENT) {
+                        return -1;
+                    }
+                    if (r2.getType() == Rating.Type.PERMANENT) {
+                        return 1;
+                    }
+                    return 0;
+                }).forEach(rating -> {
+                    val name = switch (rating.getType()) {
+                        case REVIEW -> "anidb_review";
+                        case TEMPORARY -> "anidb_temporary";
+                        case PERMANENT -> "anidb";
+                    };
+                    series.rating(createRating(rating.getCount(), rating.getRating(), name));
+                });
+
+        return series.artwork(Artwork.builder().url(STR."http://img7.anidb.net/pics/anime/\{picture}").type(Artwork.ArtworkType.SERIES_POSTER).build())
                 .plot(description)
                 .uniqueId(UniqueId.AniDbAnimeId(id))
                 .genres(getTags().toList())
@@ -76,6 +95,15 @@ public class Anime {
                 .year(startDate.getYear())
                 .studio(creators.stream().filter(c -> c.getType() == Creator.Type.ANIMATION_WORK).map(Creator::getName).findFirst().orElse(""))
                 .actors(actors);
+    }
+
+    private kodi.nfo.Rating createRating(int voteCount, double rating, String name) {
+        return kodi.nfo.Rating.builder()
+                .voteCount(voteCount)
+                .rating(rating)
+                .max(10)
+                .name(name)
+                .build();
     }
 
     private Stream<String> getTags() {

@@ -10,8 +10,6 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class Episode {
     int id;
-
-    Anime anime;
     private LocalDate airDate;
 
     int voteCount;

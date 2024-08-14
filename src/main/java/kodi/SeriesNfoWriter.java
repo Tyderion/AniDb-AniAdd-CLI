@@ -99,24 +99,7 @@ public class SeriesNfoWriter extends NfoWriter {
             plot(series.getPlot());
             tag("status", series.getStatus());
 
-            for (Artwork artwork : series.getArtworks()) {
-                val attributes = switch (artwork.getType()) {
-                    case SERIES_POSTER, SERIES_BACKGROUND -> List.of(attribute("aspect", "poster"));
-                    case SERIES_BANNER -> List.of(attribute("aspect", "banner"));
-                    case SEASON_BANNER -> List.of(
-                            attribute("aspect", "banner"),
-                            attribute("type", "season"),
-                            attribute("originalseason", artwork.getSeason()),
-                            attribute("season", 1));
-                    case SEASON_POSTER, SEASON_BACKGROUND -> List.of(attribute("aspect", "poster"),
-                            attribute("type", "season"),
-                            attribute("originalseason", artwork.getSeason()),
-                            attribute("season", 1));
-                    case CLEARART -> List.of(attribute("aspect", "clearart"));
-                    case CLEARLOGO -> List.of(attribute("aspect", "clearlogo"));
-                };
-                thumb(artwork.getUrl(), attributes);
-            }
+            seriesArtworks();
             fanarts(series.getFanarts());
             uniqueIds(series.getUniqueIds());
 
@@ -130,5 +113,26 @@ public class SeriesNfoWriter extends NfoWriter {
         writer.flush();
 
         return byteArrayOutputStream.toString(StandardCharsets.UTF_8);
+    }
+
+    private void seriesArtworks() throws XMLStreamException {
+        for (Artwork artwork : series.getArtworks()) {
+            val attributes = switch (artwork.getType()) {
+                case SERIES_POSTER, SERIES_BACKGROUND -> List.of(attribute("aspect", "poster"));
+                case SERIES_BANNER -> List.of(attribute("aspect", "banner"));
+                case SEASON_BANNER -> List.of(
+                        attribute("aspect", "banner"),
+                        attribute("type", "season"),
+                        attribute("originalseason", artwork.getSeason()),
+                        attribute("season", 1));
+                case SEASON_POSTER, SEASON_BACKGROUND -> List.of(attribute("aspect", "poster"),
+                        attribute("type", "season"),
+                        attribute("originalseason", artwork.getSeason()),
+                        attribute("season", 1));
+                case CLEARART -> List.of(attribute("aspect", "clearart"));
+                case CLEARLOGO -> List.of(attribute("aspect", "clearlogo"));
+            };
+            thumb(artwork.getUrl(), attributes);
+        }
     }
 }

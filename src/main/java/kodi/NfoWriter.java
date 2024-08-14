@@ -161,15 +161,17 @@ public abstract class NfoWriter {
 
     protected void ratings(List<Rating> ratings) throws XMLStreamException {
         tag("ratings", () -> {
+            var defaultTrue = true;
             for (Rating rating : ratings) {
                 tag("rating", List.of(
-                                attribute("default", "true"),
+                                attribute("default", defaultTrue ? "true" : "false"),
                                 attribute("max", rating.getMax()),
                                 attribute("name", rating.getName())),
                         () -> {
                             tag("value", rating.getRating());
                             tag("votes", rating.getVoteCount());
                         });
+                defaultTrue = false;
             }
 
         });
