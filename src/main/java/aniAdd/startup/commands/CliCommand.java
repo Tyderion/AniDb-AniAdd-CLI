@@ -4,7 +4,6 @@ import aniAdd.config.AniConfiguration;
 import aniAdd.config.ConfigFileLoader;
 import aniAdd.startup.commands.anidb.AnidbCommand;
 import aniAdd.startup.commands.debug.DebugCommand;
-import aniAdd.startup.commands.debug.InsertDataCommand;
 import aniAdd.startup.commands.config.ConfigCommand;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
