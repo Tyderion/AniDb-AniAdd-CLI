@@ -19,9 +19,9 @@ public class AniDBFileRepository implements IAniDBFileRepository {
     public Optional<AniDBFileData> getAniDBFileData(String ed2k, long size) {
         try (val session = sessionFactory.openSession()) {
             try {
-                log.debug(STR."loading AniDBFileData for ed2k: \{ed2k} and size: \{size}");
+                log.debug(STR."loading AniDBFileData for ed2k: '\{ed2k}' and size: '\{size}'");
                 val result = session.get(AniDBFileData.class, new AniDBFileData.AniDBFileId(ed2k, size));
-                log.debug(STR."loaded AniDBFileData: \{result} for ed2k: \{ed2k} and size: \{size}");
+                log.debug(STR."loaded AniDBFileData: \{result} for ed2k: '\{ed2k}' and size: '\{size}'");
                 if (result == null) {
                     return Optional.empty();
                 }
@@ -41,11 +41,11 @@ public class AniDBFileRepository implements IAniDBFileRepository {
     public Optional<AniDBFileData> getByFilename(@NonNull String filename) {
         try (val session = sessionFactory.openSession()) {
             try {
-                log.debug(STR."loading AniDBFileData for filename: \{filename}");
+                log.debug(STR."loading AniDBFileData for filename: '\{filename}'");
                 val query = session.createQuery("from AniDBFileData where fileName = :filename", AniDBFileData.class);
                 query.setParameter("filename", filename);
                 val result = query.uniqueResult();
-                log.debug(STR."loaded AniDBFileData: \{result} for filename: \{filename}");
+                log.debug(STR."loaded AniDBFileData: \{result} for filename: '\{filename}'");
                 if (result == null) {
                     return Optional.empty();
                 }
