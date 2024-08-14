@@ -4,14 +4,12 @@ import cache.AniDBFileRepository;
 import cache.PersistenceConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.jetbrains.annotations.NotNull;
 import picocli.CommandLine;
 import processing.FileInfo;
 import processing.tagsystem.TagSystemTags;
 import udpapi.ParseReply;
 import udpapi.command.FileCommand;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -57,36 +55,4 @@ public class InsertResponse implements Callable<Integer> {
         return 0;
     }
 
-    private class FakeFile extends File {
-        private final Path path;
-        private final int size;
-        private final FakeFile parent;
-
-        public FakeFile(@NotNull Path path, int size, boolean setUpParent) {
-            super(path.toString());
-            this.path = path;
-            this.size = size;
-            if (setUpParent) {
-                parent = new FakeFile(path.getParent(), 0, false);
-            } else {
-                parent = null;
-            }
-        }
-
-        @Override
-        public File getParentFile() {
-            return parent;
-        }
-
-        @NotNull
-        @Override
-        public String getName() {
-            return path.getFileName().toString();
-        }
-
-        @Override
-        public long length() {
-            return size;
-        }
-    }
 }

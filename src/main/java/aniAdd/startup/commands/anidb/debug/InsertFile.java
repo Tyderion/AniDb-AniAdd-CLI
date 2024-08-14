@@ -1,5 +1,6 @@
 package aniAdd.startup.commands.anidb.debug;
 
+import aniAdd.startup.commands.debug.FakeFile;
 import aniAdd.startup.commands.debug.InsertResponse;
 import cache.AniDBFileRepository;
 import cache.PersistenceConfiguration;
@@ -57,38 +58,5 @@ public class InsertFile implements Callable<Integer> {
             val _ = executorService.awaitTermination(30, java.util.concurrent.TimeUnit.SECONDS);
         }
         return 0;
-    }
-
-    private class FakeFile extends File {
-        private final Path path;
-        private final int size;
-        private final FakeFile parent;
-
-        public FakeFile(@NotNull Path path, int size, boolean setUpParent) {
-            super(path.toString());
-            this.path = path;
-            this.size = size;
-            if (setUpParent) {
-                parent = new FakeFile(path.getParent(), 0, false);
-            } else {
-                parent = null;
-            }
-        }
-
-        @Override
-        public File getParentFile() {
-            return parent;
-        }
-
-        @NotNull
-        @Override
-        public String getName() {
-            return path.getFileName().toString();
-        }
-
-        @Override
-        public long length() {
-            return size;
-        }
     }
 }
