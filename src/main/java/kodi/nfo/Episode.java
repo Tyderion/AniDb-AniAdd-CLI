@@ -2,18 +2,19 @@ package kodi.nfo;
 
 
 import kodi.common.UniqueId;
-import lombok.Builder;
-import lombok.Singular;
-import lombok.Value;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Builder
-@Value
-public class Episode {
+@SuperBuilder
+@Getter
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
+public class Episode extends RootTag {
     String title;
     String originalTitle;
     String showTitle;
@@ -27,14 +28,6 @@ public class Episode {
     String plot;
 
     int runtimeInSeconds;
-
-    Path filePath;
-    String fileExtension;
-    String fileNameWithoutExtension;
-
-    public String getFileName() {
-        return STR."\{fileNameWithoutExtension}.\{fileExtension}";
-    }
 
     @Singular
     List<UniqueId> uniqueIds;

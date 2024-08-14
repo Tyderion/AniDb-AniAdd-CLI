@@ -16,8 +16,11 @@ import org.jetbrains.annotations.NotNull;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLEventFactory;
 import javax.xml.stream.XMLEventWriter;
+import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.Attribute;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
@@ -48,6 +51,19 @@ public abstract class NfoWriter {
         try (val fileWriter = Files.newBufferedWriter(file, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)) {
             fileWriter.write(sw.toString());
         }
+    }
+
+    protected String newFile(String rootTag, @NotNull IContentWriter content) throws XMLStreamException {
+        val byteArrayOutputStream = new ByteArrayOutputStream();
+        val outputStream = new BufferedOutputStream(byteArrayOutputStream);
+
+        writer = XMLOutputFactory.newInstance().createXMLEventWriter(outputStream);
+        factory = XMLEventFactory.newInstance();
+
+        writer.add(factory.createStartDocument("UTF-8", "1.0", true));
+        tag(rootTag, content);
+        writer.flush();
+        return byteArrayOutputStream.toString(StandardCharsets.UTF_8);
     }
 
     protected void premiered(LocalDate premiered) throws XMLStreamException {
@@ -201,10 +217,6 @@ public abstract class NfoWriter {
         return attribute(name, String.valueOf(value));
     }
 
-    protected void startDocument() throws XMLStreamException {
-        writer.add(factory.createStartDocument("UTF-8", "1.0", true));
-    }
-
     protected void tag(String tag, SeriesNfoWriter.IContentWriter content) throws XMLStreamException {
         writer.add(factory.createStartElement(QName.valueOf(tag), null, null));
         content.write();
@@ -253,7 +265,7 @@ public abstract class NfoWriter {
         writer.add(factory.createEndElement(QName.valueOf(tag), null));
     }
 
-    interface IContentWriter {
+    protected interface IContentWriter {
         void write() throws XMLStreamException;
     }
 }

@@ -8,8 +8,6 @@ import lombok.val;
 import org.dom4j.DocumentException;
 
 import javax.xml.stream.*;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -48,14 +46,7 @@ public class SeriesNfoWriter extends NfoWriter {
     }
 
     private String getEpisodeNfoContent() throws XMLStreamException {
-        val byteArrayOutputStream = new ByteArrayOutputStream();
-        val outputStream = new BufferedOutputStream(byteArrayOutputStream);
-
-        writer = XMLOutputFactory.newInstance().createXMLEventWriter(outputStream);
-        factory = XMLEventFactory.newInstance();
-
-        startDocument();
-        tag("episodedetails", () -> {
+        return newFile("episodedetails", () -> {
             titles(episode.getTitle(), episode.getOriginalTitle());
             tag("showtitle", series.getTitle());
             ratings(episode.getRatings());
@@ -75,24 +66,12 @@ public class SeriesNfoWriter extends NfoWriter {
             aired(episode.getPremiered());
             fileDetails(episode.getStreamDetails());
             actors(series.getActors());
-
         });
-
-        writer.flush();
-
-        return byteArrayOutputStream.toString(StandardCharsets.UTF_8);
     }
 
 
     private String getSeriesNfoContent() throws XMLStreamException {
-        val byteArrayOutputStream = new ByteArrayOutputStream();
-        val outputStream = new BufferedOutputStream(byteArrayOutputStream);
-
-        writer = XMLOutputFactory.newInstance().createXMLEventWriter(outputStream);
-        factory = XMLEventFactory.newInstance();
-
-        startDocument();
-        tag("tvshow", () -> {
+        return newFile("tvshow", () -> {
             titles(series.getTitle(), series.getOriginalTitle());
             tag("showtitle", series.getOriginalTitle());
             ratings(series.getRatings());
@@ -108,11 +87,7 @@ public class SeriesNfoWriter extends NfoWriter {
             premiered(series.getPremiered());
             studio(series.getStudio());
             actors(series.getActors());
-
         });
-        writer.flush();
-
-        return byteArrayOutputStream.toString(StandardCharsets.UTF_8);
     }
 
     private void seriesArtworks() throws XMLStreamException {
