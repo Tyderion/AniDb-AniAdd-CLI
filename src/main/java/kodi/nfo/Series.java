@@ -14,8 +14,8 @@ public class Series {
     String title;
     String originalTitle;
 
-    int voteCount;
-    double rating;
+    @Singular
+    List<Rating> ratings;
     String plot;
 
     @Singular

@@ -1,5 +1,9 @@
 package kodi;
 
+import kodi.nfo.Actor;
+import kodi.nfo.Artwork;
+import kodi.nfo.Episode;
+import kodi.nfo.Rating;
 import lombok.val;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
@@ -18,9 +22,15 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-public class NfoWriter {
+public abstract class NfoWriter {
     protected XMLEventWriter writer;
     protected XMLEventFactory factory;
 
@@ -38,6 +48,123 @@ public class NfoWriter {
         try (val fileWriter = Files.newBufferedWriter(file, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)) {
             fileWriter.write(sw.toString());
         }
+    }
+
+    protected void writePremiered(LocalDate premiered) throws XMLStreamException {
+        writeDate("premiered", premiered);
+    }
+
+    protected void writeAired(LocalDate premiered) throws XMLStreamException {
+        writeDate("aired", premiered);
+    }
+
+    protected void writeDate(String tag, LocalDate date) throws XMLStreamException {
+        writeTag(tag, date.format(DateTimeFormatter.ISO_LOCAL_DATE));
+    }
+
+    protected void writeGenres(List<String> genres) throws XMLStreamException {
+        writeList("genre", genres);
+    }
+    protected void writeTags(List<String> tags) throws XMLStreamException {
+        val set = new HashSet<>(tags);
+        set.add("anime");
+        writeList("tag", set.stream().toList());
+    }
+
+    protected void writeStudio(String studio) throws XMLStreamException {
+        writeTag("studio", studio);
+    }
+
+    private void writeThumbnail(String thumbnail) throws XMLStreamException {
+        writeTag("thumb", thumbnail);
+    }
+
+    private void writeLastPlayed(LocalDate lastPlayed) throws XMLStreamException {
+        if (lastPlayed != null) {
+            writeDate("lastplayed", lastPlayed);
+        }
+    }
+
+    private void writeWatched(boolean watched) throws XMLStreamException {
+        writeTag("playcount", watched ? "1" : "0");
+    }
+
+    private void writeRuntime(int seconds) throws XMLStreamException {
+        writeTag("runtime", Duration.ofSeconds(seconds).toMinutes());
+    }
+
+
+    protected void writeCredits(List<String> credits) throws XMLStreamException {
+        writeList("credits", credits);
+    }
+
+    protected void writeDirectors(List<String> credits) throws XMLStreamException {
+        writeList("director", credits);
+    }
+
+    private void writeList(String tag, List<String> values) throws XMLStreamException {
+        for (String value : values) {
+            writeTag(tag, value);
+        }
+    }
+
+    protected void writeFileDetails(Episode.StreamDetails streamDetails) throws XMLStreamException {
+        writeTag("fileinfo", () -> {
+            writeTag("streamdetails", () -> {
+                writeTag("video", () -> {
+                    val video = streamDetails.getVideo();
+                    writeTag("codec", video.getCodec());
+                    writeTag("aspect", (double) video.getWidth() / video.getHeight());
+                    writeTag("width", video.getWidth());
+                    writeTag("height", video.getHeight());
+                    writeTag("durationinseconds", video.getDurationInSeconds());
+                });
+                writeTag("audio", () -> {
+                    val audio = streamDetails.getAudio();
+                    writeTag("codec", audio.getCodec());
+                    writeTag("language", audio.getLanguage());
+                    writeTag("channels", audio.getChannels());
+                });
+                for (String subtitle : streamDetails.getSubtitles()) {
+                    writeTag("subtitle", () -> writeTag("language", subtitle));
+                }
+            });
+        });
+    }
+
+    protected void writeFanarts(List<Artwork> fanarts) throws XMLStreamException {
+        writeTag("fanart", () -> {
+            for (Artwork artwork : fanarts) {
+                writeTag("thumb", artwork.getUrl());
+            }
+        });
+    }
+
+    protected void writeActors(List<Actor> actors) throws XMLStreamException {
+        for (Actor actor : actors) {
+            writeTag("actor", () -> {
+                writeTag("name", actor.getName());
+                writeTag("role", actor.getRole());
+                writeTag("thumb", actor.getThumb());
+                writeTag("order", actor.getOrder());
+            });
+        }
+    }
+
+    protected void writeRatings(List<Rating> ratings) throws XMLStreamException {
+        writeTag("ratings", () -> {
+            for (Rating rating : ratings) {
+                writeTag("rating", List.of(
+                                attribute("default", "true"),
+                                attribute("max", rating.getMax()),
+                                attribute("name", rating.getName())),
+                        () -> {
+                            writeTag("value", rating.getRating());
+                            writeTag("votes", rating.getVoteCount());
+                        });
+            }
+
+        });
     }
 
     protected List<Attribute> attributes(String name, String value) {

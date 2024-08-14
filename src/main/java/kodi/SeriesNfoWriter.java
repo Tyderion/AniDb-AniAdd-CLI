@@ -1,10 +1,7 @@
 package kodi;
 
 import kodi.common.UniqueId;
-import kodi.nfo.Actor;
-import kodi.nfo.Artwork;
-import kodi.nfo.Episode;
-import kodi.nfo.Series;
+import kodi.nfo.*;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
@@ -27,15 +24,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Set;
 
 @Log
 @RequiredArgsConstructor(staticName = "forSeries")
 public class SeriesNfoWriter extends NfoWriter {
     private static final String seriesNfo = "tvshow.nfo";
-    @Getter
-    final Series series;
+    @Getter final Series series;
     Episode episode;
 
     public void writeNfoFiles(Episode episode, boolean overwriteSeries, boolean overwriteEpisode) {
@@ -73,67 +71,23 @@ public class SeriesNfoWriter extends NfoWriter {
         writeTag("episodedetails", () -> {
             writeTag("title", episode.getTitle());
             writeTag("showtitle", series.getTitle());
-            writeTag("ratings", () -> {
-                writeTag("rating", List.of(
-                                attribute("default", "true"),
-                                attribute("max", "10"),
-                                attribute("name", "anidb")),
-                        () -> {
-                            writeTag("value", episode.getRating());
-                            writeTag("votes", episode.getVoteCount());
-                        });
-            });
+            writeRatings(episode.getRatings());
             writeTag("season", episode.getSeason());
             writeTag("episode", episode.getEpisode());
             writeTag("plot", episode.getPlot());
-            writeTag("runtime", Duration.ofSeconds(episode.getRuntimeInSeconds()).toMinutes());
-            writeTag("thumb", episode.getThumbnail());
-            writeTag("playcount", episode.isWatched() ? "1" : "0");
-            val lastPlayed = episode.getLastPlayed();
-            if (lastPlayed != null) {
-                writeTag("lastplayed", lastPlayed.format(DateTimeFormatter.ISO_LOCAL_DATE));
-            }
-            for (UniqueId uniqueId : episode.getUniqueIds()) {
-                writeTag("uniqueid", uniqueId.getValue(), attributes("type", uniqueId.getType().getName()));
-            }
-
-            writeTag("studio", series.getStudio());
-            for (String genre : episode.getGenres()) {
-                writeTag("genre", genre);
-            }
-
-            for (String credit : episode.getCredits()) {
-                writeTag("credits", credit);
-            }
-
-            for (String director : episode.getDirectors()) {
-                writeTag("director", director);
-            }
-
-            writeTag("premiered", episode.getPremiered().format(DateTimeFormatter.ISO_LOCAL_DATE));
-            writeTag("aired", episode.getPremiered().format(DateTimeFormatter.ISO_LOCAL_DATE));
-            writeTag("fileinfo", () -> {
-                writeTag("streamdetails", () -> {
-                    writeTag("video", () -> {
-                        val video = episode.getStreamDetails().getVideo();
-                        writeTag("codec", video.getCodec());
-                        writeTag("aspect", (double) video.getWidth() / video.getHeight());
-                        writeTag("width", video.getWidth());
-                        writeTag("height", video.getHeight());
-                        writeTag("durationinseconds", video.getDurationInSeconds());
-                    });
-                    writeTag("audio", () -> {
-                        val audio = episode.getStreamDetails().getAudio();
-                        writeTag("codec", audio.getCodec());
-                        writeTag("language", audio.getLanguage());
-                        writeTag("channels", audio.getChannels());
-                    });
-                    for (String subtitle : episode.getStreamDetails().getSubtitles()) {
-                        writeTag("subtitle", () -> writeTag("language", subtitle));
-                    }
-                });
-            });
-            writeActors();
+            writeRuntime(episode.getRuntimeInSeconds());
+            writeThumbnail(episode.getThumbnail());
+            writeWatched(episode.isWatched());
+            writeLastPlayed(episode.getLastPlayed());
+            writeUniqueIds(episode.getUniqueIds());
+            writeStudio(series.getStudio());
+            writeGenres(episode.getGenres());
+            writeCredits(episode.getCredits());
+            writeDirectors(episode.getDirectors());
+            writePremiered(episode.getPremiered());
+            writeAired(episode.getPremiered());
+            writeFileDetails(episode.getStreamDetails());
+            writeActors(series.getActors());
 
         });
 
@@ -141,6 +95,7 @@ public class SeriesNfoWriter extends NfoWriter {
 
         return byteArrayOutputStream.toString(StandardCharsets.UTF_8);
     }
+
 
     private String getSeriesNfoContent() throws XMLStreamException {
         val byteArrayOutputStream = new ByteArrayOutputStream();
@@ -154,16 +109,7 @@ public class SeriesNfoWriter extends NfoWriter {
             writeTag("title", series.getTitle());
             writeTag("originaltitle", series.getOriginalTitle());
             writeTag("showtitle", series.getOriginalTitle());
-            writeTag("ratings", () -> {
-                writeTag("rating", List.of(
-                                attribute("default", "true"),
-                                attribute("max", "10"),
-                                attribute("name", "anidb")),
-                        () -> {
-                            writeTag("value", series.getRating());
-                            writeTag("votes", series.getVoteCount());
-                        });
-            });
+            writeRatings(series.getRatings());
             writeTag("plot", series.getPlot());
             writeTag("status", series.getStatus());
 
@@ -185,24 +131,14 @@ public class SeriesNfoWriter extends NfoWriter {
                 };
                 writeTag("thumb", artwork.getUrl(), attributes);
             }
-            writeTag("fanart", () -> {
-                for (Artwork artwork : series.getFanarts()) {
-                    writeTag("thumb", artwork.getUrl());
-                }
-            });
+            writeFanarts(series.getFanarts());
+            writeUniqueIds(series.getUniqueIds());
 
-            for (UniqueId uniqueId : series.getUniqueIds()) {
-                writeTag("uniqueid", uniqueId.getValue(), attributes("type", uniqueId.getType().getName()));
-            }
-
-            for (String genre : series.getGenres()) {
-                writeTag("genre", genre);
-            }
-
-            writeTag("tag", "anime");
-            writeTag("premiered", series.getPremiered().format(DateTimeFormatter.ISO_LOCAL_DATE));
-            writeTag("studio", series.getStudio());
-            writeActors();
+            writeGenres(series.getGenres());
+            writeTags(List.of(series.getTag()));
+            writePremiered(series.getPremiered());
+            writeStudio(series.getStudio());
+            writeActors(series.getActors());
 
         });
         writer.flush();
@@ -210,14 +146,9 @@ public class SeriesNfoWriter extends NfoWriter {
         return byteArrayOutputStream.toString(StandardCharsets.UTF_8);
     }
 
-    private void writeActors() throws XMLStreamException {
-        for (Actor actor : series.getActors()) {
-            writeTag("actor", () -> {
-                writeTag("name", actor.getName());
-                writeTag("role", actor.getRole());
-                writeTag("thumb", actor.getThumb());
-                writeTag("order", actor.getOrder());
-            });
+    private void writeUniqueIds(List<UniqueId> series) throws XMLStreamException {
+        for (UniqueId uniqueId : series) {
+            writeTag("uniqueid", uniqueId.getValue(), attributes("type", uniqueId.getType().getName()));
         }
     }
 }
