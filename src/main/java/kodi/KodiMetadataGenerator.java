@@ -28,7 +28,7 @@ public class KodiMetadataGenerator {
 
     @Getter(lazy = true, value = AccessLevel.PRIVATE)
     private final Map<Long, AnimeMapping> animeMapping = initAnimeMapping();
-    private final Map<Long, NfoGenerator> nfoGenerators = new HashMap<>();
+    private final Map<Long, SeriesNfoWriter> nfoGenerators = new HashMap<>();
     private final DownloadHelper downloadHelper;
     private final TvDbApi tvDbApi;
     private final String animeMappingUrl;
@@ -65,11 +65,11 @@ public class KodiMetadataGenerator {
             log.info(STR."TVDB: \{tvDbData.getSeriesId()} - \{tvDbData.getSeriesName()}");
             tvDbData.updateSeries(series);
         });
-        NfoGenerator generator;
+        SeriesNfoWriter generator;
         if (nfoGenerators.containsKey((long) aniDbAnimeId)) {
             generator = nfoGenerators.get((long) aniDbAnimeId);
         } else {
-            generator = NfoGenerator.forSeries(series.build());
+            generator = SeriesNfoWriter.forSeries(series.build());
             nfoGenerators.put((long) aniDbAnimeId, generator);
         }
 
