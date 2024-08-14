@@ -17,11 +17,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 
 @Slf4j
-@CommandLine.Command(name = "insert",
+@CommandLine.Command(name = "insert-response",
         mixinStandardHelpOptions = true,
         version = "1.0",
         description = "Insert Reply from message")
-public class InsertDataCommand implements Callable<Integer> {
+public class InsertResponse implements Callable<Integer> {
     @CommandLine.Option(names = "--message", description = "The message to parse", required = false, defaultValue = "file:407-408 220 FILE\n3243049|9368|141493|14730|0||0|0|bdf45300||high|DVD|AC3|H264/AVC|848x480|japanese|english|1415|1354579200|Nurarihyon no Mago (2012) - 1 - Zero\n            Tears Snow - [PWNED](bdf45300).mkv||2|2|2012-2013|OVA|Manga,Shounen|Nurarihyon no Mago (2012)|???????? (2012)||???????? (2012)|1|Zero Tears Snow|Rei: Namida - Yuki|?????|pwnedbygary|PWNED\n")
     private String message;
 

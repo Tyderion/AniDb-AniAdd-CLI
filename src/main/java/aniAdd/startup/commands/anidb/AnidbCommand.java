@@ -4,6 +4,7 @@ import aniAdd.AniAdd;
 import aniAdd.IAniAdd;
 import aniAdd.config.AniConfiguration;
 import aniAdd.startup.commands.CliCommand;
+import aniAdd.startup.commands.anidb.debug.DebugCommand;
 import aniAdd.startup.validation.validators.min.Min;
 import aniAdd.startup.validation.validators.nonempty.NonEmpty;
 import aniAdd.startup.validation.validators.port.Port;
@@ -27,7 +28,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
 @CommandLine.Command(
-        subcommands = {ScanCommand.class, KodiWatcherCommand.class, WatchCommand.class, WatchAndKodiCommand.class},
+        subcommands = {ScanCommand.class, KodiWatcherCommand.class, WatchCommand.class, WatchAndKodiCommand.class, DebugCommand.class},
         name = "anidb",
         mixinStandardHelpOptions = true,
         version = "1.0",
@@ -59,15 +60,15 @@ public class AnidbCommand {
     @CommandLine.ParentCommand
     private CliCommand parent;
 
-    Optional<AniConfiguration> getConfiguration() {
+    public Optional<AniConfiguration> getConfiguration() {
         return parent.getConfiguration(false, configPath);
     }
 
-    Optional<AniConfiguration> getConfigurationOrDefault() {
+    public Optional<AniConfiguration> getConfigurationOrDefault() {
         return parent.getConfiguration(true, configPath);
     }
 
-    private UdpApi getUdpApi(AniConfiguration configuration, ScheduledExecutorService executorService) {
+    public UdpApi getUdpApi(AniConfiguration configuration, ScheduledExecutorService executorService) {
         return new UdpApi(executorService, localPort, username, password, configuration);
     }
 

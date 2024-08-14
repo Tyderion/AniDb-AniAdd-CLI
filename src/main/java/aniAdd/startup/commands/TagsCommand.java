@@ -68,10 +68,10 @@ public class TagsCommand implements Callable<Integer> {
             return 1;
         }
         val configuration = optionalConfig.get();
-        if (!configuration.getTvShowFolder().isBlank()) {
+        if (configuration.getTvShowFolder() != null && configuration.getTvShowFolder().isBlank()) {
             tags.put(TagSystemTags.BaseTvShowPath, configuration.getTvShowFolder());
         }
-        if (!configuration.getMovieFolder().isBlank()) {
+        if (configuration.getMovieFolder() != null && !configuration.getMovieFolder().isBlank()) {
             tags.put(TagSystemTags.BaseMoviePath, configuration.getMovieFolder());
         }
         val result = TagSystem.Evaluate(configuration.getTagSystemCode(), tags);
