@@ -1,5 +1,10 @@
 package aniAdd.startup.commands;
 
+import aniAdd.startup.validation.validators.nonempty.NonEmpty;
+import cache.AniDBFileRepository;
+import cache.PersistenceConfiguration;
+import cache.entities.AniDBFileData;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -24,22 +29,51 @@ public class TagsCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-c", "--config"}, description = "The path to the config file. Specified parameters will override values from the config file.", required = false, scope = CommandLine.ScopeType.INHERIT)
     @Setter String configPath;
 
+    @CommandLine.Option(names = {"--fid"}, description = "The file id to use for testing. Make sure it is already cached.", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "-1")
+    int fileId;
+
+    @Getter
+    @NonEmpty
+    @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "aniAdd.sqlite")
+    String dbPath;
+
     @CommandLine.ParentCommand
     private CliCommand parent;
 
     @Override
     public Integer call() throws Exception {
-        val tags = getExampleTagData(movie);
+        if (fileId != -1 && dbPath == null) {
+            log.warn("File id is set but no db path is provided. Ignoring file id.");
+        }
+        var tags = getExampleTagData(movie);
+        if (fileId != -1 && dbPath != null) {
+            try (val factory = PersistenceConfiguration.getSessionFactory(dbPath)) {
+                val repository = new AniDBFileRepository(factory);
+                val file = repository.getByFileId(fileId);
+                if (file.isEmpty()) {
+                    log.error(STR."File with id \{fileId} not found in database.");
+                    return 1;
+                }
+
+                val fileData = file.get();
+                tags = fileData.getTags();
+                tags.put(TagSystemTags.Ed2kHash, fileData.getEd2k());
+                log.info(STR."Using data from file [\{fileData.getEd2k()}][\{fileData.getSize()}]\{fileData.getFileName()}");
+            }
+        }
         val optionalConfig = parent.getConfiguration(true, configPath);
         if (optionalConfig.isEmpty() || optionalConfig.get().getTagSystemCode() == null
-                || optionalConfig.get().getTagSystemCode().isEmpty()
                 || optionalConfig.get().getTagSystemCode().isBlank()) {
             log.error("To test tags you must provide a non empty tagging system code");
             return 1;
         }
         val configuration = optionalConfig.get();
-        tags.put(TagSystemTags.BaseTvShowPath, configuration.getTvShowFolder());
-        tags.put(TagSystemTags.BaseMoviePath, configuration.getMovieFolder());
+        if (!configuration.getTvShowFolder().isBlank()) {
+            tags.put(TagSystemTags.BaseTvShowPath, configuration.getTvShowFolder());
+        }
+        if (!configuration.getMovieFolder().isBlank()) {
+            tags.put(TagSystemTags.BaseMoviePath, configuration.getMovieFolder());
+        }
         val result = TagSystem.Evaluate(configuration.getTagSystemCode(), tags);
         val filename = result.FileName();
         val pathname = result.PathName();

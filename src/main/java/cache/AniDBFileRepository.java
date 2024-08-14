@@ -58,6 +58,24 @@ public class AniDBFileRepository implements IAniDBFileRepository {
     }
 
     @Override
+    public Optional<AniDBFileData> getByFileId(int fileId) {
+        try (val session = sessionFactory.openSession()) {
+            try {
+                val query = session.createQuery("from AniDBFileData as data where :fileId in elements(data.tags)", AniDBFileData.class);
+                query.setParameter("fileId", fileId);
+                val result = query.uniqueResult();
+                if (result == null) {
+                    return Optional.empty();
+                }
+                return Optional.of(result);
+
+            } catch (GenericJDBCException e) {
+                return Optional.empty();
+            }
+        }
+    }
+
+    @Override
     public boolean saveAniDBFileData(AniDBFileData aniDBFileData) {
         try (val session = sessionFactory.openSession()) {
             log.debug(STR."Saving AniDBFileData: \{aniDBFileData}");

@@ -207,7 +207,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 nextStep(FileAction.FileCmd, procFile);
             }
         } else {
-            query.getCommand().AddReplyToDict(procFile.getData(), query.getReply(), procFile.getWatched());
+            FileCommand.AddReplyToDict(procFile.getData(), query.getReply(), procFile.getWatched());
             fileRepository.saveAniDBFileData(procFile.toAniDBFileData());
             log.debug(STR."Got DB Info for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
             procFile.actionDone(FileAction.FileCmd);
