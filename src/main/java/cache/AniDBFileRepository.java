@@ -61,9 +61,11 @@ public class AniDBFileRepository implements IAniDBFileRepository {
     public Optional<AniDBFileData> getByFileId(int fileId) {
         try (val session = sessionFactory.openSession()) {
             try {
+                log.debug(STR."loading AniDBFileData for fileId: '\{fileId}'");
                 val query = session.createQuery("from AniDBFileData as data where :fileId in elements(data.tags)", AniDBFileData.class);
                 query.setParameter("fileId", fileId);
                 val result = query.uniqueResult();
+                log.debug(STR."loaded AniDBFileData: \{result} for fileId: '\{fileId}'");
                 if (result == null) {
                     return Optional.empty();
                 }

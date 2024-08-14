@@ -39,18 +39,20 @@ public class InsertDataCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        try (val executorService = Executors.newScheduledThreadPool(10);
-             val sessionFactory = PersistenceConfiguration.getSessionFactory(parent.getDbPath())) {
-            val repository = new AniDBFileRepository(sessionFactory);
+        try (val executorService = Executors.newScheduledThreadPool(10)) {
             executorService.execute(new ParseReply(reply -> {
                 if (reply == null || !reply.getReplyStatus().success()) {
                     log.error(STR."Cannot insert data for non successful file command: \{reply}");
                 }
-                val info = new FileInfo(new FakeFile(Path.of(filePath), fileSize), 1);
-                info.getData().put(TagSystemTags.Ed2kHash, ed2k);
-                FileCommand.AddReplyToDict(info.getData(), reply, false);
-                repository.saveAniDBFileData(info.toAniDBFileData());
-            },message));
+                try (val sessionFactory = PersistenceConfiguration.getSessionFactory(parent.getDbPath())) {
+                    val repository = new AniDBFileRepository(sessionFactory);
+                    val info = new FileInfo(new FakeFile(Path.of(filePath), fileSize, true), 1);
+                    info.getData().put(TagSystemTags.Ed2kHash, ed2k);
+                    FileCommand.AddReplyToDict(info.getData(), reply, false);
+                    repository.saveAniDBFileData(info.toAniDBFileData());
+                }
+
+            }, message));
         }
         return 0;
     }
@@ -60,11 +62,15 @@ public class InsertDataCommand implements Callable<Integer> {
         private final int size;
         private final FakeFile parent;
 
-        public FakeFile(@NotNull Path path, int size) {
+        public FakeFile(@NotNull Path path, int size, boolean setUpParent) {
             super(path.toString());
             this.path = path;
             this.size = size;
-            parent = new FakeFile(path.getParent(), 0);
+            if (setUpParent) {
+                parent = new FakeFile(path.getParent(), 0, false);
+            } else {
+                parent = null;
+            }
         }
 
         @Override
