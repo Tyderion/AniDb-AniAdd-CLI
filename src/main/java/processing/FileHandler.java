@@ -13,6 +13,10 @@ public class FileHandler implements IFileHandler {
 
     @Override
     public boolean renameFile(@NotNull Path from, @NotNull Path to) {
+        if (to.toString().isBlank()) {
+            log.severe(STR."Target path is blank for File '\{from.toAbsolutePath().toString()}': '\{to.toString()}'");
+            return false;
+        }
         if (from.toAbsolutePath().equals(to.toAbsolutePath())) {
             log.info(STR."File \{from.toAbsolutePath()} is already at the correct location.");
             return true;
