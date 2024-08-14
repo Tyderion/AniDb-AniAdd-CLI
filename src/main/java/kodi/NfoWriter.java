@@ -1,5 +1,6 @@
 package kodi;
 
+import kodi.common.UniqueId;
 import kodi.nfo.Actor;
 import kodi.nfo.Artwork;
 import kodi.nfo.Episode;
@@ -10,6 +11,7 @@ import org.dom4j.DocumentException;
 import org.dom4j.DocumentHelper;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.XMLWriter;
+import org.jetbrains.annotations.NotNull;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLEventFactory;
@@ -48,65 +50,73 @@ public abstract class NfoWriter {
         }
     }
 
-    protected void writePremiered(LocalDate premiered) throws XMLStreamException {
-        writeDate("premiered", premiered);
+    protected void premiered(LocalDate premiered) throws XMLStreamException {
+        date("premiered", premiered);
     }
 
-    protected void writeAired(LocalDate premiered) throws XMLStreamException {
-        writeDate("aired", premiered);
+    protected void aired(LocalDate premiered) throws XMLStreamException {
+        date("aired", premiered);
     }
 
-    protected void writeDate(String tag, LocalDate date) throws XMLStreamException {
+    protected void date(String tag, LocalDate date) throws XMLStreamException {
         tag(tag, date.format(DateTimeFormatter.ISO_LOCAL_DATE));
     }
 
-    protected void writeGenres(List<String> genres) throws XMLStreamException {
-        writeList("genre", genres);
-    }
-    protected void writeTags(List<String> tags) throws XMLStreamException {
-        val set = new HashSet<>(tags);
-        set.add("anime");
-        writeList("tag", set.stream().toList());
+    protected void genres(List<String> genres) throws XMLStreamException {
+        list("genre", genres);
     }
 
-    protected void writeStudio(String studio) throws XMLStreamException {
+    protected void titles(String title, String originalTitle) throws XMLStreamException {
+        tag("title", title);
+        tag("originaltitle", originalTitle);
+    }
+
+    protected void tags(List<String> tags) throws XMLStreamException {
+        val set = new HashSet<>(tags);
+        set.add("anime");
+        list("tag", set.stream().toList());
+    }
+
+    protected void studio(String studio) throws XMLStreamException {
         tag("studio", studio);
     }
 
-    private void writeThumbnail(String thumbnail) throws XMLStreamException {
-        tag("thumb", thumbnail);
-    }
-
-    private void writeLastPlayed(LocalDate lastPlayed) throws XMLStreamException {
+    protected void lastPlayed(LocalDate lastPlayed) throws XMLStreamException {
         if (lastPlayed != null) {
-            writeDate("lastplayed", lastPlayed);
+            date("lastplayed", lastPlayed);
         }
     }
 
-    private void writeWatched(boolean watched) throws XMLStreamException {
+    protected void watched(boolean watched) throws XMLStreamException {
         tag("playcount", watched ? "1" : "0");
     }
 
-    private void writeRuntime(int seconds) throws XMLStreamException {
+    protected void runtime(int seconds) throws XMLStreamException {
         tag("runtime", Duration.ofSeconds(seconds).toMinutes());
     }
 
 
-    protected void writeCredits(List<String> credits) throws XMLStreamException {
-        writeList("credits", credits);
+    protected void credits(List<String> credits) throws XMLStreamException {
+        list("credits", credits);
     }
 
-    protected void writeDirectors(List<String> credits) throws XMLStreamException {
-        writeList("director", credits);
+    protected void directors(List<String> credits) throws XMLStreamException {
+        list("director", credits);
     }
 
-    private void writeList(String tag, List<String> values) throws XMLStreamException {
+    protected void list(String tag, List<String> values) throws XMLStreamException {
         for (String value : values) {
             tag(tag, value);
         }
     }
 
-    protected void writeFileDetails(Episode.StreamDetails streamDetails) throws XMLStreamException {
+    protected void uniqueIds(List<UniqueId> series) throws XMLStreamException {
+        for (UniqueId uniqueId : series) {
+            tag("uniqueid", uniqueId.getValue(), attributes("type", uniqueId.getType().getName()));
+        }
+    }
+
+    protected void fileDetails(Episode.StreamDetails streamDetails) throws XMLStreamException {
         tag("fileinfo", () -> {
             tag("streamdetails", () -> {
                 tag("video", () -> {
@@ -130,26 +140,26 @@ public abstract class NfoWriter {
         });
     }
 
-    protected void writeFanarts(List<Artwork> fanarts) throws XMLStreamException {
+    protected void fanarts(List<Artwork> fanarts) throws XMLStreamException {
         tag("fanart", () -> {
             for (Artwork artwork : fanarts) {
-                tag("thumb", artwork.getUrl());
+                thumb(artwork.getUrl());
             }
         });
     }
 
-    protected void writeActors(List<Actor> actors) throws XMLStreamException {
+    protected void actors(List<Actor> actors) throws XMLStreamException {
         for (Actor actor : actors) {
             tag("actor", () -> {
                 tag("name", actor.getName());
                 tag("role", actor.getRole());
-                tag("thumb", actor.getThumb());
+                thumb(actor.getThumb());
                 tag("order", actor.getOrder());
             });
         }
     }
 
-    protected void writeRatings(List<Rating> ratings) throws XMLStreamException {
+    protected void ratings(List<Rating> ratings) throws XMLStreamException {
         tag("ratings", () -> {
             for (Rating rating : ratings) {
                 tag("rating", List.of(
@@ -163,6 +173,18 @@ public abstract class NfoWriter {
             }
 
         });
+    }
+
+    protected void plot(@NotNull String plot) throws XMLStreamException {
+        tag("plot", plot);
+    }
+
+    protected void thumb(String url) throws XMLStreamException {
+        tag("thumb", url, List.of());
+    }
+
+    protected void thumb(String url, List<Attribute> attributes) throws XMLStreamException {
+        tag("thumb", url, attributes);
     }
 
     protected List<Attribute> attributes(String name, String value) {

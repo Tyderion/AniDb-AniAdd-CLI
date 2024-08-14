@@ -15,6 +15,7 @@ import java.util.List;
 @Value
 public class Episode {
     String title;
+    String originalTitle;
     String showTitle;
 
     @Singular

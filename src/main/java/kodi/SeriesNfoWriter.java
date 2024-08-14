@@ -1,6 +1,5 @@
 package kodi;
 
-import kodi.common.UniqueId;
 import kodi.nfo.*;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -57,25 +56,25 @@ public class SeriesNfoWriter extends NfoWriter {
 
         startDocument();
         tag("episodedetails", () -> {
-            tag("title", episode.getTitle());
+            titles(episode.getTitle(), episode.getOriginalTitle());
             tag("showtitle", series.getTitle());
-            writeRatings(episode.getRatings());
+            ratings(episode.getRatings());
             tag("season", episode.getSeason());
             tag("episode", episode.getEpisode());
-            tag("plot", episode.getPlot());
-            writeRuntime(episode.getRuntimeInSeconds());
-            writeThumbnail(episode.getThumbnail());
-            writeWatched(episode.isWatched());
-            writeLastPlayed(episode.getLastPlayed());
-            writeUniqueIds(episode.getUniqueIds());
-            writeStudio(series.getStudio());
-            writeGenres(episode.getGenres());
-            writeCredits(episode.getCredits());
-            writeDirectors(episode.getDirectors());
-            writePremiered(episode.getPremiered());
-            writeAired(episode.getPremiered());
-            writeFileDetails(episode.getStreamDetails());
-            writeActors(series.getActors());
+            plot(episode.getPlot());
+            runtime(episode.getRuntimeInSeconds());
+            thumb(episode.getThumbnail());
+            watched(episode.isWatched());
+            lastPlayed(episode.getLastPlayed());
+            uniqueIds(episode.getUniqueIds());
+            studio(series.getStudio());
+            genres(episode.getGenres());
+            credits(episode.getCredits());
+            directors(episode.getDirectors());
+            premiered(episode.getPremiered());
+            aired(episode.getPremiered());
+            fileDetails(episode.getStreamDetails());
+            actors(series.getActors());
 
         });
 
@@ -94,11 +93,10 @@ public class SeriesNfoWriter extends NfoWriter {
 
         startDocument();
         tag("tvshow", () -> {
-            tag("title", series.getTitle());
-            tag("originaltitle", series.getOriginalTitle());
+            titles(series.getTitle(), series.getOriginalTitle());
             tag("showtitle", series.getOriginalTitle());
-            writeRatings(series.getRatings());
-            tag("plot", series.getPlot());
+            ratings(series.getRatings());
+            plot(series.getPlot());
             tag("status", series.getStatus());
 
             for (Artwork artwork : series.getArtworks()) {
@@ -117,26 +115,20 @@ public class SeriesNfoWriter extends NfoWriter {
                     case CLEARART -> List.of(attribute("aspect", "clearart"));
                     case CLEARLOGO -> List.of(attribute("aspect", "clearlogo"));
                 };
-                tag("thumb", artwork.getUrl(), attributes);
+                thumb(artwork.getUrl(), attributes);
             }
-            writeFanarts(series.getFanarts());
-            writeUniqueIds(series.getUniqueIds());
+            fanarts(series.getFanarts());
+            uniqueIds(series.getUniqueIds());
 
-            writeGenres(series.getGenres());
-            writeTags(List.of(series.getTag()));
-            writePremiered(series.getPremiered());
-            writeStudio(series.getStudio());
-            writeActors(series.getActors());
+            genres(series.getGenres());
+            tags(List.of(series.getTag()));
+            premiered(series.getPremiered());
+            studio(series.getStudio());
+            actors(series.getActors());
 
         });
         writer.flush();
 
         return byteArrayOutputStream.toString(StandardCharsets.UTF_8);
-    }
-
-    private void writeUniqueIds(List<UniqueId> series) throws XMLStreamException {
-        for (UniqueId uniqueId : series) {
-            tag("uniqueid", uniqueId.getValue(), attributes("type", uniqueId.getType().getName()));
-        }
     }
 }
