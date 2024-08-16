@@ -2,6 +2,8 @@ package processing;
 
 import aniAdd.config.AniConfiguration;
 import cache.entities.AniDBFileData;
+import kodi.nfo.Movie;
+import kodi.tmdb.MovieData;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -82,13 +84,19 @@ public class FileInfo {
     public Path getFinalFilePath() {
         return renamedFile != null ? renamedFile : file.toPath();
     }
-    
+
     public String getEd2k() {
         return data.get(TagSystemTags.Ed2kHash);
     }
 
     public long getAniDbFileId() {
         return Long.parseLong(data.get(TagSystemTags.FileId));
+    }
+
+    public Movie.MovieBuilder toMovie() {
+        val movie = toAniDBFileData().toMovie();
+        movie.filePath(renamedFile != null ? renamedFile : file.toPath());
+        return movie;
     }
 
     public AniDBFileData toAniDBFileData() {

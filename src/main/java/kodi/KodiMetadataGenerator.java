@@ -4,9 +4,9 @@ import kodi.anime_details.AnimeDetailsLoader;
 import kodi.anime_details.model.Anime;
 import kodi.anime_mapping.AnimeMappingLoader;
 import kodi.anime_mapping.model.AnimeMapping;
-import kodi.nfo.Artwork;
-import kodi.nfo.Episode;
-import kodi.nfo.Series;
+import kodi.nfo.*;
+import kodi.tmdb.MovieData;
+import kodi.tmdb.TmDbApi;
 import kodi.tvdb.TVSeriesData;
 import kodi.tvdb.TvDbApi;
 import lombok.*;
@@ -18,6 +18,7 @@ import utils.http.DownloadHelper;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -31,8 +32,9 @@ public class KodiMetadataGenerator {
     private final Map<Long, SeriesNfoWriter> nfoGenerators = new HashMap<>();
     private final DownloadHelper downloadHelper;
     private final TvDbApi tvDbApi;
+    private final TmDbApi tmDbApi;
     private final String animeMappingUrl;
-    private final OverwriteConfiguration overwriteConfiguration;
+    private final EnumSet<OverwriteConfiguration> overwriteConfiguration;
 
     private Map<Long, AnimeMapping> initAnimeMapping() {
         return new AnimeMappingLoader(animeMappingUrl).getAnimeMapping();
@@ -46,16 +48,35 @@ public class KodiMetadataGenerator {
         if (anime.getType() == Anime.Type.TV_Series) {
             val tvDbId = this.getAnimeMapping().get((long) aniDbAnimeId).getTvDbId();
             tvDbApi.getTvSeriesData(tvDbId, tvDbAllData -> {
-                writeSeriesNfoFiles(Optional.ofNullable(tvDbAllData), fileInfo, anime, aniDbAnimeId, onDone);
+                writeSeriesMetadata(Optional.ofNullable(tvDbAllData), fileInfo, anime, aniDbAnimeId, onDone);
             });
         } else if (anime.getType() == Anime.Type.MOVIE) {
-            val imDbId = this.getAnimeMapping().get((long) aniDbAnimeId).getImdbIds();
+            val tmDbIds = this.getAnimeMapping().get((long) aniDbAnimeId).getTmDbIds();
+            if (!tmDbIds.isEmpty()) {
+                tmDbApi.getMovieInfo(Integer.parseInt(tmDbIds.get(0)), movieData -> {
+                    writeMovieMetadata(Optional.ofNullable(movieData), fileInfo, anime, onDone);
+                });
+            }
         } else {
-            writeSeriesNfoFiles(Optional.empty(), fileInfo, anime, aniDbAnimeId, onDone);
+            writeSeriesMetadata(Optional.empty(), fileInfo, anime, aniDbAnimeId, onDone);
         }
     }
 
-    private void writeSeriesNfoFiles(Optional<TVSeriesData> tvDbAllData, FileInfo fileInfo, Anime anime, int aniDbAnimeId, OnDone onDone) {
+    private void writeMovieMetadata(Optional<MovieData> movieData, FileInfo fileInfo, Anime anime, OnDone onDone) {
+        val movieBuilder = fileInfo.toMovie();
+        anime.updateMovie(movieBuilder);
+        movieData.ifPresent(data -> {
+            log.info(STR."TMDB: \{data.getId()} - \{data.getTitle()}");
+            data.updateMovie(movieBuilder);
+        });
+        var movie = movieBuilder.build();
+        val generator = MovieNfoWriter.forMovie(movie);
+        generator.writeNfoFile(overwriteConfiguration.contains(OverwriteConfiguration.OVERWRITE_MOVIES));
+        exportImages(movie);
+        onDone.onDone();
+    }
+
+    private void writeSeriesMetadata(Optional<TVSeriesData> tvDbAllData, FileInfo fileInfo, Anime anime, int aniDbAnimeId, OnDone onDone) {
         val series = anime.toSeries();
         tvDbAllData.ifPresent(tvDbData -> {
             log.info(STR."TVDB: \{tvDbData.getSeriesId()} - \{tvDbData.getSeriesName()}");
@@ -84,7 +105,8 @@ public class KodiMetadataGenerator {
         }
 
         val episodeData = episode.build();
-        generator.writeNfoFiles(episodeData, overwriteConfiguration.isOverwriteSeries(), overwriteConfiguration.isOverwriteEpisode());
+        generator.writeNfoFiles(episodeData, overwriteConfiguration.contains(OverwriteConfiguration.OVERWRITE_SERIES),
+                overwriteConfiguration.contains(OverwriteConfiguration.OVERWRITE_EPISODE));
         exportImages(generator.getSeries(), episodeData);
         onDone.onDone();
     }
@@ -92,7 +114,6 @@ public class KodiMetadataGenerator {
     private void exportImages(Series series, Episode episode) {
         val seriesFolder = episode.getFilePath().getParent();
         writeFile(episode.getThumbnail(), seriesFolder.resolve(STR."\{episode.getFileNameWithoutExtension()}-thumb.jpg"));
-
         for (var i = 0; i < series.getFanarts().size(); i++) {
             val url = series.getFanarts().get(i).getUrl();
             val extension = url.substring(url.lastIndexOf("."));
@@ -111,8 +132,23 @@ public class KodiMetadataGenerator {
         });
     }
 
+    private void exportImages(Movie movie) {
+        val movieFolder = movie.getFilePath().getParent();
+        writeFile(movie.getThumbnail(), movieFolder.resolve(STR."\{movie.getFileNameWithoutExtension()}-thumb.jpg"));
+        for (var i = 0; i < Math.max(Math.min(movie.getFanarts().size(), 15), 15); i++) {
+            val url = movie.getFanarts().get(i).getUrl();
+            val extension = url.substring(url.lastIndexOf("."));
+            val name = i == 0 ? "fanart" : STR."fanart\{i}";
+            writeFile(url, movieFolder.resolve(STR."\{name}\{extension}"));
+        }
+        val actorPath = movieFolder.resolve(".actors");
+        movie.getActors().forEach(actor -> {
+            writeFile(actor.getThumb(), actorPath.resolve(STR."\{actor.getName().replaceAll(" ", "_")}.jpg"));
+        });
+    }
+
     private void writeFile(String url, Path path) {
-        if (Files.exists(path) || overwriteConfiguration.isOverwriteArtwork()) {
+        if (Files.exists(path) || !overwriteConfiguration.contains(OverwriteConfiguration.OVERWRITE_ARTWORK)) {
             return;
         }
         try {
@@ -137,12 +173,5 @@ public class KodiMetadataGenerator {
 
     public interface OnDone {
         void onDone();
-    }
-
-    @Value
-    public static class OverwriteConfiguration {
-        boolean overwriteSeries;
-        boolean overwriteEpisode;
-        boolean overwriteArtwork;
     }
 }
