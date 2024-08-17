@@ -2,3 +2,11 @@ out/
 build/
 .idea/
 .gradle/
+*.xml
+*.sqlite
+*.bak
+*.conf
+*.properties
+!config/*
+test.*
+TestCommand.java
