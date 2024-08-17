@@ -26,7 +26,7 @@ public class MovieNfoWriter extends NfoWriter{
         try {
             if (overwrite || !Files.exists(movieFile)) {
                 log.info(STR."Writing movie NFO file: \{movieFile.toString()}");
-                prettyPrint(getMovieNfoContent(), movieFile);
+                writeToFile(getMovieNfoContent(), movieFile);
             }
         } catch (XMLStreamException | IOException | DocumentException e) {
             throw new RuntimeException(e);

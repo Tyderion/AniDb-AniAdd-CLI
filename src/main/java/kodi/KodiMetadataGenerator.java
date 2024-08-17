@@ -10,7 +10,7 @@ import kodi.tmdb.TmDbApi;
 import kodi.tvdb.TVSeriesData;
 import kodi.tvdb.TvDbApi;
 import lombok.*;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import processing.FileInfo;
 import processing.tagsystem.TagSystemTags;
 import utils.http.DownloadHelper;
@@ -23,9 +23,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-@Log
+@Slf4j
 @RequiredArgsConstructor
 public class KodiMetadataGenerator {
+    private static final int MAX_EXPORTED_FANARTS = 10;
 
     @Getter(lazy = true, value = AccessLevel.PRIVATE)
     private final Map<Long, AnimeMapping> animeMapping = initAnimeMapping();
@@ -44,13 +45,16 @@ public class KodiMetadataGenerator {
         log.info(STR."Generating metadata for \{fileInfo.getFile().getName()}");
         val aniDbAnimeId = Integer.parseInt(fileInfo.getData().get(TagSystemTags.AnimeId));
         var anime = AnimeDetailsLoader.parseXml(getXmlInput(aniDbAnimeId));
-        log.info(STR."Anime: \{anime.getId()} - \{anime.getTitles().stream().findFirst()}");
+        val animeInfo =  STR."\{anime.getId()} - \{anime.getTitles().stream().findFirst()}";
+        log.trace(STR."AnimeXML: \{animeInfo}");
         if (anime.getType() == Anime.Type.TV_Series) {
+            log.trace(STR."TV Series: \{animeInfo}. CHecking for tvdb data");
             val tvDbId = this.getAnimeMapping().get((long) aniDbAnimeId).getTvDbId();
             tvDbApi.getTvSeriesData(tvDbId, tvDbAllData -> {
                 writeSeriesMetadata(Optional.ofNullable(tvDbAllData), fileInfo, anime, aniDbAnimeId, onDone);
             });
         } else if (anime.getType() == Anime.Type.MOVIE) {
+
             val tmDbIds = this.getAnimeMapping().get((long) aniDbAnimeId).getTmDbIds();
             if (!tmDbIds.isEmpty()) {
                 tmDbApi.getMovieInfo(Integer.parseInt(tmDbIds.get(0)), movieData -> {
@@ -63,6 +67,7 @@ public class KodiMetadataGenerator {
     }
 
     private void writeMovieMetadata(Optional<MovieData> movieData, FileInfo fileInfo, Anime anime, OnDone onDone) {
+        log.trace(STR."Writing movie metadata for \{anime.getId()} - \{anime.getTitles().stream().findFirst()}");
         val movieBuilder = fileInfo.toMovie();
         anime.updateMovie(movieBuilder);
         movieData.ifPresent(data -> {
@@ -78,15 +83,18 @@ public class KodiMetadataGenerator {
     }
 
     private void writeSeriesMetadata(Optional<TVSeriesData> tvDbAllData, FileInfo fileInfo, Anime anime, int aniDbAnimeId, OnDone onDone) {
+        log.info(STR."Writing series metadata for \{anime.getId()} - \{anime.getTitles().stream().findFirst()}");
         val series = anime.toSeries();
         tvDbAllData.ifPresent(tvDbData -> {
-            log.info(STR."TVDB: \{tvDbData.getSeriesId()} - \{tvDbData.getSeriesName()}");
+            log.info(STR."using TVDB: \{tvDbData.getSeriesId()} - \{tvDbData.getSeriesName()}");
             tvDbData.updateSeries(series);
         });
         SeriesNfoWriter generator;
         if (nfoGenerators.containsKey((long) aniDbAnimeId)) {
+            log.trace(STR."Using existing NFO generator for series \{aniDbAnimeId}");
             generator = nfoGenerators.get((long) aniDbAnimeId);
         } else {
+            log.trace(STR."Creating new NFO generator for series \{aniDbAnimeId}");
             generator = SeriesNfoWriter.forSeries(series.build());
             nfoGenerators.put((long) aniDbAnimeId, generator);
         }
@@ -102,7 +110,7 @@ public class KodiMetadataGenerator {
 
         val watchDate = fileInfo.getWatchedDate();
         if (watchDate != null) {
-            episode.lastPlayed(fileInfo.getWatchedDate().toLocalDate());
+            episode.lastPlayed(watchDate.toLocalDate());
         }
 
         val episodeData = episode.build();
@@ -114,50 +122,46 @@ public class KodiMetadataGenerator {
 
     private void exportImages(Series series, Episode episode) {
         val seriesFolder = episode.getFilePath().getParent();
-        writeFile(episode.getThumbnail(), seriesFolder.resolve(STR."\{episode.getFileNameWithoutExtension()}-thumb.jpg"));
-        for (var i = 0; i < series.getFanarts().size(); i++) {
+        downloadToFile(episode.getThumbnail(), seriesFolder.resolve(STR."\{episode.getFileNameWithoutExtension()}-thumb.jpg"));
+        for (var i = 0; i < Math.min(series.getFanarts().size(), MAX_EXPORTED_FANARTS); i++) {
             val url = series.getFanarts().get(i).getUrl();
             val extension = url.substring(url.lastIndexOf("."));
             val name = i == 0 ? "fanart" : STR."fanart\{i}";
-            writeFile(url, seriesFolder.resolve(STR."\{name}\{extension}"));
+            downloadToFile(url, seriesFolder.resolve(STR."\{name}\{extension}"));
         }
         series.getArtworks().stream().filter(a -> a.getType() == Artwork.ArtworkType.SERIES_POSTER).findFirst().ifPresent(
-                a -> writeFile(a.getUrl(), seriesFolder.resolve("poster.jpg"))
+                a -> downloadToFile(a.getUrl(), seriesFolder.resolve("poster.jpg"))
         );
         series.getArtworks().stream().filter(a -> a.getType() == Artwork.ArtworkType.SERIES_BANNER).findFirst().ifPresent(
-                a -> writeFile(a.getUrl(), seriesFolder.resolve("banner.jpg"))
+                a -> downloadToFile(a.getUrl(), seriesFolder.resolve("banner.jpg"))
         );
         val actorPath = seriesFolder.resolve(".actors");
         series.getActors().forEach(actor -> {
-            writeFile(actor.getThumb(), actorPath.resolve(STR."\{actor.getName().replaceAll(" ", "_")}.jpg"));
+            downloadToFile(actor.getThumb(), actorPath.resolve(STR."\{actor.getName().replaceAll(" ", "_")}.jpg"));
         });
     }
 
     private void exportImages(Movie movie) {
         val movieFolder = movie.getFilePath().getParent();
-        writeFile(movie.getThumbnail(), movieFolder.resolve(STR."\{movie.getFileNameWithoutExtension()}-thumb.jpg"));
-        for (var i = 0; i < Math.max(Math.min(movie.getFanarts().size(), 15), 15); i++) {
+        downloadToFile(movie.getThumbnail(), movieFolder.resolve(STR."\{movie.getFileNameWithoutExtension()}-thumb.jpg"));
+        for (var i = 0; i < Math.min(movie.getFanarts().size(), MAX_EXPORTED_FANARTS); i++) {
             val url = movie.getFanarts().get(i).getUrl();
             val extension = url.substring(url.lastIndexOf("."));
             val name = i == 0 ? "fanart" : STR."fanart\{i}";
-            writeFile(url, movieFolder.resolve(STR."\{name}\{extension}"));
+            downloadToFile(url, movieFolder.resolve(STR."\{name}\{extension}"));
         }
         val actorPath = movieFolder.resolve(".actors");
         movie.getActors().forEach(actor -> {
-            writeFile(actor.getThumb(), actorPath.resolve(STR."\{actor.getName().replaceAll(" ", "_")}.jpg"));
+            downloadToFile(actor.getThumb(), actorPath.resolve(STR."\{actor.getName().replaceAll(" ", "_")}.jpg"));
         });
     }
 
-    private void writeFile(String url, Path path) {
-        if (Files.exists(path) || !overwriteConfiguration.contains(OverwriteConfiguration.OVERWRITE_ARTWORK)) {
+    private void downloadToFile(String url, Path path) {
+        if (Files.exists(path) && !overwriteConfiguration.contains(OverwriteConfiguration.OVERWRITE_ARTWORK)) {
+            log.debug(STR."File \{path} already exists, not exporting image");
             return;
         }
-        try {
-            Files.createDirectories(path.getParent());
-            downloadHelper.downloadToFile(url, path);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        downloadHelper.downloadToFile(url, path);
     }
 
     private InputStream getXmlInput(int aniDbAnimeId) {

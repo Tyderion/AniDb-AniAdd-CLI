@@ -3,6 +3,7 @@ package kodi.anime_details.model;
 import kodi.common.UniqueId;
 import kodi.nfo.*;
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 import udpapi.reply.ReplyStatus;
 
 import java.time.LocalDate;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
+@Slf4j
 @Builder
 @Data
 @NoArgsConstructor
@@ -39,6 +41,7 @@ public class Anime {
     String picture;
 
     public void updateEpisode(kodi.nfo.Episode.EpisodeBuilder builder, int anidbEpisodeNumber) {
+        log.trace(STR."Updating episode \{anidbEpisodeNumber} for anime \{id}");
         episodes.stream().filter(e -> e.getId() == anidbEpisodeNumber).findFirst()
                 .ifPresent(episode -> createRating(episode.getVoteCount(), episode.getRating(), "anidb"));
         getTags().forEach(builder::genre);
@@ -48,8 +51,10 @@ public class Anime {
     }
 
     public void updateMovie(Movie.MovieBuilder builder) {
+        val title = getTitle();
+        log.trace(STR."Updating movie \{id}: \{title}");
         builder
-                .title(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle())
+                .title(title)
                 .originalTitle(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle());
         getTags().forEach(builder::genre);
         creators.stream().filter(c -> c.getType() == Creator.Type.DIRECTION).map(Creator::getName).findFirst().ifPresent(builder::director);
@@ -67,9 +72,11 @@ public class Anime {
     }
 
     public Series.SeriesBuilder toSeries() {
+        val title = getTitle();
+        log.trace(STR."Creating series for \{id}: \{title}");
         val actors = getActors();
         val series = Series.builder()
-                .title(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle())
+                .title(title)
                 .originalTitle(titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle());
         getNfoRatings().forEach(series::rating);
 
@@ -81,6 +88,10 @@ public class Anime {
                 .year(startDate.getYear())
                 .studio(creators.stream().filter(c -> c.getType() == Creator.Type.ANIMATION_WORK).map(Creator::getName).findFirst().orElse(""))
                 .actors(actors);
+    }
+
+    private String getTitle() {
+        return titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle();
     }
 
     private Stream<kodi.nfo.Rating> getNfoRatings() {

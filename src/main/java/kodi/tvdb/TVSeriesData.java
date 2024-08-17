@@ -6,11 +6,13 @@ import kodi.nfo.Series;
 import lombok.Builder;
 import lombok.Singular;
 import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.util.List;
 import java.util.stream.Stream;
 
+@Slf4j
 @Builder
 @Value
 public class TVSeriesData {
@@ -35,10 +37,12 @@ public class TVSeriesData {
 
         public TVSeriesDataBuilder description(TvDbDescriptionResponse response) {
             if (response == null) {
+                log.trace(STR."No description found for series \{seriesId}");
                 plot("");
                 seriesName("");
                 return this;
             }
+            log.trace(STR."Found description for series \{seriesId}: \{response.getName()}");
             seriesName(response.getName());
             plot(response.getPlot());
             return this;
@@ -46,10 +50,12 @@ public class TVSeriesData {
 
         public TVSeriesDataBuilder episodes(TvDbEpisodesResponse response, boolean finished) {
             if (response == null) {
+                log.trace(STR."No episodes found for series \{seriesId}");
                 allEpisodes(List.of());
                 episodesFinished = true;
                 return this;
             }
+            log.trace(STR."Found \{response.getEpisodes().size()} episodes for series \{seriesId}");
             episodesFinished = finished;
             response.getEpisodes().forEach(this::allEpisode);
             return this;
@@ -57,32 +63,34 @@ public class TVSeriesData {
 
         public TVSeriesDataBuilder seasons(TvDbSeasonResponse response) {
             if (response == null) {
+                log.trace(STR."No seasons found for series \{seriesId}");
                 allEpisodes(List.of());
                 status(TvDbSeasonResponse.SeriesStatus.Status.UNKNOWN);
                 return this;
             }
-            response.getSeasons()
+            val seasonArtworks = response.getSeasons()
                     .stream().filter(season -> season.getType().getType() == TvDbSeasonResponse.SeasonType.Type.OFFICIAL && season.getSeasonPoster() != null)
                     .map(season -> Artwork.builder()
                             .url(season.getSeasonPoster())
                             .season(season.getNumber())
                             .type(Artwork.ArtworkType.SEASON_POSTER)
-                            .build())
-                    .forEach(this::nonFanart);
+                            .build()).toList();
 
+            log.trace(STR."Found \{seasonArtworks.size()} valid seasons posters for series \{seriesId}");
+            seasonArtworks.forEach(this::nonFanart);
             this.status(response.getSeriesStatus().getStatus());
             return this;
         }
 
         public TVSeriesDataBuilder artworks(TvDbArtworksResponse response) {
             if (response == null) {
+                log.trace(STR."No artworks found for series \{seriesId}");
                 fanarts(List.of());
                 if (nonFanarts == null) {
                     nonFanarts(List.of());
                 }
                 return this;
             }
-            this.seriesId(response.getId());
             val relevantArtworks = response.getArtworks().stream().filter(
                             a -> isRelevantArtworkType(a.getType()))
                     .map(fanart -> Artwork.builder()
@@ -90,6 +98,7 @@ public class TVSeriesData {
                             .type(mapType(fanart.getType()))
                             .build()).toList();
 
+            log.trace(STR."Found \{relevantArtworks.size()} relevant artworks for series \{seriesId}");
             relevantArtworks.stream().filter(a -> a.getUrl().contains("fanart")).forEach(this::fanart);
             relevantArtworks.stream().filter(a -> !a.getUrl().contains("fanart")).forEach(this::nonFanart);
             return this;
@@ -124,6 +133,7 @@ public class TVSeriesData {
 
 
     public Series.SeriesBuilder updateSeries(Series.SeriesBuilder builder) {
+        log.trace(STR."Updating series \{seriesName}");
         builder.plot(plot);
         builder.fanarts(this.fanarts);
 
@@ -139,9 +149,10 @@ public class TVSeriesData {
     }
 
     public void updateEpisode(Episode.EpisodeBuilder builder, int seasonNumber, int episodeNumber) {
-        // TODO
+        log.trace(STR."Updating episode \{seasonNumber}x\{episodeNumber} for series \{seriesName}");
         if (seasonNumber == 0) {
             // Specials often cannot be mapped correctly to tvdb
+            log.warn(STR."Specials currently are not mapped correctly to TVDB, skipping episode \{episodeNumber} of series \{seriesName}");
             return;
         }
         val episode = allEpisodes.stream().filter(e -> e.getSeasonNumber() == seasonNumber && e.getNumber() == episodeNumber).findFirst().orElseThrow();

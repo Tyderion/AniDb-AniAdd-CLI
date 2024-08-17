@@ -9,7 +9,6 @@ import org.dom4j.DocumentException;
 
 import javax.xml.stream.*;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -34,11 +33,11 @@ public class SeriesNfoWriter extends NfoWriter {
         try {
             if (overwriteSeries || !Files.exists(seriesFile)) {
                 log.info(STR."Writing series NFO file: \{seriesFile.toString()}");
-                prettyPrint(getSeriesNfoContent(), seriesFile);
+                writeToFile(getSeriesNfoContent(), seriesFile);
             }
             if (overwriteEpisode || !Files.exists(episodeFile)) {
                 log.info(STR."Writing episode NFO file: \{episodeFile.toString()}");
-                prettyPrint(getEpisodeNfoContent(), episodeFile);
+                writeToFile(getEpisodeNfoContent(), episodeFile);
             }
         } catch (XMLStreamException | IOException | DocumentException e) {
             throw new RuntimeException(e);

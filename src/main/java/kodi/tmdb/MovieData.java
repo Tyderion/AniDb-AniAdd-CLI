@@ -4,11 +4,13 @@ import kodi.nfo.Artwork;
 import kodi.nfo.Movie;
 import kodi.nfo.Rating;
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Value
 @Builder()
 public class MovieData {
@@ -51,6 +53,7 @@ public class MovieData {
 
     }
 
+    @Slf4j
     public static class MovieDataBuilder {
         private boolean trailersFailed = false;
         private boolean imageFailed = false;
@@ -75,21 +78,25 @@ public class MovieData {
 
         public MovieDataBuilder videos(TmDbMovieVideosResponse videos) {
             if (videos == null) {
+                log.trace(STR."No videos found for movie \{id}");
                 this.trailersFailed = true;
                 this.trailer = Optional.empty();
                 return this;
             }
             this.trailer = videos.getEnglishTrailer();
+            log.trace(STR."Found \{videos.getVideos().size()} videos for movie \{id}, found english trailer: \{trailer.isPresent()}");
             return this;
         }
 
         public MovieDataBuilder images(TmDbMovieImagesResponse images) {
             if (images == null) {
+                log.trace(STR."No images found for movie \{id}");
                 this.imageFailed = true;
                 this.posters(List.of());
                 this.backdrops(List.of());
                 return this;
             }
+            log.trace(STR."Found images for movie \{id}: \{images.getPosters().size()} posters, \{images.getBackdrops().size()} backdrops");
             this.posters(images.getPosters());
             this.backdrops(images.getBackdrops());
             return this;
@@ -97,10 +104,12 @@ public class MovieData {
 
         public MovieDataBuilder details(TmDbMovieDetailsResponse details) {
             if (details == null) {
+                log.trace(STR."No details found for movie \{id}");
                 this.detailsFailed = true;
                 return this;
             }
-            return this.id(details.getId())
+            log.trace(STR."Found details for movie \{id}: \{details.getTitle()}");
+            return this
                     .title(details.getTitle())
                     .originalTitle(details.getOriginalTitle())
                     .plot(details.getPlot())

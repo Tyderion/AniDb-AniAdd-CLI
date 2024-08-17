@@ -2,6 +2,7 @@ package kodi;
 
 import kodi.common.UniqueId;
 import kodi.nfo.*;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
@@ -30,11 +31,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.List;
 
+@Slf4j
 public abstract class NfoWriter {
     protected XMLEventWriter writer;
     protected XMLEventFactory factory;
 
-    protected static void prettyPrint(String content, Path file) throws IOException, DocumentException {
+    protected static void writeToFile(String content, Path file) throws IOException, DocumentException {
+        log.trace(STR."Writing NFO file: \{file.toString()}");
         OutputFormat format = OutputFormat.createPrettyPrint();
         format.setIndentSize(4);
         format.setSuppressDeclaration(false);
@@ -47,10 +50,12 @@ public abstract class NfoWriter {
 
         try (val fileWriter = Files.newBufferedWriter(file, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)) {
             fileWriter.write(sw.toString());
+            log.trace(STR."NFO file written: \{file.toString()}");
         }
     }
 
     protected String newFile(String rootTag, @NotNull IContentWriter content) throws XMLStreamException {
+        log.info(STR."Starting new NFO file for root tag: \{rootTag}");
         val byteArrayOutputStream = new ByteArrayOutputStream();
         val outputStream = new BufferedOutputStream(byteArrayOutputStream);
 

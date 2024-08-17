@@ -35,30 +35,28 @@ public class TmDbApi {
     }
 
     public void getMovieInfo(int movieId, OnComplete onComplete) {
-        val builder = MovieData.builder();
-        tmDbClient.getMovieDetails(movieId).enqueue(new RequestCallback<>(builder, onComplete,
-                data -> {
-                    log.info("Received movie details");
-                    builder.details(data);
-                }, () -> {
+        log.info(STR."Getting movie info for \{movieId}");
+        val builder = MovieData.builder().id(movieId);
+        tmDbClient.getMovieDetails(movieId).enqueue(new RequestCallback<>(builder, onComplete, data -> {
+            log.info(STR."Received movie details for \{movieId}");
+            builder.details(data);
+        }, () -> {
             builder.details(null);
-            log.error("Failed to get movie details");
+            log.warn(STR."Failed to get movie details \{movieId}");
         }));
 
-        tmDbClient.getArtworks(movieId).enqueue(new RequestCallback<>(builder, onComplete,
-                data -> {
-                    log.info("Received movie artworks");
-                    builder.images(data);
-                }, () -> {
+        tmDbClient.getArtworks(movieId).enqueue(new RequestCallback<>(builder, onComplete, data -> {
+            log.info("Received movie artworks");
+            builder.images(data);
+        }, () -> {
             builder.images(null);
             log.error("Failed to get movie artworks");
         }));
 
-        tmDbClient.getTrailers(movieId).enqueue(new RequestCallback<>(builder, onComplete,
-                data -> {
-                    log.info("Received movie trailers");
-                    builder.videos(data);
-                }, () -> {
+        tmDbClient.getTrailers(movieId).enqueue(new RequestCallback<>(builder, onComplete, data -> {
+            log.info("Received movie trailers");
+            builder.videos(data);
+        }, () -> {
             builder.videos(null);
             log.error("Failed to get movie trailers");
         }));

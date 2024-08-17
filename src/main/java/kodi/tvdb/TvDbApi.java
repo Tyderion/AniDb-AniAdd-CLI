@@ -1,6 +1,7 @@
 package kodi.tvdb;
 
 import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import okhttp3.Dispatcher;
 import okhttp3.OkHttpClient;
@@ -10,7 +11,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 
-@Log
+@Slf4j
 public class TvDbApi {
     private final TVDbClient tvDbClient;
     private final OkHttpClient okHttpClient;
@@ -26,7 +27,7 @@ public class TvDbApi {
 
     public void getTvSeriesData(int seriesId, ITvSeriesCallback onReceive) {
         log.info(STR."Getting all data for tvdb series \{seriesId}");
-        val allData = TVSeriesData.builder();
+        val allData = TVSeriesData.builder().seriesId(seriesId);
 
         if (!loggedIn) {
             onReceive.received(null);
@@ -114,10 +115,10 @@ public class TvDbApi {
                     return;
                 }
             }
-            log.warning(STR."Failed to login to TVDb: \{response.message()}");
+            log.warn(STR."Failed to login to TVDb: \{response.message()}");
             loggedIn = false;
         } catch (IOException e) {
-            log.severe(STR."Failed to login to TVDb: \{e.getMessage()}");
+            log.error(STR."Failed to login to TVDb: \{e.getMessage()}");
             loggedIn = false;
         }
     }
@@ -149,13 +150,16 @@ public class TvDbApi {
         }
     }
 
+    @Slf4j
     private static class RootRequestCallback<T> extends utils.http.RequestCallback<TvDbResponse<T>> {
         private RootRequestCallback(TVSeriesData.TVSeriesDataBuilder builder, ITvSeriesCallback onComplete, OnResponse<TvDbResponse<T>> onResponse, OnUnauthorized onUnauthorized) {
             super(response -> {
                 if (response != null && response.getStatus() == TvDbResponse.Status.SUCCESS) {
                     onResponse.received(response);
                     if (builder.isComplete()) {
-                        onComplete.received(builder.build());
+                        val data = builder.build();
+                        log.trace(STR."All data for series \{data.getSeriesId()} received");
+                        onComplete.received(data);
                     }
                 }
             }, onUnauthorized);
