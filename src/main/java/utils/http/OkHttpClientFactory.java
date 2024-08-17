@@ -1,4 +1,4 @@
-package utils;
+package utils.http;
 
 import lombok.val;
 import okhttp3.Dispatcher;

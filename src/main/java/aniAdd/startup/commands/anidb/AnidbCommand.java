@@ -11,6 +11,8 @@ import aniAdd.startup.validation.validators.port.Port;
 import cache.AniDBFileRepository;
 import fileprocessor.DeleteEmptyChildDirectoriesRecursively;
 import fileprocessor.FileProcessor;
+import kodi.KodiMetadataGenerator;
+import kodi.tvdb.TvDbApi;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -21,6 +23,7 @@ import processing.FileHandler;
 import processing.EpisodeProcessing;
 import udpapi.UdpApi;
 import udpapi.reply.ReplyStatus;
+import utils.http.DownloadHelper;
 
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -54,7 +57,7 @@ public class AnidbCommand {
 
     @Getter
     @NonEmpty
-    @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "aniAdd.sqlite")
+    @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "test.sqlite")
     String dbPath;
 
     @CommandLine.ParentCommand
@@ -83,7 +86,9 @@ public class AnidbCommand {
         val udpApi = getUdpApi(config, executorService);
         val fileHandler = new FileHandler();
         val fileRepository = new AniDBFileRepository(sessionFactory);
-        val processing = new EpisodeProcessing(config, udpApi, fileSystem, fileHandler, fileRepository);
+        val tvDbApi = new TvDbApi(System.getenv("TVDB_APIKEY"), executorService);
+        val kodiMetadataGenerator = new KodiMetadataGenerator(new DownloadHelper(executorService), tvDbApi, config.getAnimeMappingUrl(), new KodiMetadataGenerator.OverwriteConfiguration(true, true, false));
+        val processing = new EpisodeProcessing(config, udpApi, kodiMetadataGenerator, fileSystem, fileHandler, fileRepository);
         val fileProcessor = new FileProcessor(processing, config, executorService);
 
         if (config.isRecursivelyDeleteEmptyFolders() && inputDirectory != null) {

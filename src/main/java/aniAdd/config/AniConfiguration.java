@@ -3,6 +3,7 @@ package aniAdd.config;
 
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Paths;
 
@@ -103,6 +104,15 @@ public class AniConfiguration {
      * The host of the anidb UDP API (default = api.anidb.net), default should be correct
      */
     @Builder.Default private String anidbHost = "api.anidb.net";
+
+    /**
+     * The URL to the anime mapping file, maps from AniDB to TVDB
+     */
+    @NotNull @NonNull @Builder.Default private String animeMappingUrl = "https://raw.githubusercontent.com/Anime-Lists/anime-lists/master/anime-list.xml";
+
+    @Builder.Default private boolean generateKodiMetadata = false;
+    
+    @Builder.Default private boolean syncWatchedStateToKodi = false;
 
     @Builder.Default private int cacheTTLInDays = 30;
 

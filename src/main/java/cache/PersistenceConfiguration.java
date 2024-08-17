@@ -1,5 +1,7 @@
 package cache;
 
+import kodi.anime_details.model.*;
+import kodi.anime_details.model.Character;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.jetbrains.annotations.NotNull;
