@@ -9,4 +9,3 @@ build/
 *.properties
 !config/*
 test.*
-TestCommand.java
