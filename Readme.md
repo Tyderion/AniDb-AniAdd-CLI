@@ -105,6 +105,7 @@ Enables you to run any command you want by specifying it in an env variable.
 I recommend to use IntelliJ (Community Edition is enough) to develop this project.
 Be sure to install the Lombok Plugin and enable annotation processing in the settings.
 It currently only works with Java 21, higher/lower does not work due to the usage of template strings
+If you want, install the git hooks by running `./hooks/install.ps1` (Windows) or `./hooks/install.sh` (Linux/MacOS)
 
 # DISCLAIMER
 This software is provided as is. I am not responsible for any damage caused by this software. Use at your own risk.

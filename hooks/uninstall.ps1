@@ -1,0 +1,1 @@
+Remove-Item $PSScriptRoot\..\.git\hooks\pre-commit
