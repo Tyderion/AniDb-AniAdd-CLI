@@ -1,5 +1,6 @@
 package kodi.tmdb;
 
+import kodi.common.UniqueId;
 import kodi.nfo.model.Artwork;
 import kodi.nfo.model.Movie;
 import kodi.nfo.model.Rating;
@@ -32,6 +33,7 @@ public class MovieData {
     List<TmDbMovieImagesResponse.Image> posters;
 
     public void updateMovie(Movie.MovieBuilder builder) {
+        builder.uniqueId(UniqueId.TmDbId(id));
         trailer.ifPresent(trailer -> builder.trailer(STR."https://www.youtube.com/watch?v=\{trailer.getKey()}"));
         builder.title(title)
                 .originalTitle(title)

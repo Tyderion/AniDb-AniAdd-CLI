@@ -1,5 +1,6 @@
 package kodi.tvdb;
 
+import kodi.common.UniqueId;
 import kodi.nfo.model.Artwork;
 import kodi.nfo.model.Episode;
 import kodi.nfo.model.Series;
@@ -137,6 +138,7 @@ public class TVSeriesData {
 
     public Series.SeriesBuilder updateSeries(Series.SeriesBuilder builder) {
         log.trace(STR."Updating series \{seriesName}");
+        builder.uniqueId(UniqueId.TvDbId(seriesId));
         builder.plot(plot);
         builder.fanarts(this.fanarts);
 

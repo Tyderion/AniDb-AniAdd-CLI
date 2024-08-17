@@ -18,7 +18,7 @@ public class TvDbSeasonResponse {
         @SerializedName("name")
         Status status;
 
-        enum Status {
+        public enum Status {
             @SerializedName("Continuing")
             CONTINUING,
             @SerializedName("Ended")
@@ -43,7 +43,7 @@ public class TvDbSeasonResponse {
         int id;
         Type type;
 
-        enum Type {
+        public enum Type {
             @SerializedName("official")
             OFFICIAL,
             @SerializedName("dvd")
