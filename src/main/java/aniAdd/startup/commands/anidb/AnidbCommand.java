@@ -10,7 +10,6 @@ import aniAdd.startup.validation.validators.port.Port;
 import cache.AniDBFileRepository;
 import fileprocessor.DeleteEmptyChildDirectoriesRecursively;
 import fileprocessor.FileProcessor;
-import kodi.DownloadHelper;
 import kodi.KodiMetadataGenerator;
 import kodi.tvdb.TvDbApi;
 import lombok.Getter;
@@ -23,6 +22,7 @@ import processing.FileHandler;
 import processing.EpisodeProcessing;
 import udpapi.UdpApi;
 import udpapi.reply.ReplyStatus;
+import utils.http.DownloadHelper;
 
 import java.nio.file.Paths;
 import java.util.Optional;

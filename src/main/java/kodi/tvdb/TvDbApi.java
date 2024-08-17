@@ -11,6 +11,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import utils.http.FullRequestCallback;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -89,7 +90,7 @@ public class TvDbApi {
 
     private void getAllEpisodeData(int seriesId, int page, RequestsDone requestsDone, TvDbAllData.TvDbAllDataBuilder allData, IAllDataCallback onReceive) {
         log.info(STR."Fetching episodes page \{page} for series \{seriesId}");
-        tvDbClient.getEpisodes(seriesId, page).enqueue(new FulLRequestCallback<>(data -> {
+        tvDbClient.getEpisodes(seriesId, page).enqueue(new FullRequestCallback<>(data -> {
             data.getData().getEpisodes().forEach(allData::episode);
             allData.seriesName(data.getData().getName());
             if (data.getLinks().getPagesize() * (page + 1) > data.getLinks().getTotalItems()) {
@@ -103,7 +104,8 @@ public class TvDbApi {
         }, _ -> {
             login(tvDbClient, apiKey);
             getAllEpisodeData(seriesId, page, requestsDone, allData, onReceive);
-        }));
+        }) {
+        });
     }
 
     private void notify(IAllDataCallback onReceive, TvDbAllData.TvDbAllDataBuilder allData, RequestsDone requestsDone) {
@@ -164,32 +166,7 @@ public class TvDbApi {
         return httpClient.build();
     }
 
-    @RequiredArgsConstructor
-    private static class FulLRequestCallback<T> implements Callback<TvDbResponse<T>> {
-
-        final OnResponse<TvDbResponse<T>> onResponse;
-        final OnResponse<Void> onUnauthorized;
-
-        @Override
-        public void onResponse(Call<TvDbResponse<T>> call, Response<TvDbResponse<T>> response) {
-            if (response.isSuccessful()) {
-                onResponse.received(response.body());
-            }
-            if (response.code() == 401) {
-                onUnauthorized.received(null);
-            }
-        }
-
-        @Override
-        public void onFailure(Call<TvDbResponse<T>> call, Throwable t) {
-            if (t.getMessage() != null && t.getMessage().contains("401")) {
-                onUnauthorized.received(null);
-            }
-            log.severe(STR."Failed to execute request: \{t.getMessage()}");
-        }
-    }
-
-    private static class RequestCallback<T> extends FulLRequestCallback<T> {
+    private static class RequestCallback<T> extends FullRequestCallback<TvDbResponse<T>> {
         private RequestCallback(OnResponse<T> onResponse, OnResponse<Void> onUnauthorized) {
             super(response -> {
                 if (response != null && response.getStatus() == TvDbResponse.Status.SUCCESS) {
@@ -199,9 +176,6 @@ public class TvDbApi {
         }
     }
 
-    private interface OnResponse<T> {
-        void received(T data);
-    }
 
     public interface IAllDataCallback {
         void received(Optional<TvDbAllData> data);

@@ -13,6 +13,7 @@ import lombok.*;
 import lombok.extern.java.Log;
 import processing.FileInfo;
 import processing.tagsystem.TagSystemTags;
+import utils.http.DownloadHelper;
 
 import java.io.*;
 import java.nio.file.Files;

@@ -1,4 +1,4 @@
-package utils;
+package utils.http;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
