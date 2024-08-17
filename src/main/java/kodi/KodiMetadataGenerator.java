@@ -69,6 +69,7 @@ public class KodiMetadataGenerator {
             log.info(STR."TMDB: \{data.getId()} - \{data.getTitle()}");
             data.updateMovie(movieBuilder);
         });
+        movieBuilder.filePath(fileInfo.getFinalFilePath());
         var movie = movieBuilder.build();
         val generator = MovieNfoWriter.forMovie(movie);
         generator.writeNfoFile(overwriteConfiguration.contains(OverwriteConfiguration.OVERWRITE_MOVIES));
