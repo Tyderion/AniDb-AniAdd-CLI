@@ -11,6 +11,8 @@ import cache.AniDBFileRepository;
 import fileprocessor.DeleteEmptyChildDirectoriesRecursively;
 import fileprocessor.FileProcessor;
 import kodi.KodiMetadataGenerator;
+import kodi.OverwriteConfiguration;
+import kodi.tmdb.TmDbApi;
 import kodi.tvdb.TvDbApi;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -25,12 +27,13 @@ import udpapi.reply.ReplyStatus;
 import utils.http.DownloadHelper;
 
 import java.nio.file.Paths;
+import java.util.EnumSet;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
 @CommandLine.Command(
-        subcommands = {ScanCommand.class, KodiWatcherCommand.class, WatchCommand.class, WatchAndKodiCommand.class},
+        subcommands = {ScanCommand.class, KodiWatcherCommand.class, WatchCommand.class, WatchAndKodiCommand.class, TestCommand.class},
         name = "anidb",
         mixinStandardHelpOptions = true,
         version = "1.0",
@@ -86,7 +89,10 @@ public class AnidbCommand {
         val fileHandler = new FileHandler();
         val fileRepository = new AniDBFileRepository(sessionFactory);
         val tvDbApi = new TvDbApi(System.getenv("TVDB_APIKEY"), executorService);
-        val kodiMetadataGenerator = new KodiMetadataGenerator(new DownloadHelper(executorService), tvDbApi, config.getAnimeMappingUrl(), new KodiMetadataGenerator.OverwriteConfiguration(true, true, false));
+        val tmDbApi = new TmDbApi(System.getenv("TMDB_ACCESS_TOKEN"), executorService);
+        val kodiMetadataGenerator = new KodiMetadataGenerator(
+                new DownloadHelper(executorService), tvDbApi, tmDbApi, config.getAnimeMappingUrl(),
+                EnumSet.allOf(OverwriteConfiguration.class));
         val processing = new EpisodeProcessing(config, udpApi, kodiMetadataGenerator, fileSystem, fileHandler, fileRepository);
         val fileProcessor = new FileProcessor(processing, config, executorService);
 
