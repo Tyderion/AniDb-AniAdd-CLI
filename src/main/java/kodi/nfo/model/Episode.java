@@ -1,13 +1,11 @@
-package kodi.nfo;
+package kodi.nfo.model;
 
 
 import kodi.common.UniqueId;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
-import java.nio.file.Path;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @SuperBuilder

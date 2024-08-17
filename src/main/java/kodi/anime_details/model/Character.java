@@ -1,6 +1,6 @@
 package kodi.anime_details.model;
 
-import kodi.nfo.Actor;
+import kodi.nfo.model.Actor;
 import lombok.*;
 
 @Builder

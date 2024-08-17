@@ -1,8 +1,11 @@
 package kodi.tmdb;
 
-import kodi.nfo.Artwork;
-import kodi.nfo.Movie;
-import kodi.nfo.Rating;
+import kodi.nfo.model.Artwork;
+import kodi.nfo.model.Movie;
+import kodi.nfo.model.Rating;
+import kodi.tmdb.requests.TmDbMovieDetailsResponse;
+import kodi.tmdb.requests.TmDbMovieImagesResponse;
+import kodi.tmdb.requests.TmDbMovieVideosResponse;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 

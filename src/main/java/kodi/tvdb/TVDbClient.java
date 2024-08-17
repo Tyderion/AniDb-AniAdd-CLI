@@ -1,5 +1,6 @@
 package kodi.tvdb;
 
+import kodi.tvdb.requests.*;
 import org.jetbrains.annotations.Nullable;
 import retrofit2.Call;
 import retrofit2.http.*;

@@ -1,7 +1,10 @@
-package kodi;
+package kodi.nfo;
 
 import kodi.common.UniqueId;
-import kodi.nfo.*;
+import kodi.nfo.model.Actor;
+import kodi.nfo.model.Artwork;
+import kodi.nfo.model.Rating;
+import kodi.nfo.model.StreamDetails;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.dom4j.Document;

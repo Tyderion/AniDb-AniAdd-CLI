@@ -1,6 +1,5 @@
-package kodi.tvdb;
+package kodi.tvdb.requests;
 
-import lombok.Data;
 import lombok.Value;
 
 @Value

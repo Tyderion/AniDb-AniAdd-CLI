@@ -1,4 +1,4 @@
-package kodi;
+package utils.xml;
 
 import lombok.val;
 

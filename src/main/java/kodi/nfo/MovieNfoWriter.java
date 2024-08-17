@@ -1,6 +1,6 @@
-package kodi;
+package kodi.nfo;
 
-import kodi.nfo.Movie;
+import kodi.nfo.model.Movie;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -13,7 +13,7 @@ import java.nio.file.Path;
 
 @Slf4j
 @RequiredArgsConstructor(staticName = "forMovie")
-public class MovieNfoWriter extends NfoWriter{
+public class MovieNfoWriter extends NfoWriter {
     final Movie movie;
 
     public void writeNfoFile(boolean overwrite) {

@@ -1,4 +1,4 @@
-package kodi.tmdb;
+package kodi.tmdb.requests;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;

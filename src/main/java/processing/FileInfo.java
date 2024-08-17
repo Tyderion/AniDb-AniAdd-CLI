@@ -2,8 +2,7 @@ package processing;
 
 import aniAdd.config.AniConfiguration;
 import cache.entities.AniDBFileData;
-import kodi.nfo.Movie;
-import kodi.tmdb.MovieData;
+import kodi.nfo.model.Movie;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;

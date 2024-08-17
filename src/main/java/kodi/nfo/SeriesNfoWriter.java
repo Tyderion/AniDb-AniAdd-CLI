@@ -1,6 +1,7 @@
-package kodi;
+package kodi.nfo;
 
-import kodi.nfo.*;
+import kodi.nfo.model.Episode;
+import kodi.nfo.model.Series;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
@@ -88,6 +89,4 @@ public class SeriesNfoWriter extends NfoWriter {
             actors(series.getActors());
         });
     }
-
-
 }

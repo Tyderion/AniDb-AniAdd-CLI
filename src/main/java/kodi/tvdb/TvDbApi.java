@@ -1,6 +1,7 @@
 package kodi.tvdb;
 
-import lombok.extern.java.Log;
+import kodi.tvdb.requests.LoginRequest;
+import kodi.tvdb.requests.TvDbResponse;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import okhttp3.Dispatcher;

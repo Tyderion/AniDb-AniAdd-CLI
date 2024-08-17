@@ -15,8 +15,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import static kodi.XmlHelper.getIntAttribute;
-import static kodi.XmlHelper.getStringAttribute;
+import static utils.xml.XmlHelper.getIntAttribute;
+import static utils.xml.XmlHelper.getStringAttribute;
 
 @Log
 public class AnimeDetailsLoader {

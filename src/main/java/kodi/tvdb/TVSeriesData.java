@@ -1,8 +1,12 @@
 package kodi.tvdb;
 
-import kodi.nfo.Artwork;
-import kodi.nfo.Episode;
-import kodi.nfo.Series;
+import kodi.nfo.model.Artwork;
+import kodi.nfo.model.Episode;
+import kodi.nfo.model.Series;
+import kodi.tvdb.requests.TvDbArtworksResponse;
+import kodi.tvdb.requests.TvDbDescriptionResponse;
+import kodi.tvdb.requests.TvDbEpisodesResponse;
+import kodi.tvdb.requests.TvDbSeasonResponse;
 import lombok.Builder;
 import lombok.Singular;
 import lombok.Value;
@@ -10,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 @Slf4j
 @Builder

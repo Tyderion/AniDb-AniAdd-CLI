@@ -1,5 +1,8 @@
 package kodi.tmdb;
 
+import kodi.tmdb.requests.TmDbMovieDetailsResponse;
+import kodi.tmdb.requests.TmDbMovieImagesResponse;
+import kodi.tmdb.requests.TmDbMovieVideosResponse;
 import retrofit2.Call;
 import retrofit2.http.GET;
 import retrofit2.http.Path;

@@ -1,4 +1,4 @@
-package kodi.nfo;
+package kodi.nfo.model;
 
 import lombok.Builder;
 import lombok.Value;

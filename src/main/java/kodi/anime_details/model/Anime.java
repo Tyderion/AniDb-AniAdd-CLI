@@ -1,10 +1,9 @@
 package kodi.anime_details.model;
 
 import kodi.common.UniqueId;
-import kodi.nfo.*;
+import kodi.nfo.model.*;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import udpapi.reply.ReplyStatus;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -40,7 +39,7 @@ public class Anime {
     String description;
     String picture;
 
-    public void updateEpisode(kodi.nfo.Episode.EpisodeBuilder builder, int anidbEpisodeNumber) {
+    public void updateEpisode(kodi.nfo.model.Episode.EpisodeBuilder builder, int anidbEpisodeNumber) {
         log.trace(STR."Updating episode \{anidbEpisodeNumber} for anime \{id}");
         episodes.stream().filter(e -> e.getId() == anidbEpisodeNumber).findFirst()
                 .ifPresent(episode -> createRating(episode.getVoteCount(), episode.getRating(), "anidb"));
@@ -94,7 +93,7 @@ public class Anime {
         return titles.stream().filter(t -> t.getType().equals("main")).findFirst().orElse(titles.iterator().next()).getTitle();
     }
 
-    private Stream<kodi.nfo.Rating> getNfoRatings() {
+    private Stream<kodi.nfo.model.Rating> getNfoRatings() {
         return ratings.stream()
                 .sorted((r1, r2) -> {
                     if (r1.getType() == Rating.Type.PERMANENT) {
@@ -114,8 +113,8 @@ public class Anime {
                 });
     }
 
-    private kodi.nfo.Rating createRating(int voteCount, double rating, String name) {
-        return kodi.nfo.Rating.builder()
+    private kodi.nfo.model.Rating createRating(int voteCount, double rating, String name) {
+        return kodi.nfo.model.Rating.builder()
                 .voteCount(voteCount)
                 .rating(rating)
                 .max(10)

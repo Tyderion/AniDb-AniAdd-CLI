@@ -2,15 +2,14 @@ package cache.entities;
 
 import jakarta.persistence.*;
 import kodi.common.UniqueId;
-import kodi.nfo.Episode;
-import kodi.nfo.Movie;
-import kodi.nfo.StreamDetails;
+import kodi.nfo.model.Episode;
+import kodi.nfo.model.Movie;
+import kodi.nfo.model.StreamDetails;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import processing.tagsystem.TagSystemTags;
 
-import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;

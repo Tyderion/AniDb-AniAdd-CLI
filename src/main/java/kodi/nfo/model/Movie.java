@@ -1,4 +1,4 @@
-package kodi.nfo;
+package kodi.nfo.model;
 
 import kodi.common.UniqueId;
 import lombok.*;

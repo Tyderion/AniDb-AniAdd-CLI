@@ -1,4 +1,4 @@
-package kodi.nfo;
+package kodi.nfo.model;
 
 import lombok.*;
 import lombok.experimental.SuperBuilder;

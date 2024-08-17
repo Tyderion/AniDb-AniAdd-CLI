@@ -1,4 +1,4 @@
-package kodi.tvdb;
+package kodi.tvdb.requests;
 
 import com.google.gson.annotations.SerializedName;
 import lombok.Data;

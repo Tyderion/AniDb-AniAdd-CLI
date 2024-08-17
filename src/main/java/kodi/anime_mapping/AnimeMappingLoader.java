@@ -1,6 +1,5 @@
 package kodi.anime_mapping;
 
-import aniAdd.config.AniConfiguration;
 import kodi.anime_mapping.model.AnimeMapping;
 import kodi.anime_mapping.model.Mapping;
 import kodi.anime_mapping.model.SupplementalInfo;
@@ -29,7 +28,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static kodi.XmlHelper.*;
+import static utils.xml.XmlHelper.*;
 
 @Log
 @RequiredArgsConstructor
