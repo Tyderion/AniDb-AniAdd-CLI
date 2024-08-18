@@ -22,6 +22,6 @@ public class ConfigCommand {
     private CliCommand parent;
 
     public Optional<AniConfiguration> getConfiguration(boolean useDefault) {
-        return parent.getConfiguration(useDefault, configPath);
+        return parent.getAniConfiguration(useDefault, configPath);
     }
 }

@@ -3,7 +3,6 @@ package aniAdd.startup.commands;
 import aniAdd.startup.validation.validators.nonempty.NonEmpty;
 import cache.AniDBFileRepository;
 import cache.PersistenceConfiguration;
-import cache.entities.AniDBFileData;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -61,7 +60,7 @@ public class TagsCommand implements Callable<Integer> {
                 log.info(STR."Using data from file [\{fileData.getEd2k()}][\{fileData.getSize()}]\{fileData.getFileName()}");
             }
         }
-        val optionalConfig = parent.getConfiguration(true, configPath);
+        val optionalConfig = parent.getAniConfiguration(true, configPath);
         if (optionalConfig.isEmpty() || optionalConfig.get().getTagSystemCode() == null
                 || optionalConfig.get().getTagSystemCode().isBlank()) {
             log.error("To test tags you must provide a non empty tagging system code");

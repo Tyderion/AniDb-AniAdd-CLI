@@ -61,11 +61,11 @@ public class AnidbCommand {
     private CliCommand parent;
 
     public Optional<AniConfiguration> getConfiguration() {
-        return parent.getConfiguration(false, configPath);
+        return parent.getAniConfiguration(false, configPath);
     }
 
     public Optional<AniConfiguration> getConfigurationOrDefault() {
-        return parent.getConfiguration(true, configPath);
+        return parent.getAniConfiguration(true, configPath);
     }
 
     public UdpApi getUdpApi(AniConfiguration configuration, ScheduledExecutorService executorService) {

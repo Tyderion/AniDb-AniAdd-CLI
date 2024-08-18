@@ -21,9 +21,9 @@ import java.util.Optional;
 public class CliCommand {
 
     @CommandLine.Option(names = {"--tagging-system"}, description = "the path to a file containing the Tagging System definition", required = false, scope = CommandLine.ScopeType.INHERIT)
-    String taggingSystem;
+    private String taggingSystem;
 
-    public Optional<AniConfiguration> getConfiguration(boolean useDefault, String configPath) {
+    public Optional<AniConfiguration> getAniConfiguration(boolean useDefault, String configPath) {
         val loader = new AniConfigurationHandler(taggingSystem);
         return loader.getConfiguration(configPath, useDefault);
     }
