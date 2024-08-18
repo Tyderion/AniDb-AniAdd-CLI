@@ -12,6 +12,8 @@ import org.yaml.snakeyaml.introspector.BeanAccess;
 import org.yaml.snakeyaml.representer.Representer;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
 
 @Slf4j
@@ -38,12 +40,12 @@ public class ConfigFileParser<T> {
         mYaml.setBeanAccess(BeanAccess.FIELD);
     }
 
-    public T loadFromFile(String configFilePath) {
-        if (configFilePath == null || configFilePath.isBlank()) {
+    public T loadFromFile(Path configFilePath) {
+        if (configFilePath == null || configFilePath.toString().isBlank()) {
             return null;
         }
         try {
-            val input = new FileInputStream(configFilePath);
+            val input = new FileInputStream(configFilePath.toFile());
             return mYaml.loadAs(input, clazz);
         } catch (FileNotFoundException e) {
             log.error(STR."File not found at: \{configFilePath}");
@@ -51,10 +53,15 @@ public class ConfigFileParser<T> {
         }
     }
 
-    public void saveToFile(T configuration, String path) throws IOException {
-        File file = new File(path);
-        Writer writer = new BufferedWriter(new FileWriter(file));
-        log.info(STR."Saving config to file: \{file.getAbsolutePath()}");
-        mYaml.dump(configuration, writer);
+    public void saveToFile(String path, T configuration, boolean overwrite) throws IOException {
+        saveToFile(Path.of(path), configuration, overwrite);
+    }
+
+    public void saveToFile(Path path, T configuration, boolean overwrite) throws IOException {
+        if (overwrite || !Files.exists(path)) {
+            Writer writer = new BufferedWriter(new FileWriter(path.toFile()));
+            log.info(STR."Saving config to file: \{path.toAbsolutePath()}");
+            mYaml.dump(configuration, writer);
+        }
     }
 }

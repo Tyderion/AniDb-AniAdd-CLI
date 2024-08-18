@@ -1,5 +1,6 @@
 package aniAdd.startup.commands;
 
+import aniAdd.config.AniConfigurationHandler;
 import aniAdd.startup.validation.validators.nonempty.NonEmpty;
 import cache.AniDBFileRepository;
 import cache.PersistenceConfiguration;
@@ -60,7 +61,9 @@ public class TagsCommand implements Callable<Integer> {
                 log.info(STR."Using data from file [\{fileData.getEd2k()}][\{fileData.getSize()}]\{fileData.getFileName()}");
             }
         }
-        val optionalConfig = parent.getAniConfiguration(true, configPath);
+
+        val handler = new AniConfigurationHandler(null);
+        val optionalConfig = handler.getConfiguration(configPath, false);
         if (optionalConfig.isEmpty() || optionalConfig.get().getTagSystemCode() == null
                 || optionalConfig.get().getTagSystemCode().isBlank()) {
             log.error("To test tags you must provide a non empty tagging system code");

@@ -7,6 +7,7 @@ import lombok.val;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.Optional;
@@ -19,12 +20,12 @@ public final class AniConfigurationHandler extends ConfigFileHandler<AniConfigur
     private final String taggingSystem;
 
     public AniConfigurationHandler(String taggingSystem) {
-        super( AniConfiguration.class);
+        super(AniConfiguration.class);
         this.taggingSystem = taggingSystem;
     }
 
     @Override
-    public Optional<AniConfiguration> getConfiguration(String path, boolean useDefault) {
+    public Optional<AniConfiguration> getConfiguration(Path path, boolean useDefault) {
         val configuration = super.getConfiguration(path, useDefault);
         configuration.ifPresent(this::loadTaggingSystem);
         // Fix typo :(

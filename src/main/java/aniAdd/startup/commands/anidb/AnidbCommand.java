@@ -3,6 +3,7 @@ package aniAdd.startup.commands.anidb;
 import aniAdd.AniAdd;
 import aniAdd.IAniAdd;
 import aniAdd.config.AniConfiguration;
+import aniAdd.config.AniConfigurationHandler;
 import aniAdd.startup.commands.CliCommand;
 import aniAdd.startup.commands.anidb.debug.DebugCommand;
 import aniAdd.startup.validation.validators.min.Min;
@@ -61,11 +62,13 @@ public class AnidbCommand {
     private CliCommand parent;
 
     public Optional<AniConfiguration> getConfiguration() {
-        return parent.getAniConfiguration(false, configPath);
+        val handler = new AniConfigurationHandler(null);
+        return handler.getConfiguration(configPath, false);
     }
 
     public Optional<AniConfiguration> getConfigurationOrDefault() {
-        return parent.getAniConfiguration(true, configPath);
+        val handler = new AniConfigurationHandler(null);
+        return handler.getConfiguration(configPath, true);
     }
 
     public UdpApi getUdpApi(AniConfiguration configuration, ScheduledExecutorService executorService) {

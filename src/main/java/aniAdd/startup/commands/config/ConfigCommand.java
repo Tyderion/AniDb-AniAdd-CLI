@@ -1,12 +1,10 @@
 package aniAdd.startup.commands.config;
 
-import aniAdd.config.AniConfiguration;
 import aniAdd.startup.commands.CliCommand;
-import lombok.Setter;
+import lombok.Getter;
 import picocli.CommandLine;
 
-import java.util.Optional;
-
+@Getter
 @CommandLine.Command(
         subcommands = {SaveConfigurationCommand.class},
         name = "config",
@@ -16,12 +14,8 @@ import java.util.Optional;
 public class ConfigCommand {
 
     @CommandLine.Option(names = {"-c", "--config"}, description = "The path to the config file. Specified parameters will override values from the config file.", required = false, scope = CommandLine.ScopeType.INHERIT)
-    @Setter String configPath;
+    String configPath;
 
-    @CommandLine.ParentCommand
-    private CliCommand parent;
-
-    public Optional<AniConfiguration> getConfiguration(boolean useDefault) {
-        return parent.getAniConfiguration(useDefault, configPath);
-    }
+    @CommandLine.Option(names = {"--tagging-system"}, description = "the path to a file containing the Tagging System definition", required = false, scope = CommandLine.ScopeType.INHERIT)
+    private String taggingSystem;
 }
