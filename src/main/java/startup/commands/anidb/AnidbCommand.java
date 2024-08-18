@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.hibernate.SessionFactory;
+import org.yaml.snakeyaml.error.YAMLException;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
 import processing.EpisodeProcessing;
@@ -23,6 +24,9 @@ import udpapi.UdpApi;
 import udpapi.reply.ReplyStatus;
 import utils.config.ConfigFileHandler;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
@@ -61,6 +65,16 @@ public class AnidbCommand {
     private CliCommand parent;
 
     public CliConfiguration getConfiguration() {
+        try {
+            val content = Files.readString(configPath, StandardCharsets.UTF_8);
+            if (content.contains("addToMylist")) {
+                log.error(STR."Old config detected. Please convert it with 'config convert' command.");
+                return null;
+            }
+        } catch (IOException e) {
+            log.error(STR."Error reading configuration file \{configPath}");
+            return null;
+        }
         val handler = new ConfigFileHandler<>(CliConfiguration.class);
         return handler.getConfiguration(configPath);
     }
@@ -69,7 +83,8 @@ public class AnidbCommand {
         return new UdpApi(executorService, localPort, username, password, configuration);
     }
 
-    public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService, DoOnFileSystem fileSystem, Path inputDirectory, SessionFactory sessionFactory) {
+    public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService
+            executorService, DoOnFileSystem fileSystem, Path inputDirectory, SessionFactory sessionFactory) {
         val config = getConfiguration();
         if (config == null) {
             log.error(STR."No configuration loaded. Check the path to the config file. \{configPath}");
