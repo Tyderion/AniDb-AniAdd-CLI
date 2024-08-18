@@ -1,7 +1,17 @@
+# Configuration
+# Logging
+Override log levels by class namespace, see [logging.override.properties](logging.override.properties)
+Can be injected into the application by setting env `LOG_CONFIG_FILE` to the path of the file.
+
 ## New Configuration Format
 
 If you are using the old configuration (AniConfiguration), you can convert it by using:
+
 `config convert <old-config-path> <new-config-path>`.
+
+If you have a tagging system (examples: [Kodi](tagging-system.kodi.txt), [Other](tagging-system.txt)) you can convert it by using:
+
+`config convert --tagging-system <taggingfile-path> <old-config-path> <new-config-path>`
 
 Example: See [docker.yaml](docker.yaml)
 
