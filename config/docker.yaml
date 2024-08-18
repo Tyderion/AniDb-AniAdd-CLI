@@ -1,10 +1,23 @@
-!!config.CliConfiguration
+run:
+  tasks:
+    - watch
+  args:
+    path: /from/
+
+mylist:
+  add: true
+  overwrite: false
+  storageType: REMOTE
+  watched: false
+
 anidb:
   cache:
     fileName: aniAdd.sqlite
     ttlInDays: 30
-  host: api.anidb.net
-  port: 9000
+
+rename:
+  related: true
+  type: TAGSYSTEM
 move:
   deleteEmptyDirs: true
   duplicates:
@@ -15,21 +28,15 @@ move:
   unknown:
     folder: /unknown/
     type: IGNORE
-mylist:
-  add: true
-  overwrite: false
-  storageType: REMOTE
-  watched: false
+
 paths:
   movieFolders:
-  - path: /movies/
-    tagSystemName: BaseMoviePath
+    - path: /movies/
+      tagSystemName: BaseMoviePath
   tvShowFolders:
-  - path: /shows/
-    tagSystemName: BaseTVShowPath
-rename:
-  related: true
-  type: TAGSYSTEM
+    - path: /shows/
+      tagSystemName: BaseTVShowPath
+
 tagSystem: |-
   # Names anime in the following format "ShowTitle S01EXX EpisodeTitle [Group][Source][Resolution][Codec][CRC]""
   # Kodi should parse those episode numbers correctly
