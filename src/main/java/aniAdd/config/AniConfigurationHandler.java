@@ -1,8 +1,8 @@
 package aniAdd.config;
 
-import utils.config.ConfigFileHandler;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import utils.config.ConfigFileHandler;
 
 import java.io.IOException;
 import java.nio.charset.Charset;

@@ -1,6 +1,5 @@
 package utils.config;
 
-import config.CliConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.yaml.snakeyaml.DumperOptions;
@@ -17,7 +16,6 @@ import org.yaml.snakeyaml.representer.Representer;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Optional;
 
 @Slf4j
 public class ConfigFileParser<T> {

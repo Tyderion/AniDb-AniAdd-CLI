@@ -1,12 +1,12 @@
 package startup.validation;
 
+import lombok.val;
+import picocli.CommandLine;
 import startup.validation.validators.ValidationHelpers;
 import startup.validation.validators.max.Max;
 import startup.validation.validators.min.Min;
 import startup.validation.validators.nonempty.NonEmpty;
 import startup.validation.validators.port.Port;
-import lombok.val;
-import picocli.CommandLine;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;

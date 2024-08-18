@@ -1,5 +1,7 @@
 package startup.validation.validators;
 
+import lombok.val;
+import org.jetbrains.annotations.NotNull;
 import startup.validation.validators.max.Max;
 import startup.validation.validators.max.MaxValidator;
 import startup.validation.validators.min.Min;
@@ -8,8 +10,6 @@ import startup.validation.validators.nonempty.NonEmpty;
 import startup.validation.validators.nonempty.NonEmptyValidator;
 import startup.validation.validators.port.Port;
 import startup.validation.validators.port.PortValidator;
-import lombok.val;
-import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;

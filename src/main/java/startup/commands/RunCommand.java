@@ -1,10 +1,10 @@
 package startup.commands;
 
-import startup.validation.validators.nonempty.NonEmpty;
 import config.CliConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
+import startup.validation.validators.nonempty.NonEmpty;
 import utils.config.ConfigFileHandler;
 
 import java.nio.file.Path;
@@ -17,7 +17,6 @@ import java.util.concurrent.Callable;
         description = "Run with config file")
 public class RunCommand implements Callable<Integer> {
 
-    @NonEmpty
     @CommandLine.Option(names = {"-r", "--run-config"}, description = "The path to the config file.", required = true, scope = CommandLine.ScopeType.INHERIT)
     private Path configPath;
 

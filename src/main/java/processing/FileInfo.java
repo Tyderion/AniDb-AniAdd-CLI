@@ -1,7 +1,7 @@
 package processing;
 
-import aniAdd.config.AniConfiguration;
 import cache.entities.AniDBFileData;
+import config.CliConfiguration;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -29,7 +29,7 @@ public class FileInfo {
     private String renamedFolder;
     @Getter @Setter private Boolean watched;
     @Getter @Setter private boolean hashed;
-    @Getter @Setter private AniConfiguration configuration;
+    @Getter @Setter private CliConfiguration configuration;
 
     public FileInfo(File file, int id) {
         this.file = file;

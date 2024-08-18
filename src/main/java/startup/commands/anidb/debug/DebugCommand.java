@@ -1,9 +1,9 @@
 package startup.commands.anidb.debug;
 
-import aniAdd.config.AniConfiguration;
-import startup.commands.anidb.AnidbCommand;
+import config.CliConfiguration;
 import lombok.Getter;
 import picocli.CommandLine;
+import startup.commands.anidb.AnidbCommand;
 import udpapi.UdpApi;
 
 import java.nio.file.Path;
@@ -20,12 +20,12 @@ public class DebugCommand {
     @CommandLine.ParentCommand
     private AnidbCommand parent;
 
-    public UdpApi getUdpApi(AniConfiguration configuration, ScheduledExecutorService executorService) {
+    public UdpApi getUdpApi(CliConfiguration configuration, ScheduledExecutorService executorService) {
         return parent.getUdpApi(configuration, executorService);
     }
 
-    AniConfiguration getConfiguration() {
-        return parent.getConfigurationOrDefault().get();
+    CliConfiguration getConfiguration() {
+        return parent.getConfiguration();
     }
 
     public Path getDbPath() {

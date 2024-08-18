@@ -1,17 +1,17 @@
 package startup.commands.anidb;
 
 import aniAdd.kodi.KodiNotificationSubscriber;
-import startup.validation.validators.min.Min;
-import startup.validation.validators.nonempty.NonEmpty;
-import startup.validation.validators.port.Port;
 import cache.PersistenceConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
+import startup.validation.validators.min.Min;
+import startup.validation.validators.nonempty.NonEmpty;
+import startup.validation.validators.port.Port;
 
 import java.net.URI;
-
+import java.nio.file.Path;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -30,8 +30,7 @@ public class WatchAndKodiCommand implements Callable<Integer> {
     private String pathFilter;
 
     @CommandLine.Parameters(index = "0", description = "The directory to scan.")
-    @NonEmpty
-    private String directory;
+    private Path directory;
 
     @Min(value = 10, message = "Interval must be at least 10 minutes")
     @CommandLine.Option(names = {"-i", "--interval"}, description = "The interval in minutes to scan the directory", defaultValue = "30")

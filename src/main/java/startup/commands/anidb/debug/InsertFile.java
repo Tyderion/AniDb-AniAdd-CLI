@@ -1,6 +1,5 @@
 package startup.commands.anidb.debug;
 
-import startup.commands.debug.FakeFile;
 import cache.AniDBFileRepository;
 import cache.PersistenceConfiguration;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +7,7 @@ import lombok.val;
 import picocli.CommandLine;
 import processing.FileInfo;
 import processing.tagsystem.TagSystemTags;
+import startup.commands.debug.FakeFile;
 import udpapi.command.FileCommand;
 
 import java.nio.file.Path;

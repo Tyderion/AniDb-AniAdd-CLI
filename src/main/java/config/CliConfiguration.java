@@ -3,7 +3,10 @@ package config;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Data
@@ -40,6 +43,20 @@ public class CliConfiguration {
         public static class Single {
             private String path;
             private String tagSystemName;
+        }
+
+        public Optional<Path> getEpisodePath(Path relativePath) {
+            return tvShowFolders.stream()
+                    .map(folder -> Path.of(folder.getPath()).resolve(relativePath))
+                    .filter(Files::exists)
+                    .findFirst();
+        }
+
+        public Optional<Path> getMoviePath(Path relativePath) {
+            return movieFolders.stream()
+                    .map(folder -> Path.of(folder.getPath()).resolve(relativePath))
+                    .filter(Files::exists)
+                    .findFirst();
         }
     }
 

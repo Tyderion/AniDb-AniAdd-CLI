@@ -1,15 +1,17 @@
 package aniAdd;
 
-import aniAdd.config.AniConfiguration;
+import config.CliConfiguration;
 import org.jetbrains.annotations.NotNull;
+
+import java.nio.file.Path;
 
 public interface IAniAdd {
 
-    void ProcessDirectory(String directory);
+    void ProcessDirectory(Path directory);
 
-    void MarkFileAsWatched(@NotNull String path);
+    void MarkFileAsWatched(@NotNull Path path);
 
-    AniConfiguration getConfiguration();
+    CliConfiguration getConfiguration();
 
     void Stop();
 }

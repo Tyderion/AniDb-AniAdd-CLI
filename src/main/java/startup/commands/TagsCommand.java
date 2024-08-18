@@ -1,9 +1,8 @@
 package startup.commands;
 
-import aniAdd.config.AniConfigurationHandler;
-import startup.validation.validators.nonempty.NonEmpty;
 import cache.AniDBFileRepository;
 import cache.PersistenceConfiguration;
+import config.CliConfiguration;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +10,8 @@ import lombok.val;
 import picocli.CommandLine;
 import processing.tagsystem.TagSystem;
 import processing.tagsystem.TagSystemTags;
+import startup.validation.validators.nonempty.NonEmpty;
+import utils.config.ConfigFileHandler;
 
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -34,7 +35,6 @@ public class TagsCommand implements Callable<Integer> {
     int fileId;
 
     @Getter
-    @NonEmpty
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "aniAdd.sqlite")
     Path dbPath;
 
@@ -60,21 +60,14 @@ public class TagsCommand implements Callable<Integer> {
             }
         }
 
-        val handler = new AniConfigurationHandler(null);
-        val optionalConfig = handler.getConfiguration(configPath, false);
-        if (optionalConfig.isEmpty() || optionalConfig.get().getTagSystemCode() == null
-                || optionalConfig.get().getTagSystemCode().isBlank()) {
+        val handler = new ConfigFileHandler<>(CliConfiguration.class);
+        val configuration = handler.getConfiguration(configPath);
+        if (configuration == null || configuration.getTagSystem() == null
+                || configuration.getTagSystem().isBlank()) {
             log.error("To test tags you must provide a non empty tagging system code");
             return 1;
         }
-        val configuration = optionalConfig.get();
-        if (configuration.getTvShowFolder() != null && configuration.getTvShowFolder().isBlank()) {
-            tags.put(TagSystemTags.BaseTvShowPath, configuration.getTvShowFolder());
-        }
-        if (configuration.getMovieFolder() != null && !configuration.getMovieFolder().isBlank()) {
-            tags.put(TagSystemTags.BaseMoviePath, configuration.getMovieFolder());
-        }
-        val result = TagSystem.Evaluate(configuration.getTagSystemCode(), tags);
+        val result = TagSystem.Evaluate(configuration.getTagSystem(), tags, configuration.getPaths());
         val filename = result.FileName();
         val pathname = result.PathName();
         log.info(STR."Filename: \{filename}, Pathname: \{pathname}");

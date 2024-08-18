@@ -1,16 +1,15 @@
 package startup.commands.anidb;
 
 import aniAdd.kodi.KodiNotificationSubscriber;
-import startup.validation.validators.nonempty.NonEmpty;
-import startup.validation.validators.port.Port;
 import cache.PersistenceConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
+import startup.validation.validators.nonempty.NonEmpty;
+import startup.validation.validators.port.Port;
 
 import java.net.URI;
-
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;

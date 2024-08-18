@@ -2,14 +2,8 @@ package startup.commands.anidb;
 
 import aniAdd.AniAdd;
 import aniAdd.IAniAdd;
-import aniAdd.config.AniConfiguration;
-import aniAdd.config.AniConfigurationHandler;
-import startup.commands.CliCommand;
-import startup.commands.anidb.debug.DebugCommand;
-import startup.validation.validators.min.Min;
-import startup.validation.validators.nonempty.NonEmpty;
-import startup.validation.validators.port.Port;
 import cache.AniDBFileRepository;
+import config.CliConfiguration;
 import fileprocessor.DeleteEmptyChildDirectoriesRecursively;
 import fileprocessor.FileProcessor;
 import lombok.Getter;
@@ -18,13 +12,18 @@ import lombok.val;
 import org.hibernate.SessionFactory;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
-import processing.FileHandler;
 import processing.EpisodeProcessing;
+import processing.FileHandler;
+import startup.commands.CliCommand;
+import startup.commands.anidb.debug.DebugCommand;
+import startup.validation.validators.min.Min;
+import startup.validation.validators.nonempty.NonEmpty;
+import startup.validation.validators.port.Port;
 import udpapi.UdpApi;
 import udpapi.reply.ReplyStatus;
+import utils.config.ConfigFileHandler;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -55,34 +54,27 @@ public class AnidbCommand {
     Path configPath;
 
     @Getter
-    @NonEmpty
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "aniAdd.sqlite")
     Path dbPath;
 
     @CommandLine.ParentCommand
     private CliCommand parent;
 
-    public Optional<AniConfiguration> getConfiguration() {
-        val handler = new AniConfigurationHandler(null);
-        return handler.getConfiguration(configPath, false);
+    public CliConfiguration getConfiguration() {
+        val handler = new ConfigFileHandler<>(CliConfiguration.class);
+        return handler.getConfiguration(configPath);
     }
 
-    public Optional<AniConfiguration> getConfigurationOrDefault() {
-        val handler = new AniConfigurationHandler(null);
-        return handler.getConfiguration(configPath, true);
-    }
-
-    public UdpApi getUdpApi(AniConfiguration configuration, ScheduledExecutorService executorService) {
+    public UdpApi getUdpApi(CliConfiguration configuration, ScheduledExecutorService executorService) {
         return new UdpApi(executorService, localPort, username, password, configuration);
     }
 
-    public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService, DoOnFileSystem fileSystem, String inputDirectory, SessionFactory sessionFactory) {
-        val configuration = getConfiguration();
-        if (configuration.isEmpty()) {
+    public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService executorService, DoOnFileSystem fileSystem, Path inputDirectory, SessionFactory sessionFactory) {
+        val config = getConfiguration();
+        if (config == null) {
             log.error(STR."No configuration loaded. Check the path to the config file. \{configPath}");
             return Optional.empty();
         }
-        val config = configuration.get();
 
         val udpApi = getUdpApi(config, executorService);
         val fileHandler = new FileHandler();
@@ -90,15 +82,15 @@ public class AnidbCommand {
         val processing = new EpisodeProcessing(config, udpApi, fileSystem, fileHandler, fileRepository);
         val fileProcessor = new FileProcessor(processing, config, executorService);
 
-        if (config.isRecursivelyDeleteEmptyFolders() && inputDirectory != null) {
+        if (config.getMove().isDeleteEmptyDirs() && inputDirectory != null) {
             processing.addListener(event -> {
                 if (event == EpisodeProcessing.ProcessingEvent.Done) {
-                    fileSystem.run(new DeleteEmptyChildDirectoriesRecursively(Paths.get(inputDirectory)));
+                    fileSystem.run(new DeleteEmptyChildDirectoriesRecursively(inputDirectory));
                 }
             });
         }
 
-        val aniAdd = new AniAdd(configuration.get(), udpApi, terminateOnCompletion, fileProcessor, processing, _ -> {
+        val aniAdd = new AniAdd(config, udpApi, terminateOnCompletion, fileProcessor, processing, _ -> {
             log.info("Shutdown complete");
             executorService.shutdownNow();
         });

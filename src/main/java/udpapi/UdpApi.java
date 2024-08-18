@@ -1,12 +1,14 @@
 package udpapi;
 
-import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
+import config.CliConfiguration;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import udpapi.command.*;
+import udpapi.command.Command;
+import udpapi.command.LoginCommand;
+import udpapi.command.LogoutCommand;
 import udpapi.query.Query;
 import udpapi.receive.Receive;
 import udpapi.reply.Reply;
@@ -50,7 +52,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     private ICallBack<Void> onShutdownFinished;
     private Future<?> requeueFuture;
 
-    public UdpApi(ScheduledExecutorService executorService, int localPort, String username, String password, AniConfiguration configuration) {
+    public UdpApi(ScheduledExecutorService executorService, int localPort, String username, String password, CliConfiguration configuration) {
         this.executorService = executorService;
         this.localPort = localPort;
         this.username = username;
@@ -74,7 +76,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         }
     }
 
-    private void Initialize(AniConfiguration configuration) {
+    private void Initialize(CliConfiguration configuration) {
         registerCallback(LoginCommand.class, query -> {
             switch (query.getReply().getReplyStatus()) {
                 case LOGIN_ACCEPTED, LOGIN_ACCEPTED_NEW_VERSION -> {
@@ -100,8 +102,8 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
         try {
             socket = new DatagramSocket(localPort);
-            aniDbIp = InetAddress.getByName(configuration.getAnidbHost());
-            aniDbPort = configuration.getAnidbPort();
+            aniDbIp = InetAddress.getByName(configuration.getAnidb().getHost());
+            aniDbPort = configuration.getAnidb().getPort();
         } catch (SocketException e) {
             log.error(STR."Failed to create socket \{e.getMessage()}");
             return;

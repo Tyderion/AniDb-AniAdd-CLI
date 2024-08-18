@@ -1,11 +1,11 @@
 package startup.commands;
 
-import startup.commands.anidb.AnidbCommand;
-import startup.commands.debug.DebugCommand;
-import startup.commands.config.ConfigCommand;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
+import startup.commands.anidb.AnidbCommand;
+import startup.commands.config.ConfigCommand;
+import startup.commands.debug.DebugCommand;
 
 @Getter
 @Slf4j

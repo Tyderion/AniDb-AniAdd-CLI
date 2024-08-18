@@ -1,11 +1,12 @@
 package startup.commands.anidb;
 
-import startup.validation.validators.nonempty.NonEmpty;
 import cache.PersistenceConfiguration;
 import lombok.val;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
+import startup.validation.validators.nonempty.NonEmpty;
 
+import java.nio.file.Path;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -14,7 +15,7 @@ import java.util.concurrent.TimeUnit;
         description = "Scans the directory for files and adds them to AniDb")
 public class ScanCommand implements Callable<Integer> {
     @CommandLine.Parameters(index = "0", description = "The directory to scan.")
-    @NonEmpty private String directory;
+    private Path directory;
 
     @CommandLine.ParentCommand
     private AnidbCommand parent;
