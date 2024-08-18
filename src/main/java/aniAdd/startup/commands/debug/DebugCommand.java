@@ -3,6 +3,8 @@ package aniAdd.startup.commands.debug;
 import lombok.Getter;
 import picocli.CommandLine;
 
+import java.nio.file.Path;
+
 @Getter
 @CommandLine.Command(name = "debug",
         mixinStandardHelpOptions = true,
@@ -11,5 +13,5 @@ import picocli.CommandLine;
         subcommands = {InsertResponse.class})
 public class DebugCommand {
     @CommandLine.Option(names = "--db", description = "The path to the sqlite db", required = false, defaultValue = "debug.sqlite", scope = CommandLine.ScopeType.INHERIT)
-    String dbPath;
+    Path dbPath;
 }

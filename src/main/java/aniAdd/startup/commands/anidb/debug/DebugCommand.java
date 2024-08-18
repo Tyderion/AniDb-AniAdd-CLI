@@ -7,6 +7,7 @@ import lombok.Getter;
 import picocli.CommandLine;
 import udpapi.UdpApi;
 
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -29,7 +30,7 @@ public class DebugCommand {
         return parent.getConfigurationOrDefault().get();
     }
 
-    public String getDbPath() {
+    public Path getDbPath() {
         return parent.getDbPath();
     }
 }

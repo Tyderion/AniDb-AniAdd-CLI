@@ -23,6 +23,7 @@ import processing.EpisodeProcessing;
 import udpapi.UdpApi;
 import udpapi.reply.ReplyStatus;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
@@ -51,12 +52,12 @@ public class AnidbCommand {
     boolean exitOnBan;
 
     @CommandLine.Option(names = {"-c", "--config"}, description = "The path to the config file. Specified parameters will override values from the config file.", required = true, scope = CommandLine.ScopeType.INHERIT)
-    String configPath;
+    Path configPath;
 
     @Getter
     @NonEmpty
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "aniAdd.sqlite")
-    String dbPath;
+    Path dbPath;
 
     @CommandLine.ParentCommand
     private CliCommand parent;

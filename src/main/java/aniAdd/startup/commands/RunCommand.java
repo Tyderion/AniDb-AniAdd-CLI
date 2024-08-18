@@ -7,6 +7,7 @@ import lombok.val;
 import picocli.CommandLine;
 import utils.config.ConfigFileHandler;
 
+import java.nio.file.Path;
 import java.util.concurrent.Callable;
 
 @Slf4j
@@ -18,7 +19,7 @@ public class RunCommand implements Callable<Integer> {
 
     @NonEmpty
     @CommandLine.Option(names = {"-r", "--run-config"}, description = "The path to the config file.", required = true, scope = CommandLine.ScopeType.INHERIT)
-    private String configPath;
+    private Path configPath;
 
     @CommandLine.Option(names = { "--default" }, description = "Use default configuration", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "false")
     private boolean useDefault;

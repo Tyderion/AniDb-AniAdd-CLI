@@ -12,6 +12,7 @@ import picocli.CommandLine;
 import processing.tagsystem.TagSystem;
 import processing.tagsystem.TagSystemTags;
 
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -27,7 +28,7 @@ public class TagsCommand implements Callable<Integer> {
     private boolean movie;
 
     @CommandLine.Option(names = {"-c", "--config"}, description = "The path to the config file. Specified parameters will override values from the config file.", required = false, scope = CommandLine.ScopeType.INHERIT)
-    @Setter String configPath;
+    @Setter Path configPath;
 
     @CommandLine.Option(names = {"--fid"}, description = "The file id to use for testing. Make sure it is already cached.", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "-1")
     int fileId;
@@ -35,7 +36,7 @@ public class TagsCommand implements Callable<Integer> {
     @Getter
     @NonEmpty
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "aniAdd.sqlite")
-    String dbPath;
+    Path dbPath;
 
     @CommandLine.ParentCommand
     private CliCommand parent;

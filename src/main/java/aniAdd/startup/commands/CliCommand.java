@@ -1,16 +1,11 @@
 package aniAdd.startup.commands;
 
-import aniAdd.config.AniConfiguration;
-import aniAdd.config.AniConfigurationHandler;
 import aniAdd.startup.commands.anidb.AnidbCommand;
 import aniAdd.startup.commands.debug.DebugCommand;
 import aniAdd.startup.commands.config.ConfigCommand;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import picocli.CommandLine;
-
-import java.util.Optional;
 
 @Getter
 @Slf4j

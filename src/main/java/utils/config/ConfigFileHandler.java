@@ -22,14 +22,6 @@ public class ConfigFileHandler<T> {
         return getConfigParser().loadFromFile(path);
     }
 
-    public T getConfiguration(String path) {
-        return getConfiguration(Path.of(path));
-    }
-
-    public Optional<T> getConfiguration(String path, boolean useDefault) {
-        return getConfiguration(Path.of(path), useDefault);
-    }
-
     public Optional<T> getConfiguration(Path path, boolean useDefault) {
         val config = this.getConfiguration(path);
         if (useDefault && config == null) {
