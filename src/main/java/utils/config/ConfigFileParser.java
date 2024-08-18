@@ -9,6 +9,9 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.inspector.TagInspector;
 import org.yaml.snakeyaml.introspector.BeanAccess;
+import org.yaml.snakeyaml.introspector.Property;
+import org.yaml.snakeyaml.nodes.NodeTuple;
+import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 
 import java.io.*;
@@ -33,7 +36,17 @@ public class ConfigFileParser<T> {
         val options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         options.setPrettyFlow(true);
-        Representer representer = new Representer(options);
+        Representer representer = new Representer(options) {
+            @Override
+            protected NodeTuple representJavaBeanProperty(Object javaBean, Property property, Object propertyValue, Tag customTag) {
+                // if value of property is null, ignore it.
+                if (propertyValue == null) {
+                    return null;
+                } else {
+                    return super.representJavaBeanProperty(javaBean, property, propertyValue, customTag);
+                }
+            }
+        };
         representer.getPropertyUtils().setSkipMissingProperties(true);
 
         mYaml = new Yaml(new Constructor(clazz, loaderoptions), representer, options);

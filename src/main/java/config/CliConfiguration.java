@@ -20,9 +20,8 @@ public class CliConfiguration {
     private AniDbConfig anidb = AniDbConfig.builder().build();
     @Builder.Default
     private MoveConfig move = MoveConfig.builder().build();
-    private PathConfig paths = PathConfig.builder().build();
+    private PathConfig paths;
     private String tagSystem;
-
 
     @Data
     @Builder(toBuilder = true)

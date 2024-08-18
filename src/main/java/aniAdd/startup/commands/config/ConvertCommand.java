@@ -52,21 +52,35 @@ public class ConvertCommand implements Callable<Integer> {
                         .type(getRenameType(config))
                         .build())
                 .move(getMoveConfig(config))
-                .paths(CliConfiguration.PathConfig.builder()
-                        .movieFolder(CliConfiguration.PathConfig.Single.builder()
-                                .tagSystemName("BaseMoviePath")
-                                .path(config.getMovieFolder())
-                                .build())
-                        .tvShowFolder(CliConfiguration.PathConfig.Single.builder()
-                                .tagSystemName("BaseTVShowPath")
-                                .path(config.getTvShowFolder())
-                                .build())
-                        .build())
+                .paths(getPathConfig(config))
                 .build();
 
         val cliHandler = new ConfigFileHandler<>(CliConfiguration.class);
         cliHandler.saveTo(path, cliConfig);
         return 0;
+    }
+
+    private CliConfiguration.PathConfig getPathConfig(AniConfiguration config) {
+        val builder = CliConfiguration.PathConfig.builder();
+        var hasPaths = false;
+        if (config.getMovieFolder() != null && !config.getMovieFolder().isBlank()) {
+            builder.movieFolder(CliConfiguration.PathConfig.Single.builder()
+                    .tagSystemName("BaseMoviePath")
+                    .path(config.getMovieFolder())
+                    .build());
+            hasPaths = true;
+        }
+        if (config.getTvShowFolder() != null && !config.getTvShowFolder().isBlank()) {
+            builder.tvShowFolder(CliConfiguration.PathConfig.Single.builder()
+                    .tagSystemName("BaseTVShowPath")
+                    .path(config.getTvShowFolder())
+                    .build());
+            hasPaths = true;
+        }
+        if (hasPaths) {
+            return builder.build();
+        }
+        return null;
     }
 
     private CliConfiguration.MoveConfig getMoveConfig(AniConfiguration config) throws IllegalArgumentException {

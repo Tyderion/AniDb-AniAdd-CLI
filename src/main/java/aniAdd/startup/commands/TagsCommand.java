@@ -38,9 +38,6 @@ public class TagsCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "aniAdd.sqlite")
     Path dbPath;
 
-    @CommandLine.ParentCommand
-    private CliCommand parent;
-
     @Override
     public Integer call() throws Exception {
         if (fileId != -1 && dbPath == null) {
