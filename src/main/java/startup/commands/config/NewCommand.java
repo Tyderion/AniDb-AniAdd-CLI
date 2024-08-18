@@ -25,7 +25,9 @@ public class NewCommand implements Callable<Integer> {
     public Integer call() throws Exception {
         if (overwrite || !Files.exists(path)) {
             val handler = new ConfigFileHandler<>(CliConfiguration.class);
-            handler.saveTo(path, CliConfiguration.builder().build());
+            val config = CliConfiguration.builder().build();
+            config.removeDefaults();
+            handler.saveTo(path, config);
             log.info(STR."Configuration saved to \{path}");
             return 0;
         }

@@ -16,6 +16,7 @@ import static config.RunConfig.Task.*;
 public class RunConfig {
     @Singular
     private Set<Task> tasks;
+    @Builder.Default
     private Map<String, String> args = new HashMap<>();
 
     public enum Task {

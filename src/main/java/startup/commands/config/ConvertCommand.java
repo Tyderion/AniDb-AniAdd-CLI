@@ -56,6 +56,7 @@ public class ConvertCommand implements Callable<Integer> {
                 .build();
 
         val cliHandler = new ConfigFileHandler<>(CliConfiguration.class);
+        cliConfig.removeDefaults();
         cliHandler.saveTo(path, cliConfig);
         return 0;
     }

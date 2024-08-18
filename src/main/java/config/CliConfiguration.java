@@ -7,7 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 @Slf4j
 @Data
@@ -27,6 +26,11 @@ public class CliConfiguration {
     private PathConfig paths;
     private RunConfig run;
     private String tagSystem;
+
+    public void removeDefaults() {
+        move.removeDefaults();
+        anidb.removeDefaults();
+    }
 
 
     @Data
@@ -79,6 +83,20 @@ public class CliConfiguration {
         @Builder.Default
         private HandlingConfig unknown = HandlingConfig.builder().build();
 
+        public void removeDefaults() {
+            this.duplicates.removeDefaults();
+            if (this.duplicates.isDefault()) {
+                this.duplicates = null;
+            }
+            this.unknown.removeDefaults();
+            if (this.unknown.isDefault()) {
+                this.unknown = null;
+            }
+            if (this.folder != null && this.folder.isBlank()) {
+                this.folder = null;
+            }
+        }
+
         public enum Type {
             TAGSYSTEM,
             FOLDER,
@@ -96,6 +114,19 @@ public class CliConfiguration {
 
             public enum Type {
                 MOVE, DELETE, IGNORE
+            }
+
+            public boolean isDefault() {
+                return type == null && folder == null;
+            }
+
+            public void removeDefaults() {
+                if (type == Type.IGNORE) {
+                    type = null;
+                }
+                if (folder != null && folder.isBlank()) {
+                    folder = null;
+                }
             }
         }
 
@@ -152,7 +183,7 @@ public class CliConfiguration {
         @Builder.Default
         private String host = "api.anidb.net";
         @Builder.Default
-        private int port = 9000;
+        private Integer port = 9000;
 
         @Builder.Default
         private CacheConfig cache = CacheConfig.builder().build();
@@ -166,6 +197,15 @@ public class CliConfiguration {
             private int ttlInDays = 30;
             @Builder.Default
             private String fileName = "aniAdd.sqlite";
+        }
+
+        public void removeDefaults() {
+            if (host.equals("api.anidb.net")) {
+                host = null;
+            }
+            if (port == 9000) {
+                port = null;
+            }
         }
     }
 }
