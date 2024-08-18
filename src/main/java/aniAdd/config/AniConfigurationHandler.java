@@ -1,6 +1,6 @@
 package aniAdd.config;
 
-import lombok.RequiredArgsConstructor;
+import utils.config.ConfigFileHandler;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -14,15 +14,18 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Slf4j
-@RequiredArgsConstructor
-public final class ConfigFileLoader {
+public final class AniConfigurationHandler extends ConfigFileHandler<AniConfiguration> {
 
-    private final String configPath;
     private final String taggingSystem;
 
+    public AniConfigurationHandler(String taggingSystem) {
+        super( AniConfiguration.class);
+        this.taggingSystem = taggingSystem;
+    }
 
-    public Optional<AniConfiguration> getConfiguration(boolean useDefault) {
-        val configuration = loadConfiguration(useDefault);
+    @Override
+    public Optional<AniConfiguration> getConfiguration(String path, boolean useDefault) {
+        val configuration = super.getConfiguration(path, useDefault);
         configuration.ifPresent(this::loadTaggingSystem);
         // Fix typo :(
         configuration.ifPresent(AniConfiguration::fixStorageType);
@@ -41,19 +44,6 @@ public final class ConfigFileLoader {
                 Logger.getGlobal().log(Level.WARNING, STR."Could not read tagging system file: \{taggingSystem}");
             }
         }
-    }
-
-    private Optional<AniConfiguration> loadConfiguration(boolean useDefault) {
-        if (configPath != null) {
-            ConfigFileParser<AniConfiguration> configParser =
-                    new ConfigFileParser<>(configPath, AniConfiguration.class);
-            return configParser.loadFromFile(useDefault);
-        }
-        if (useDefault) {
-            log.warn("Using default configuration");
-            return Optional.of(new AniConfiguration());
-        }
-        return Optional.empty();
     }
 
     private static String readFile(String path, Charset encoding)

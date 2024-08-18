@@ -1,11 +1,11 @@
 package aniAdd.startup.commands.config;
 
 import aniAdd.config.AniConfiguration;
-import aniAdd.config.ConfigFileParser;
 import aniAdd.startup.validation.validators.nonempty.NonEmpty;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
+import utils.config.ConfigFileParser;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;
@@ -19,7 +19,7 @@ public class SaveConfigurationCommand implements Callable<Integer> {
     @NonEmpty
     private String path;
 
-    @CommandLine.Option(names = { "--default" }, description = "Load default empty configuration if config path not found or set.", defaultValue = "false")
+    @CommandLine.Option(names = {"--default"}, description = "Load default empty configuration if config path not found or set.", defaultValue = "false")
     private boolean useDefault;
 
     @CommandLine.ParentCommand
@@ -31,8 +31,8 @@ public class SaveConfigurationCommand implements Callable<Integer> {
         config.ifPresentOrElse(conf -> {
             try {
                 ConfigFileParser<AniConfiguration> configParser =
-                        new ConfigFileParser<>(path, AniConfiguration.class);
-                configParser.saveToFile(conf);
+                        new ConfigFileParser<>(AniConfiguration.class);
+                configParser.saveToFile(conf, path);
                 log.info(STR."Finished writing config to file: \{path}");
             } catch (IOException e) {
                 log.warn(STR."Could not write config to file: \{path}");

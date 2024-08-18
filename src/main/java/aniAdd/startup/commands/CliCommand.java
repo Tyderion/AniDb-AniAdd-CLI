@@ -1,7 +1,7 @@
 package aniAdd.startup.commands;
 
 import aniAdd.config.AniConfiguration;
-import aniAdd.config.ConfigFileLoader;
+import aniAdd.config.AniConfigurationHandler;
 import aniAdd.startup.commands.anidb.AnidbCommand;
 import aniAdd.startup.commands.debug.DebugCommand;
 import aniAdd.startup.commands.config.ConfigCommand;
@@ -24,7 +24,7 @@ public class CliCommand {
     String taggingSystem;
 
     public Optional<AniConfiguration> getConfiguration(boolean useDefault, String configPath) {
-        val loader = new ConfigFileLoader(configPath, taggingSystem);
-        return loader.getConfiguration(useDefault);
+        val loader = new AniConfigurationHandler(taggingSystem);
+        return loader.getConfiguration(configPath, useDefault);
     }
 }
