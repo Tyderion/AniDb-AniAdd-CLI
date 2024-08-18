@@ -7,5 +7,6 @@ build/
 *.bak
 *.conf
 *.properties
+*.yaml
 !config/*
 test.*
