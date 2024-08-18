@@ -14,6 +14,6 @@ import startup.commands.debug.DebugCommand;
         version = "1.0",
         scope = CommandLine.ScopeType.INHERIT,
         description = "The main command.",
-        subcommands = {AnidbCommand.class, ConfigCommand.class, FileMoveCommand.class, TagsCommand.class, DebugCommand.class})
+        subcommands = {AnidbCommand.class, ConfigCommand.class, FileMoveCommand.class, TagsCommand.class, DebugCommand.class, RunCommand.class})
 public class CliCommand {
 }

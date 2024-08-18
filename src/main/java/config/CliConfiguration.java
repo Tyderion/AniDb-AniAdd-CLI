@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Data
@@ -24,7 +25,9 @@ public class CliConfiguration {
     @Builder.Default
     private MoveConfig move = MoveConfig.builder().build();
     private PathConfig paths;
+    private RunConfig run;
     private String tagSystem;
+
 
     @Data
     @Builder(toBuilder = true)
