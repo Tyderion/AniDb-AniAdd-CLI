@@ -52,6 +52,16 @@ public class ConvertCommand implements Callable<Integer> {
                         .type(getRenameType(config))
                         .build())
                 .move(getMoveConfig(config))
+                .paths(CliConfiguration.PathConfig.builder()
+                        .movieFolder(CliConfiguration.PathConfig.Single.builder()
+                                .tagSystemName("BaseMoviePath")
+                                .path(config.getMovieFolder())
+                                .build())
+                        .tvShowFolder(CliConfiguration.PathConfig.Single.builder()
+                                .tagSystemName("BaseTVShowPath")
+                                .path(config.getTvShowFolder())
+                                .build())
+                        .build())
                 .build();
 
         val cliHandler = new ConfigFileHandler<>(CliConfiguration.class);

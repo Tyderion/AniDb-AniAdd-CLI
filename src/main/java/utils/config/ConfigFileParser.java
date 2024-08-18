@@ -27,7 +27,7 @@ public class ConfigFileParser<T> {
         var loaderoptions = new LoaderOptions();
         loaderoptions.setEnumCaseSensitive(false);
         TagInspector taginspector =
-                tag -> tag.getClassName().equals(CliConfiguration.class.getName());
+                tag -> tag.getClassName().equals(clazz.getName());
         loaderoptions.setTagInspector(taginspector);
 
         val options = new DumperOptions();

@@ -3,6 +3,8 @@ package config;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+
 @Slf4j
 @Data
 @Builder(toBuilder = true)
@@ -18,7 +20,30 @@ public class CliConfiguration {
     private AniDbConfig anidb = AniDbConfig.builder().build();
     @Builder.Default
     private MoveConfig move = MoveConfig.builder().build();
+    private PathConfig paths = PathConfig.builder().build();
     private String tagSystem;
+
+
+    @Data
+    @Builder(toBuilder = true)
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PathConfig {
+        @Singular
+        private List<Single> tvShowFolders;
+        @Singular
+        private List<Single> movieFolders;
+
+        @Data
+        @Builder(toBuilder = true)
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class Single {
+            private String path;
+            private String tagSystemName;
+        }
+    }
+
 
     @Data
     @Builder(toBuilder = true)
