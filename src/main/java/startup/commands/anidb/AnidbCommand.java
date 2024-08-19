@@ -16,7 +16,7 @@ import processing.FileHandler;
 import startup.commands.CliCommand;
 import startup.commands.anidb.debug.DebugCommand;
 import startup.validation.validators.min.Min;
-import startup.validation.validators.nonempty.NonEmpty;
+import startup.validation.validators.nonblank.NonBlank;
 import startup.validation.validators.port.Port;
 import udpapi.UdpApi;
 import udpapi.reply.ReplyStatus;
@@ -38,10 +38,10 @@ import java.util.concurrent.ScheduledExecutorService;
         description = "AniDb handling")
 public class AnidbCommand {
     @CommandLine.Option(names = {"-u", "--username"}, description = "The AniDB username", required = true, scope = CommandLine.ScopeType.INHERIT)
-    @NonEmpty String username;
+    @NonBlank String username;
 
     @CommandLine.Option(names = {"-p", "--password"}, description = "The AniDB password", required = true, scope = CommandLine.ScopeType.INHERIT)
-    @NonEmpty String password;
+    @NonBlank String password;
 
     @CommandLine.Option(names = {"--localport"}, description = "The local port to use to connect to anidb", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "3333")
     @Port int localPort;
@@ -52,12 +52,12 @@ public class AnidbCommand {
     @CommandLine.Option(names = {"--exit-on-ban"}, description = "Exit the application if the user is banned", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "false")
     boolean exitOnBan;
 
-    @NonEmpty
+    @NonBlank
     @CommandLine.Option(names = {"-c", "--config"}, description = "The path to the config file. Specified parameters will override values from the config file.", required = true, scope = CommandLine.ScopeType.INHERIT)
     Path configPath;
 
     @Getter
-    @NonEmpty
+    @NonBlank
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "aniAdd.sqlite")
     Path dbPath;
 

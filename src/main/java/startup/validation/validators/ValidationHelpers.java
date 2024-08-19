@@ -6,9 +6,9 @@ import startup.validation.validators.max.Max;
 import startup.validation.validators.max.MaxValidator;
 import startup.validation.validators.min.Min;
 import startup.validation.validators.min.MinValidator;
-import startup.validation.validators.nonempty.NonEmpty;
-import startup.validation.validators.nonempty.NonEmptyPathValidator;
-import startup.validation.validators.nonempty.NonEmptyStringValidator;
+import startup.validation.validators.nonblank.NonBlank;
+import startup.validation.validators.nonblank.NonBlankPathValidator;
+import startup.validation.validators.nonblank.NonBlankStringValidator;
 import startup.validation.validators.port.Port;
 import startup.validation.validators.port.PortValidator;
 
@@ -27,7 +27,7 @@ public final class ValidationHelpers {
 
     @SuppressWarnings("rawtypes")
     private static final Map<Class<? extends Annotation>, Map<Class, IValidator>> validators = Map.of(
-            NonEmpty.class, Map.of(String.class, new NonEmptyStringValidator(), Path.class, new NonEmptyPathValidator()),
+            NonBlank.class, Map.of(String.class, new NonBlankStringValidator(), Path.class, new NonBlankPathValidator()),
             Max.class, Map.of(Number.class, new MaxValidator()),
             Min.class, Map.of(Number.class,new MinValidator()),
             Port.class, Map.of(Number.class,new PortValidator())

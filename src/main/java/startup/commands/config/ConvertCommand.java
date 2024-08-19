@@ -6,7 +6,7 @@ import config.CliConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
-import startup.validation.validators.nonempty.NonEmpty;
+import startup.validation.validators.nonblank.NonBlank;
 import utils.config.ConfigFileHandler;
 
 import java.nio.file.Path;
@@ -22,11 +22,11 @@ public class ConvertCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"--tagging-system"}, description = "the path to a file containing the Tagging System definition", required = false, scope = CommandLine.ScopeType.INHERIT)
     private String taggingSystem;
 
-    @NonEmpty
+    @NonBlank
     @CommandLine.Parameters(index = "0", description = "The path to the legacy config file (AniConfiguration)")
     Path configPath;
 
-    @NonEmpty
+    @NonBlank
     @CommandLine.Parameters(index = "1", description = "The path to the file to save the configuration to.")
     private Path path;
 

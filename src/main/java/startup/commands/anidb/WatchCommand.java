@@ -6,7 +6,7 @@ import lombok.val;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
 import startup.validation.validators.min.Min;
-import startup.validation.validators.nonempty.NonEmpty;
+import startup.validation.validators.nonblank.NonBlank;
 
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 @CommandLine.Command(name = "watch", mixinStandardHelpOptions = true, version = "1.0",
         description = "Periodically scans the directory for files and adds them to AniDb")
 public class WatchCommand implements Callable<Integer> {
-    @NonEmpty
+    @NonBlank
     @CommandLine.Parameters(index = "0", description = "The directory to scan.")
     private Path directory;
 

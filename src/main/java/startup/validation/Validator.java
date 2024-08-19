@@ -5,7 +5,7 @@ import picocli.CommandLine;
 import startup.validation.validators.ValidationHelpers;
 import startup.validation.validators.max.Max;
 import startup.validation.validators.min.Min;
-import startup.validation.validators.nonempty.NonEmpty;
+import startup.validation.validators.nonblank.NonBlank;
 import startup.validation.validators.port.Port;
 
 import java.lang.reflect.Field;
@@ -19,7 +19,7 @@ public final class Validator {
         for (Field field : clazz.getDeclaredFields()) {
             ValidationHelpers.validate(field, command, Min.class).ifPresent(messages::add);
             ValidationHelpers.validate(field, command, Max.class).ifPresent(messages::add);
-            ValidationHelpers.validate(field, command, NonEmpty.class).ifPresent(messages::add);
+            ValidationHelpers.validate(field, command, NonBlank.class).ifPresent(messages::add);
             ValidationHelpers.validate(field, command, Port.class).ifPresent(messages::add);
         }
         if (!messages.isEmpty()) {

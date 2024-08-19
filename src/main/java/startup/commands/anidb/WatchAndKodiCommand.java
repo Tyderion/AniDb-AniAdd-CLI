@@ -7,7 +7,7 @@ import lombok.val;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
 import startup.validation.validators.min.Min;
-import startup.validation.validators.nonempty.NonEmpty;
+import startup.validation.validators.nonblank.NonBlank;
 import startup.validation.validators.port.Port;
 
 import java.net.URI;
@@ -24,12 +24,12 @@ public class WatchAndKodiCommand implements Callable<Integer> {
     @Port private int port = 9090;
 
     @CommandLine.Option(names = {"--kodi"}, description = "The ip/hostname of the kodi server.", required = true)
-    @NonEmpty private String kodiUrl = "localhost";
+    @NonBlank private String kodiUrl = "localhost";
 
     @CommandLine.Option(names = {"--path-filter"}, description = "The path filter to use to detect anime files. Default is 'anime'. Case insensitive.", defaultValue = "anime")
     private String pathFilter;
 
-    @NonEmpty
+    @NonBlank
     @CommandLine.Parameters(index = "0", description = "The directory to scan.")
     private Path directory;
 
