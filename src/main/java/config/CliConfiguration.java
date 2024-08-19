@@ -121,9 +121,6 @@ public class CliConfiguration {
             }
 
             public void removeDefaults() {
-                if (mode == Mode.IGNORE) {
-                    mode = null;
-                }
                 if (folder != null && folder.isBlank()) {
                     folder = null;
                 }
