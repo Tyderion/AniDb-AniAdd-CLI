@@ -146,7 +146,7 @@ public class KodiNotificationSubscriber extends WebSocketClient {
 
     @NotNull
     private Optional<Path> getPath(String file, VideoLibraryUpdateParams.Type type) {
-        val config = aniAdd.getConfiguration().getPaths();
+        val config = aniAdd.getConfiguration().paths();
         var pathParts = file.split("/");
         if (pathParts.length == 1) {
             // nothing was split, so we assume it's a windows path

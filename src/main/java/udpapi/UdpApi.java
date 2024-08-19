@@ -102,8 +102,8 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
         try {
             socket = new DatagramSocket(localPort);
-            aniDbIp = InetAddress.getByName(configuration.getAnidb().getHost());
-            aniDbPort = configuration.getAnidb().getPort();
+            aniDbIp = InetAddress.getByName(configuration.anidb().host());
+            aniDbPort = configuration.anidb().port();
         } catch (SocketException e) {
             log.error(STR."Failed to create socket \{e.getMessage()}");
             return;

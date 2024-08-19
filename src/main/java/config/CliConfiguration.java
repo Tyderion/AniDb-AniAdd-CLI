@@ -1,6 +1,7 @@
 package config;
 
 import lombok.*;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.file.Files;
@@ -9,8 +10,9 @@ import java.util.List;
 import java.util.Optional;
 
 @Slf4j
-@Data
-@Builder(toBuilder = true)
+@Accessors(fluent = true)
+@Builder
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 public class CliConfiguration {
@@ -33,20 +35,22 @@ public class CliConfiguration {
     }
 
 
-    @Data
-    @Builder(toBuilder = true)
+    @Getter
+    @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @Accessors(fluent = true)
     public static class PathConfig {
         @Singular
         private List<Single> tvShowFolders;
         @Singular
         private List<Single> movieFolders;
 
-        @Data
-        @Builder(toBuilder = true)
+        @Getter
+        @Builder
         @NoArgsConstructor
         @AllArgsConstructor
+        @Accessors(fluent = true)
         public static class Single {
             private String path;
             private String tagSystemName;
@@ -54,24 +58,24 @@ public class CliConfiguration {
 
         public Optional<Path> getEpisodePath(Path relativePath) {
             return tvShowFolders.stream()
-                    .map(folder -> Path.of(folder.getPath()).resolve(relativePath))
+                    .map(folder -> Path.of(folder.path()).resolve(relativePath))
                     .filter(Files::exists)
                     .findFirst();
         }
 
         public Optional<Path> getMoviePath(Path relativePath) {
             return movieFolders.stream()
-                    .map(folder -> Path.of(folder.getPath()).resolve(relativePath))
+                    .map(folder -> Path.of(folder.path()).resolve(relativePath))
                     .filter(Files::exists)
                     .findFirst();
         }
     }
 
-
-    @Data
-    @Builder(toBuilder = true)
+    @Getter
+    @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @Accessors(fluent = true)
     public static class MoveConfig {
         @Builder.Default
         Mode mode = MoveConfig.Mode.NONE;
@@ -103,10 +107,11 @@ public class CliConfiguration {
             NONE
         }
 
-        @Data
-        @Builder(toBuilder = true)
+        @Getter
+        @Builder
         @NoArgsConstructor
         @AllArgsConstructor
+        @Accessors(fluent = true)
         public static class HandlingConfig {
             @Builder.Default
             private Mode mode = Mode.IGNORE;
@@ -127,20 +132,22 @@ public class CliConfiguration {
             }
         }
 
-        @Data
-        @Builder(toBuilder = true)
+        @Getter
+        @Builder
         @NoArgsConstructor
         @AllArgsConstructor
+        @Accessors(fluent = true)
         public static class FolderConfig {
             private String tvshows;
             private String movies;
         }
     }
 
-    @Data
-    @Builder(toBuilder = true)
+    @Getter
+    @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @Accessors(fluent = true)
     public static class RenameConfig {
         @Builder.Default
         Mode mode = Mode.NONE;
@@ -153,10 +160,11 @@ public class CliConfiguration {
         }
     }
 
-    @Data
-    @Builder(toBuilder = true)
+    @Getter
+    @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @Accessors(fluent = true)
     public static class MyListConfig {
         private boolean overwrite;
         private boolean add;
@@ -172,10 +180,11 @@ public class CliConfiguration {
         }
     }
 
-    @Data
-    @Builder(toBuilder = true)
+    @Getter
+    @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @Accessors(fluent = true)
     public static class AniDbConfig {
         @Builder.Default
         private String host = "api.anidb.net";
@@ -185,10 +194,11 @@ public class CliConfiguration {
         @Builder.Default
         private CacheConfig cache = CacheConfig.builder().build();
 
-        @Data
-        @Builder(toBuilder = true)
+        @Getter
+        @Builder
         @NoArgsConstructor
         @AllArgsConstructor
+        @Accessors(fluent = true)
         public static class CacheConfig {
             @Builder.Default
             private int ttlInDays = 30;

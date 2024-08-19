@@ -27,8 +27,8 @@ public class TagSystem {
                 }));
 
         if (folders != null) {
-            folders.getMovieFolders().forEach(c -> stringVars.put(c.getTagSystemName(), c.getPath()));
-            folders.getTvShowFolders().forEach(c -> stringVars.put(c.getTagSystemName(), c.getPath()));
+            folders.movieFolders().forEach(c -> stringVars.put(c.tagSystemName(), c.path()));
+            folders.tvShowFolders().forEach(c -> stringVars.put(c.tagSystemName(), c.path()));
         }
         return Evaluate(sourceCode, stringVars);
     }

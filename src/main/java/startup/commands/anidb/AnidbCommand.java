@@ -95,7 +95,7 @@ public class AnidbCommand {
         val processing = new EpisodeProcessing(config, udpApi, fileSystem, fileHandler, fileRepository);
         val fileProcessor = new FileProcessor(processing, config, executorService);
 
-        if (config.getMove().isDeleteEmptyDirs() && inputDirectory != null) {
+        if (config.move().deleteEmptyDirs() && inputDirectory != null) {
             processing.addListener(event -> {
                 if (event == EpisodeProcessing.ProcessingEvent.Done) {
                     fileSystem.run(new DeleteEmptyChildDirectoriesRecursively(inputDirectory));

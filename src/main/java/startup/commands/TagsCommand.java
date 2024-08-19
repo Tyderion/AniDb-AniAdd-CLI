@@ -10,7 +10,6 @@ import lombok.val;
 import picocli.CommandLine;
 import processing.tagsystem.TagSystem;
 import processing.tagsystem.TagSystemTags;
-import startup.validation.validators.nonempty.NonEmpty;
 import utils.config.ConfigFileHandler;
 
 import java.nio.file.Path;
@@ -62,12 +61,12 @@ public class TagsCommand implements Callable<Integer> {
 
         val handler = new ConfigFileHandler<>(CliConfiguration.class);
         val configuration = handler.getConfiguration(configPath);
-        if (configuration == null || configuration.getTagSystem() == null
-                || configuration.getTagSystem().isBlank()) {
+        if (configuration == null || configuration.tagSystem() == null
+                || configuration.tagSystem().isBlank()) {
             log.error("To test tags you must provide a non empty tagging system code");
             return 1;
         }
-        val result = TagSystem.Evaluate(configuration.getTagSystem(), tags, configuration.getPaths());
+        val result = TagSystem.Evaluate(configuration.tagSystem(), tags, configuration.paths());
         val filename = result.FileName();
         val pathname = result.PathName();
         log.info(STR."Filename: \{filename}, Pathname: \{pathname}");

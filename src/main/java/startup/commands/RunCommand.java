@@ -39,12 +39,12 @@ public class RunCommand implements Callable<Integer> {
             log.error(STR."Failed to load configuration from \{configPath}");
             return 1;
         }
-        if (config.getRun() == null) {
+        if (config.run() == null) {
             log.error(STR."No run configuration found in the config file. \{configPath}");
             return 1;
         }
         try {
-            val command = config.getRun().toCommandArgs(configPath);
+            val command = config.run().toCommandArgs(configPath);
             return new picocli.CommandLine(new CliCommand())
                     .setExecutionStrategy(new ValidatingExecutionStrategy())
                     .execute(command.toArray(String[]::new));

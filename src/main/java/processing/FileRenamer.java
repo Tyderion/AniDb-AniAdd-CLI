@@ -25,8 +25,8 @@ public class FileRenamer {
 
     public boolean renameFile(FileInfo procFile) {
         val configuration = procFile.getConfiguration();
-        val moveConfig = configuration.getMove();
-        val renameConfig = configuration.getRename();
+        val moveConfig = configuration.move();
+        val renameConfig = configuration.rename();
         try {
 
             val targetFolder = getTargetFolder(procFile);
@@ -49,17 +49,17 @@ public class FileRenamer {
 
             if (Files.exists(targetFilePath)) {
                 log.info(STR."Destination for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} already exists: \{targetFilePath.toString()}");
-                if (moveConfig.getMode() != CliConfiguration.MoveConfig.Mode.NONE) {
-                    val duplicateConfig = moveConfig.getDuplicates();
+                if (moveConfig.mode() != CliConfiguration.MoveConfig.Mode.NONE) {
+                    val duplicateConfig = moveConfig.duplicates();
                     // Only handle duplicates if moving is enabled, else we want to rename in place so duplicate means it's name is correct
-                    if (duplicateConfig.getMode() == CliConfiguration.MoveConfig.HandlingConfig.Mode.DELETE) {
+                    if (duplicateConfig.mode() == CliConfiguration.MoveConfig.HandlingConfig.Mode.DELETE) {
                         fileHandler.deleteFile(procFile.getFile().toPath());
-                    } else if (duplicateConfig.getMode() == CliConfiguration.MoveConfig.HandlingConfig.Mode.MOVE) {
+                    } else if (duplicateConfig.mode() == CliConfiguration.MoveConfig.HandlingConfig.Mode.MOVE) {
                         val oldFilename = procFile.getFile().getName();
                         val subFolderWithFile = targetFilePath.subpath(targetFilePath.getNameCount() - 2, targetFilePath.getNameCount());
-                        val targetPath = Paths.get(duplicateConfig.getFolder()).resolve(subFolderWithFile);
+                        val targetPath = Paths.get(duplicateConfig.folder()).resolve(subFolderWithFile);
                         fileHandler.renameFile(procFile.getFile().toPath(), targetPath);
-                        if (renameConfig.isRelated()) {
+                        if (renameConfig.related()) {
                             renameRelatedFiles(procFile, oldFilename, targetPath.getFileName().toString(), targetPath.getParent());
                         }
                     }
@@ -74,7 +74,7 @@ public class FileRenamer {
             val oldFilename = procFile.getFile().getName();
             if (fileHandler.renameFile(procFile.getFile().toPath(), targetFilePath)) {
                 log.debug(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} renamed to \{targetFilePath.toString()}");
-                if (renameConfig.isRelated()) {
+                if (renameConfig.related()) {
                     renameRelatedFiles(procFile, oldFilename, targetFilePath.getFileName().toString(), targetFolderPath);
                 }
 
@@ -113,11 +113,11 @@ public class FileRenamer {
     }
 
     private static Optional<String> getTargetFileName(FileInfo procFile, TagSystemResult tagSystemResult) throws Exception {
-        val renameConfig = procFile.getConfiguration().getRename();
-        if (renameConfig.getMode() == CliConfiguration.RenameConfig.Mode.NONE) {
+        val renameConfig = procFile.getConfiguration().rename();
+        if (renameConfig.mode() == CliConfiguration.RenameConfig.Mode.NONE) {
             return Optional.of(procFile.getFile().getName());
         }
-        if (renameConfig.getMode() == CliConfiguration.RenameConfig.Mode.ANIDB) {
+        if (renameConfig.mode() == CliConfiguration.RenameConfig.Mode.ANIDB) {
             return Optional.of(procFile.getData().get(TagSystemTags.FileAnidbFilename));
         }
         var tsResult = tagSystemResult == null ? getPathFromTagSystem(procFile) : tagSystemResult;
@@ -130,13 +130,13 @@ public class FileRenamer {
     }
 
     private static Pair<Path, TagSystemResult> getTargetFolder(FileInfo procFile) throws Exception {
-        val moveConfig = procFile.getConfiguration().getMove();
-        if (moveConfig.getMode() == CliConfiguration.MoveConfig.Mode.NONE) {
+        val moveConfig = procFile.getConfiguration().move();
+        if (moveConfig.mode() == CliConfiguration.MoveConfig.Mode.NONE) {
             return Pair.of(procFile.getFile().getParentFile().toPath(), null);
         }
 
-        if (moveConfig.getMode() == CliConfiguration.MoveConfig.Mode.FOLDER) {
-            val moveToFolder = moveConfig.getFolder();
+        if (moveConfig.mode() == CliConfiguration.MoveConfig.Mode.FOLDER) {
+            val moveToFolder = moveConfig.folder();
             return Pair.of(moveToFolder.isEmpty() ? procFile.getFile().getParentFile().toPath() : Paths.get(moveToFolder), null);
         }
 
@@ -169,11 +169,11 @@ public class FileRenamer {
         tags.put(TagSystemTags.FileCurrentFilename, procFile.getFile().getName());
         val configuration = procFile.getConfiguration();
 
-        String codeStr = configuration.getTagSystem();
+        String codeStr = configuration.tagSystem();
         if (codeStr == null || codeStr.isEmpty()) {
             return null;
         }
 
-        return TagSystem.Evaluate(codeStr, tags, configuration.getPaths());
+        return TagSystem.Evaluate(codeStr, tags, configuration.paths());
     }
 }
