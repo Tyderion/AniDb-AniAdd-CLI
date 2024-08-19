@@ -29,6 +29,7 @@ public class WatchAndKodiCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"--path-filter"}, description = "The path filter to use to detect anime files. Default is 'anime'. Case insensitive.", defaultValue = "anime")
     private String pathFilter;
 
+    @NonEmpty
     @CommandLine.Parameters(index = "0", description = "The directory to scan.")
     private Path directory;
 

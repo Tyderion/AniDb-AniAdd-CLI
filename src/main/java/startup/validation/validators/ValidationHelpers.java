@@ -7,7 +7,8 @@ import startup.validation.validators.max.MaxValidator;
 import startup.validation.validators.min.Min;
 import startup.validation.validators.min.MinValidator;
 import startup.validation.validators.nonempty.NonEmpty;
-import startup.validation.validators.nonempty.NonEmptyValidator;
+import startup.validation.validators.nonempty.NonEmptyPathValidator;
+import startup.validation.validators.nonempty.NonEmptyStringValidator;
 import startup.validation.validators.port.Port;
 import startup.validation.validators.port.PortValidator;
 
@@ -15,6 +16,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -24,11 +26,11 @@ public final class ValidationHelpers {
     private static final Set<String> excludedMethods = Set.of("message", "hashCode", "equals", "toString", "annotationType");
 
     @SuppressWarnings("rawtypes")
-    private static final Map<Class<? extends Annotation>, IValidator> validators = Map.of(
-            NonEmpty.class, new NonEmptyValidator(),
-            Max.class, new MaxValidator(),
-            Min.class, new MinValidator(),
-            Port.class, new PortValidator()
+    private static final Map<Class<? extends Annotation>, Map<Class, IValidator>> validators = Map.of(
+            NonEmpty.class, Map.of(String.class, new NonEmptyStringValidator(), Path.class, new NonEmptyPathValidator()),
+            Max.class, Map.of(Number.class, new MaxValidator()),
+            Min.class, Map.of(Number.class,new MinValidator()),
+            Port.class, Map.of(Number.class,new PortValidator())
     );
 
     @NotNull
@@ -40,8 +42,15 @@ public final class ValidationHelpers {
                 val value = field.get(spec);
                 if (validators.containsKey(annotationClass)) {
                     val validator = validators.get(annotationClass);
-                    if (!validator.validate(value, annotation)) {
-                        return Optional.of(ValidationHelpers.getValidationMessage(annotation, field.getName()));
+                    if (validator.containsKey(field.getType())) {
+                        if (!validator.get(field.getType()).validate(value, annotation)) {
+                            return Optional.of(ValidationHelpers.getValidationMessage(annotation, field.getName()));
+                        }
+                    }
+                    if (Number.class.isAssignableFrom(field.getType()) && validator.containsKey(Number.class)) {
+                        if (!validator.get(Number.class).validate(value, annotation)) {
+                            return Optional.of(ValidationHelpers.getValidationMessage(annotation, field.getName()));
+                        }
                     }
                 }
             } catch (IllegalAccessException e) {

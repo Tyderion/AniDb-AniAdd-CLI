@@ -17,4 +17,6 @@ public @interface NonEmpty {
      * {field} will be replaced with the name of the field
      */
     public String message() default "{field} cannot be empty";
+
+    public boolean allowNull() default false;
 }

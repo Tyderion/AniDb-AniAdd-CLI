@@ -18,7 +18,7 @@ import java.util.concurrent.Callable;
         description = "Run with config file")
 public class RunCommand implements Callable<Integer> {
 
-    @CommandLine.Option(names = {"-r", "--run-config"}, description = "The path to the config file. Defaults to %CONFIG_FILE%", required = false, scope = CommandLine.ScopeType.INHERIT)
+    @CommandLine.Option(names = {"-r", "--run-config"}, description = "The path to the config file. Defaults to $CONFIG_FILE", required = false, scope = CommandLine.ScopeType.INHERIT)
     private Path configPath;
 
     @Override

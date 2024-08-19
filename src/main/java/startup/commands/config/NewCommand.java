@@ -4,6 +4,7 @@ import config.CliConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
+import startup.validation.validators.nonempty.NonEmpty;
 import utils.config.ConfigFileHandler;
 
 import java.nio.file.Files;
@@ -18,6 +19,7 @@ public class NewCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-o", "--overwrite"}, description = "Overwrite the file if it already exists.")
     private boolean overwrite;
 
+    @NonEmpty
     @CommandLine.Parameters(index = "0", description = "The path to the file to save the configuration to.")
     private Path path;
 
