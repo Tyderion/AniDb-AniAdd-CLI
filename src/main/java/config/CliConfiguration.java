@@ -117,7 +117,7 @@ public class CliConfiguration {
             }
 
             public boolean isDefault() {
-                return mode == null && folder == null;
+                return mode == Mode.IGNORE && folder == null;
             }
 
             public void removeDefaults() {
