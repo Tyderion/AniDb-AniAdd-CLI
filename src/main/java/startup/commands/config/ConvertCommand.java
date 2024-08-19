@@ -49,7 +49,7 @@ public class ConvertCommand implements Callable<Integer> {
                         .build())
                 .rename(CliConfiguration.RenameConfig.builder()
                         .related(config.isRenameRelatedFiles())
-                        .type(getRenameType(config))
+                        .mode(getRenameType(config))
                         .build())
                 .move(getMoveConfig(config))
                 .paths(getPathConfig(config))
@@ -86,58 +86,58 @@ public class ConvertCommand implements Callable<Integer> {
 
     private CliConfiguration.MoveConfig getMoveConfig(AniConfiguration config) throws IllegalArgumentException {
         val type = getMoveType(config);
-        if (type == CliConfiguration.MoveConfig.Type.FOLDER && config.getMoveToFolder().isBlank()) {
+        if (type == CliConfiguration.MoveConfig.Mode.FOLDER && config.getMoveToFolder().isBlank()) {
             throw new IllegalArgumentException("Move type is set to FOLDER but no folder is specified. (moveTypeUseFolder: true, moveToFolder: \"\")");
         }
         return CliConfiguration.MoveConfig.builder()
-                .type(type)
+                .mode(type)
                 .folder(config.getMoveToFolder())
                 .deleteEmptyDirs(config.isRecursivelyDeleteEmptyFolders())
                 .duplicates(CliConfiguration.MoveConfig.HandlingConfig.builder()
-                        .type(getDuplicatesType(config))
+                        .mode(getDuplicatesType(config))
                         .folder(config.getDuplicatesFolder())
                         .build())
                 .unknown(CliConfiguration.MoveConfig.HandlingConfig.builder()
-                        .type(getUnknownType(config))
+                        .mode(getUnknownType(config))
                         .folder(config.getUnknownFolder())
                         .build())
                 .build();
     }
 
-    private CliConfiguration.MoveConfig.HandlingConfig.Type getUnknownType(AniConfiguration config) {
+    private CliConfiguration.MoveConfig.HandlingConfig.Mode getUnknownType(AniConfiguration config) {
         if (config.isMoveUnknownFiles()) {
-            return CliConfiguration.MoveConfig.HandlingConfig.Type.MOVE;
+            return CliConfiguration.MoveConfig.HandlingConfig.Mode.MOVE;
         }
-        return CliConfiguration.MoveConfig.HandlingConfig.Type.IGNORE;
+        return CliConfiguration.MoveConfig.HandlingConfig.Mode.IGNORE;
     }
 
-    private CliConfiguration.MoveConfig.HandlingConfig.Type getDuplicatesType(AniConfiguration config) {
+    private CliConfiguration.MoveConfig.HandlingConfig.Mode getDuplicatesType(AniConfiguration config) {
         if (config.isMoveDuplicateFiles()) {
-            return CliConfiguration.MoveConfig.HandlingConfig.Type.MOVE;
+            return CliConfiguration.MoveConfig.HandlingConfig.Mode.MOVE;
         }
         if (config.isDeleteDuplicateFiles()) {
-            return CliConfiguration.MoveConfig.HandlingConfig.Type.DELETE;
+            return CliConfiguration.MoveConfig.HandlingConfig.Mode.DELETE;
         }
-        return CliConfiguration.MoveConfig.HandlingConfig.Type.IGNORE;
+        return CliConfiguration.MoveConfig.HandlingConfig.Mode.IGNORE;
     }
 
-    private CliConfiguration.MoveConfig.Type getMoveType(AniConfiguration config) {
+    private CliConfiguration.MoveConfig.Mode getMoveType(AniConfiguration config) {
         if (!config.isEnableFileMove()) {
-            return CliConfiguration.MoveConfig.Type.NONE;
+            return CliConfiguration.MoveConfig.Mode.NONE;
         } else if (config.isMoveTypeUseFolder()) {
-            return CliConfiguration.MoveConfig.Type.FOLDER;
+            return CliConfiguration.MoveConfig.Mode.FOLDER;
         } else {
-            return CliConfiguration.MoveConfig.Type.TAGSYSTEM;
+            return CliConfiguration.MoveConfig.Mode.TAGSYSTEM;
         }
     }
 
-    private CliConfiguration.RenameConfig.Type getRenameType(AniConfiguration config) {
+    private CliConfiguration.RenameConfig.Mode getRenameType(AniConfiguration config) {
         if (!config.isEnableFileRenaming()) {
-            return CliConfiguration.RenameConfig.Type.NONE;
+            return CliConfiguration.RenameConfig.Mode.NONE;
         } else if (config.isRenameTypeAniDBFileName()) {
-            return CliConfiguration.RenameConfig.Type.ANIDB;
+            return CliConfiguration.RenameConfig.Mode.ANIDB;
         } else {
-            return CliConfiguration.RenameConfig.Type.TAGSYSTEM;
+            return CliConfiguration.RenameConfig.Mode.TAGSYSTEM;
         }
     }
 

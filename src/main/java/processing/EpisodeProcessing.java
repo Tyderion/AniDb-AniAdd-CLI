@@ -90,8 +90,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     finalize(fileInfo);
                     return;
                 }
-                if (configuration.getRename().getType() != CliConfiguration.RenameConfig.Type.NONE ||
-                        configuration.getMove().getType() != CliConfiguration.MoveConfig.Type.NONE) {
+                if (configuration.getRename().getMode() != CliConfiguration.RenameConfig.Mode.NONE ||
+                        configuration.getMove().getMode() != CliConfiguration.MoveConfig.Mode.NONE) {
                     loadFileInfo(fileInfo);
                 }
                 if (configuration.getMylist().isAdd()) {
@@ -104,8 +104,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     log.warn(STR."FileCommand for file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()} failed to get data. Skipping dependant steps");
                     return;
                 }
-                if (configuration.getRename().getType() != CliConfiguration.RenameConfig.Type.NONE ||
-                        configuration.getMove().getType() != CliConfiguration.MoveConfig.Type.NONE) {
+                if (configuration.getRename().getMode() != CliConfiguration.RenameConfig.Mode.NONE ||
+                        configuration.getMove().getMode() != CliConfiguration.MoveConfig.Mode.NONE) {
                     renameFile(fileInfo);
                 }
             }
@@ -199,7 +199,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             };
             log.warn(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned error: \{replyStatus} - \{errorMessage}");
             if (replyStatus == ReplyStatus.NO_SUCH_FILE
-                    && procFile.getConfiguration().getMove().getUnknown().getType() == CliConfiguration.MoveConfig.HandlingConfig.Type.MOVE
+                    && procFile.getConfiguration().getMove().getUnknown().getMode() == CliConfiguration.MoveConfig.HandlingConfig.Mode.MOVE
             ) {
                 fileSystem.run(() -> {
                     File currentFile = procFile.getFile();

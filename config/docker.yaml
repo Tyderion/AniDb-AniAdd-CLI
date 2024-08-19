@@ -12,7 +12,7 @@ move:
   deleteEmptyDirs: true
   duplicates:
     folder: /duplicates/
-  type: TAGSYSTEM
+  mode: TAGSYSTEM
   unknown:
     folder: /unknown/
 mylist:
@@ -29,7 +29,7 @@ paths:
     tagSystemName: BaseTVShowPath
 rename:
   related: true
-  type: TAGSYSTEM
+  mode: TAGSYSTEM
 tagSystem: |-
   # Names anime in the following format "ShowTitle S01EXX EpisodeTitle [Group][Source][Resolution][Codec][CRC]""
   # Kodi should parse those episode numbers correctly

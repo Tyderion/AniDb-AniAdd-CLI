@@ -74,7 +74,7 @@ public class CliConfiguration {
     @AllArgsConstructor
     public static class MoveConfig {
         @Builder.Default
-        Type type = Type.NONE;
+        Mode mode = MoveConfig.Mode.NONE;
         private String folder;
         private boolean deleteEmptyDirs;
 
@@ -97,7 +97,7 @@ public class CliConfiguration {
             }
         }
 
-        public enum Type {
+        public enum Mode {
             TAGSYSTEM,
             FOLDER,
             NONE
@@ -109,20 +109,20 @@ public class CliConfiguration {
         @AllArgsConstructor
         public static class HandlingConfig {
             @Builder.Default
-            private Type type = Type.IGNORE;
+            private Mode mode = Mode.IGNORE;
             private String folder;
 
-            public enum Type {
+            public enum Mode {
                 MOVE, DELETE, IGNORE
             }
 
             public boolean isDefault() {
-                return type == null && folder == null;
+                return mode == null && folder == null;
             }
 
             public void removeDefaults() {
-                if (type == Type.IGNORE) {
-                    type = null;
+                if (mode == Mode.IGNORE) {
+                    mode = null;
                 }
                 if (folder != null && folder.isBlank()) {
                     folder = null;
@@ -146,10 +146,10 @@ public class CliConfiguration {
     @AllArgsConstructor
     public static class RenameConfig {
         @Builder.Default
-        Type type = Type.NONE;
+        Mode mode = Mode.NONE;
         private boolean related;
 
-        public enum Type {
+        public enum Mode {
             TAGSYSTEM,
             ANIDB,
             NONE
