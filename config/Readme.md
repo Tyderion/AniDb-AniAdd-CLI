@@ -47,11 +47,11 @@ anidb:
 
 ```yaml
 rename:
-  type: tagsystem
+  mode: tagsystem
   related: true
 ```
 
-- `type`: Rename type, possible values:
+- `mode`: Rename mode possible values:
     - `tagsystem`: Use tag system
     - `anidb`: Use AniDBFileName
     - `none`: No rename
@@ -61,28 +61,28 @@ rename:
 
 ```yaml
 move:
-  type: tagsystem # or folder or none
+  mode: tagsystem # or folder or none
   folder: /unused/with/tagsystem
   deleteEmptyDirs: true
   duplicates:
-    type: move # or delete or ignore
+    mode: move # or delete or ignore
     folder: /duplicates/
   unknown:
-    type: move # or delete or ignore
+    mode: move # or delete or ignore
     folder: /unknown/
 ```
 
-- `type`: Move type, possible values:
+- `mode`: Move mode, possible values:
   - `tagsystem`: Use tag system
   - `folder`: Use specific folder
   - `none`: No move
 - `deleteEmptyDirs`: Delete empty (source) directories after moving
 - `duplicates`: Duplicates configuration
-  - `type`: Duplicates type, possible values:
+  - `mode`: Duplicates mode, possible values:
       - `move`: Move duplicates
       - `delete`: Delete duplicates
       - `ignore`: Ignore duplicates
-  - `folder`: Duplicates folder (if type is move)
+  - `folder`: Duplicates folder (if mode is move)
 - `unknown`: Same as duplicates, just for unknown files
 
 #### Paths
