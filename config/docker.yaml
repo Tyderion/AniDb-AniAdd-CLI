@@ -1,27 +1,36 @@
-!!config.CliConfiguration
+# See Readme.md for more information
 run:
   tasks:
     - watch
   args:
     path: /from/
+
+mylist:
+  add: true
+  overwrite: false
+  storageType: remote
+  watched: false
+
 anidb:
   cache:
     fileName: aniAdd.sqlite
     ttlInDays: 30
+
+rename:
+  mode: tagsystem # or anidb or none
+  related: true
+
 move:
+  mode: tagsystem # or folder or none
   deleteEmptyDirs: true
   duplicates:
+    mode: move # or delete or ignore
     folder: /duplicates/
-    mode: IGNORE
-  mode: TAGSYSTEM
   unknown:
+    mode: move # or delete or ignore
     folder: /unknown/
-    mode: IGNORE
-mylist:
-  add: true
-  overwrite: false
-  storageType: REMOTE
-  watched: false
+
+# Can be deleted if unused, but if you want to use kodi integration it is required
 paths:
   movieFolders:
   - path: /movies/
@@ -29,9 +38,7 @@ paths:
   tvShowFolders:
   - path: /shows/
     tagSystemName: BaseTVShowPath
-rename:
-  mode: TAGSYSTEM
-  related: true
+
 tagSystem: |-
   # Names anime in the following format "ShowTitle S01EXX EpisodeTitle [Group][Source][Resolution][Codec][CRC]""
   # Kodi should parse those episode numbers correctly
