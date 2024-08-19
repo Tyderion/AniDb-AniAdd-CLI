@@ -39,7 +39,6 @@ public class CliConfiguration {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    @Accessors(fluent = true)
     public static class PathConfig {
         @Singular
         private List<Single> tvShowFolders;
@@ -50,7 +49,6 @@ public class CliConfiguration {
         @Builder
         @NoArgsConstructor
         @AllArgsConstructor
-        @Accessors(fluent = true)
         public static class Single {
             private String path;
             private String tagSystemName;
@@ -75,7 +73,6 @@ public class CliConfiguration {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    @Accessors(fluent = true)
     public static class MoveConfig {
         @Builder.Default
         Mode mode = MoveConfig.Mode.NONE;
@@ -111,7 +108,6 @@ public class CliConfiguration {
         @Builder
         @NoArgsConstructor
         @AllArgsConstructor
-        @Accessors(fluent = true)
         public static class HandlingConfig {
             @Builder.Default
             private Mode mode = Mode.IGNORE;
@@ -136,7 +132,6 @@ public class CliConfiguration {
         @Builder
         @NoArgsConstructor
         @AllArgsConstructor
-        @Accessors(fluent = true)
         public static class FolderConfig {
             private String tvshows;
             private String movies;
@@ -147,7 +142,6 @@ public class CliConfiguration {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    @Accessors(fluent = true)
     public static class RenameConfig {
         @Builder.Default
         Mode mode = Mode.NONE;
@@ -164,7 +158,6 @@ public class CliConfiguration {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    @Accessors(fluent = true)
     public static class MyListConfig {
         private boolean overwrite;
         private boolean add;
@@ -184,7 +177,6 @@ public class CliConfiguration {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    @Accessors(fluent = true)
     public static class AniDbConfig {
         @Builder.Default
         private String host = "api.anidb.net";
@@ -198,7 +190,6 @@ public class CliConfiguration {
         @Builder
         @NoArgsConstructor
         @AllArgsConstructor
-        @Accessors(fluent = true)
         public static class CacheConfig {
             @Builder.Default
             private int ttlInDays = 30;
