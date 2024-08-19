@@ -3,6 +3,10 @@ package startup.commands.config;
 import aniAdd.config.AniConfiguration;
 import aniAdd.config.AniConfigurationHandler;
 import config.CliConfiguration;
+import config.CliConfiguration.*;
+import config.CliConfiguration.AniDbConfig.CacheConfig;
+import config.CliConfiguration.MoveConfig.HandlingConfig;
+import config.CliConfiguration.MyListConfig.StorageType;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
@@ -40,17 +44,17 @@ public class ConvertCommand implements Callable<Integer> {
         }
         val cliConfig = CliConfiguration.builder()
                 .tagSystem(config.getTagSystemCode())
-                .anidb(CliConfiguration.AniDbConfig.builder()
+                .anidb(AniDbConfig.builder()
                         .host(config.getAnidbHost())
                         .port(config.getAnidbPort())
-                        .cache(CliConfiguration.AniDbConfig.CacheConfig.builder().ttlInDays(config.getCacheTTLInDays()).build())
+                        .cache(CacheConfig.builder().ttlInDays(config.getCacheTTLInDays()).build())
                         .build())
-                .mylist(CliConfiguration.MyListConfig.builder()
+                .mylist(MyListConfig.builder()
                         .add(config.isAddToMylist())
                         .overwrite(config.isOverwriteMLEntries())
                         .storageType(convertStorageType(config.getSetStorageType()))
                         .build())
-                .rename(CliConfiguration.RenameConfig.builder()
+                .rename(RenameConfig.builder()
                         .related(config.isRenameRelatedFiles())
                         .mode(getRenameType(config))
                         .build())
@@ -64,18 +68,18 @@ public class ConvertCommand implements Callable<Integer> {
         return 0;
     }
 
-    private CliConfiguration.PathConfig getPathConfig(AniConfiguration config) {
-        val builder = CliConfiguration.PathConfig.builder();
+    private PathConfig getPathConfig(AniConfiguration config) {
+        val builder = PathConfig.builder();
         var hasPaths = false;
         if (config.getMovieFolder() != null && !config.getMovieFolder().isBlank()) {
-            builder.movieFolder(CliConfiguration.PathConfig.Single.builder()
+            builder.movieFolder(PathConfig.Single.builder()
                     .tagSystemName("BaseMoviePath")
                     .path(config.getMovieFolder())
                     .build());
             hasPaths = true;
         }
         if (config.getTvShowFolder() != null && !config.getTvShowFolder().isBlank()) {
-            builder.tvShowFolder(CliConfiguration.PathConfig.Single.builder()
+            builder.tvShowFolder(PathConfig.Single.builder()
                     .tagSystemName("BaseTVShowPath")
                     .path(config.getTvShowFolder())
                     .build());
@@ -87,70 +91,70 @@ public class ConvertCommand implements Callable<Integer> {
         return null;
     }
 
-    private CliConfiguration.MoveConfig getMoveConfig(AniConfiguration config) throws IllegalArgumentException {
+    private MoveConfig getMoveConfig(AniConfiguration config) throws IllegalArgumentException {
         val type = getMoveType(config);
-        if (type == CliConfiguration.MoveConfig.Mode.FOLDER && config.getMoveToFolder().isBlank()) {
+        if (type == MoveConfig.Mode.FOLDER && config.getMoveToFolder().isBlank()) {
             throw new IllegalArgumentException("Move type is set to FOLDER but no folder is specified. (moveTypeUseFolder: true, moveToFolder: \"\")");
         }
-        return CliConfiguration.MoveConfig.builder()
+        return MoveConfig.builder()
                 .mode(type)
                 .folder(config.getMoveToFolder())
                 .deleteEmptyDirs(config.isRecursivelyDeleteEmptyFolders())
-                .duplicates(CliConfiguration.MoveConfig.HandlingConfig.builder()
+                .duplicates(HandlingConfig.builder()
                         .mode(getDuplicatesType(config))
                         .folder(config.getDuplicatesFolder())
                         .build())
-                .unknown(CliConfiguration.MoveConfig.HandlingConfig.builder()
+                .unknown(HandlingConfig.builder()
                         .mode(getUnknownType(config))
                         .folder(config.getUnknownFolder())
                         .build())
                 .build();
     }
 
-    private CliConfiguration.MoveConfig.HandlingConfig.Mode getUnknownType(AniConfiguration config) {
+    private HandlingConfig.Mode getUnknownType(AniConfiguration config) {
         if (config.isMoveUnknownFiles()) {
-            return CliConfiguration.MoveConfig.HandlingConfig.Mode.MOVE;
+            return HandlingConfig.Mode.MOVE;
         }
-        return CliConfiguration.MoveConfig.HandlingConfig.Mode.IGNORE;
+        return HandlingConfig.Mode.IGNORE;
     }
 
-    private CliConfiguration.MoveConfig.HandlingConfig.Mode getDuplicatesType(AniConfiguration config) {
+    private HandlingConfig.Mode getDuplicatesType(AniConfiguration config) {
         if (config.isMoveDuplicateFiles()) {
-            return CliConfiguration.MoveConfig.HandlingConfig.Mode.MOVE;
+            return HandlingConfig.Mode.MOVE;
         }
         if (config.isDeleteDuplicateFiles()) {
-            return CliConfiguration.MoveConfig.HandlingConfig.Mode.DELETE;
+            return HandlingConfig.Mode.DELETE;
         }
-        return CliConfiguration.MoveConfig.HandlingConfig.Mode.IGNORE;
+        return HandlingConfig.Mode.IGNORE;
     }
 
-    private CliConfiguration.MoveConfig.Mode getMoveType(AniConfiguration config) {
+    private MoveConfig.Mode getMoveType(AniConfiguration config) {
         if (!config.isEnableFileMove()) {
-            return CliConfiguration.MoveConfig.Mode.NONE;
+            return MoveConfig.Mode.NONE;
         } else if (config.isMoveTypeUseFolder()) {
-            return CliConfiguration.MoveConfig.Mode.FOLDER;
+            return MoveConfig.Mode.FOLDER;
         } else {
-            return CliConfiguration.MoveConfig.Mode.TAGSYSTEM;
+            return MoveConfig.Mode.TAGSYSTEM;
         }
     }
 
-    private CliConfiguration.RenameConfig.Mode getRenameType(AniConfiguration config) {
+    private RenameConfig.Mode getRenameType(AniConfiguration config) {
         if (!config.isEnableFileRenaming()) {
-            return CliConfiguration.RenameConfig.Mode.NONE;
+            return RenameConfig.Mode.NONE;
         } else if (config.isRenameTypeAniDBFileName()) {
-            return CliConfiguration.RenameConfig.Mode.ANIDB;
+            return RenameConfig.Mode.ANIDB;
         } else {
-            return CliConfiguration.RenameConfig.Mode.TAGSYSTEM;
+            return RenameConfig.Mode.TAGSYSTEM;
         }
     }
 
-    private CliConfiguration.MyListConfig.StorageType convertStorageType(AniConfiguration.StorageType storageType) {
+    private StorageType convertStorageType(AniConfiguration.StorageType storageType) {
         return switch (storageType) {
-            case UNKNOWN, UNKOWN -> CliConfiguration.MyListConfig.StorageType.UNKNOWN;
-            case INTERNAL -> CliConfiguration.MyListConfig.StorageType.INTERNAL;
-            case EXTERNAL -> CliConfiguration.MyListConfig.StorageType.EXTERNAL;
-            case DELETED -> CliConfiguration.MyListConfig.StorageType.DELETED;
-            case REMOTE -> CliConfiguration.MyListConfig.StorageType.REMOTE;
+            case UNKNOWN, UNKOWN -> StorageType.UNKNOWN;
+            case INTERNAL -> StorageType.INTERNAL;
+            case EXTERNAL -> StorageType.EXTERNAL;
+            case DELETED -> StorageType.DELETED;
+            case REMOTE -> StorageType.REMOTE;
         };
     }
 }

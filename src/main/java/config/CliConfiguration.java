@@ -10,11 +10,11 @@ import java.util.List;
 import java.util.Optional;
 
 @Slf4j
-@Accessors(fluent = true)
-@Builder
 @Getter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Accessors(fluent = true)
 public class CliConfiguration {
 
     @Builder.Default

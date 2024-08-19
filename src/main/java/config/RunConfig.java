@@ -1,6 +1,7 @@
 package config;
 
 import lombok.*;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.file.Path;
@@ -9,14 +10,11 @@ import java.util.*;
 import static config.RunConfig.Task.*;
 
 @Slf4j
-@Data
-@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class RunConfig {
     @Singular
     private Set<Task> tasks;
-    @Builder.Default
     private Map<String, String> args = new HashMap<>();
 
     public enum Task {
