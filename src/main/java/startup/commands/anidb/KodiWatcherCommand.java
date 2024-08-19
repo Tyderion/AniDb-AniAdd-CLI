@@ -18,11 +18,11 @@ import java.util.concurrent.TimeUnit;
 @CommandLine.Command(name = "connect-to-kodi", mixinStandardHelpOptions = true, version = "1.0",
         description = "Connects to a kodi instance via websockets and marks watched episodes as watched on anidb as well. Filepath must contain 'anime' (configurable)")
 public class KodiWatcherCommand implements Callable<Integer> {
-    @CommandLine.Option(names = {"--port"}, description = "The port to connect to")
-    @Port private int port = 9090;
+    @CommandLine.Option(names = {"--port"}, description = "The port to connect to", defaultValue = "9090")
+    @Port private int port;
 
-    @CommandLine.Option(names = {"--kodi"}, description = "The ip/hostname of the kodi server.", required = true)
-    @NonBlank private String kodiUrl = "localhost";
+    @CommandLine.Option(names = {"--kodi"}, description = "The ip/hostname of the kodi server.", required = true, defaultValue = "localhost")
+    @NonBlank private String kodiUrl;
 
     @CommandLine.Option(names = {"--path-filter"}, description = "The path filter to use to detect anime files. Default is 'anime'. Case insensitive.", defaultValue = "anime")
     private String pathFilter;
