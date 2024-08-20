@@ -28,6 +28,7 @@ public class CliConfiguration {
     private PathConfig paths;
     private RunConfig run;
     private String tagSystem;
+    private KodiConfig kodi;
 
     public void removeDefaults() {
         move.removeDefaults();
@@ -158,7 +159,19 @@ public class CliConfiguration {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    public static class KodiConfig {
+        @Builder.Default
+        private String host = "localhost";
+        @Builder.Default
+        private int port = 9090;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class MyListConfig {
+        public String username;
         private boolean overwrite;
         private boolean add;
         @Builder.Default

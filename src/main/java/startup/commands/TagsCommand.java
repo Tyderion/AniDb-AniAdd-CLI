@@ -3,10 +3,8 @@ package startup.commands;
 import cache.AniDBFileRepository;
 import cache.PersistenceConfiguration;
 import config.CliConfiguration;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import picocli.CommandLine;
 import processing.tagsystem.TagSystem;
 import processing.tagsystem.TagSystemTags;
@@ -18,6 +16,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 @Slf4j
+@Builder
 @CommandLine.Command(name = "tags",
         mixinStandardHelpOptions = true,
         version = "1.0",
@@ -30,12 +29,13 @@ public class TagsCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-c", "--config"}, description = "The path to the config file. Specified parameters will override values from the config file.", required = false, scope = CommandLine.ScopeType.INHERIT)
     @Setter Path configPath;
 
-    @CommandLine.Option(names = {"--fid"}, description = "The file id to use for testing. Make sure it is already cached.", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "-1")
+    @CommandLine.Option(names = {"--fid"}, description = "The file id to use for testing. Make sure it is already cached.", required = true, scope = CommandLine.ScopeType.INHERIT, defaultValue = "-1")
     int fileId;
 
     @Getter
-    @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "aniAdd.sqlite")
-    Path dbPath;
+    @Builder.Default
+    @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", required = false, scope = CommandLine.ScopeType.INHERIT)
+    Path dbPath = Path.of("aniAdd.sqlite");
 
     @Override
     public Integer call() throws Exception {

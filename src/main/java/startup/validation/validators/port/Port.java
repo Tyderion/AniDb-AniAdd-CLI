@@ -16,4 +16,5 @@ public @interface Port {
      * {field} will be replaced with the field name
      */
     public String message() default "{field} must be between 1024 and 65535";
+    public boolean allowNull() default false;
 }

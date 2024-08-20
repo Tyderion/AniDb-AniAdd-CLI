@@ -64,7 +64,9 @@ public class AnidbCommand {
     @CommandLine.ParentCommand
     private CliCommand parent;
 
-    public CliConfiguration getConfiguration() {
+    @Getter(lazy = true)
+    private final CliConfiguration configuration = loadConfiguration();
+    private CliConfiguration loadConfiguration() {
         try {
             val content = Files.readString(configPath, StandardCharsets.UTF_8);
             if (content.contains("addToMylist")) {
