@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
-import startup.commands.util.BaseCommand;
+import startup.commands.util.CommandHelper;
 import startup.validation.validators.nonblank.NonBlank;
 import startup.validation.validators.port.Port;
 
@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @CommandLine.Command(name = "connect-to-kodi", mixinStandardHelpOptions = true, version = "1.0",
         description = "Connects to a kodi instance via websockets and marks watched episodes as watched on anidb as well. Filepath must contain 'anime' (configurable)")
-public class KodiWatcherCommand extends BaseCommand {
+public class KodiWatcherCommand implements Callable<Integer> {
     @Port(allowNull = true)
     @CommandLine.Option(names = {"--port"}, description = "The port to connect to")
     private Integer port;
@@ -43,6 +43,11 @@ public class KodiWatcherCommand extends BaseCommand {
         try (val executorService = Executors.newScheduledThreadPool(10);
              val sessionFactory = PersistenceConfiguration.getSessionFactory(parent.getDbPath());
              val filesystem = new DoOnFileSystem()) {
+            val configuration = parent.getConfiguration();
+            if (kodiUrl == null && (configuration.kodi().host() == null || configuration.kodi().host().isBlank())) {
+                log.error("No kodi host provided. Please provide a host in the config file or via the command line.");
+                return 1;
+            }
             val aniAddO = parent.initializeAniAdd(false, executorService, filesystem, null, sessionFactory);
             if (aniAddO.isEmpty()) {
                 executorService.shutdownNow();
@@ -67,5 +72,13 @@ public class KodiWatcherCommand extends BaseCommand {
 
 
         return 0;
+    }
+
+    public static List<String> getOptions() {
+        return CommandHelper.getOptions(KodiWatcherCommand.class);
+    }
+
+    public static String getName() {
+        return CommandHelper.getName(KodiWatcherCommand.class);
     }
 }

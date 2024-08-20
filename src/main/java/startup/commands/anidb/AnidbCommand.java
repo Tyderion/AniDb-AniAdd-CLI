@@ -15,6 +15,7 @@ import processing.EpisodeProcessing;
 import processing.FileHandler;
 import startup.commands.CliCommand;
 import startup.commands.anidb.debug.DebugCommand;
+import startup.commands.util.CommandHelper;
 import startup.validation.validators.min.Min;
 import startup.validation.validators.nonblank.NonBlank;
 import startup.validation.validators.port.Port;
@@ -26,7 +27,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
@@ -37,8 +40,8 @@ import java.util.concurrent.ScheduledExecutorService;
         version = "1.0",
         description = "AniDb handling")
 public class AnidbCommand {
-    @CommandLine.Option(names = {"-u", "--username"}, description = "The AniDB username", required = true, scope = CommandLine.ScopeType.INHERIT)
-    @NonBlank String username;
+    @CommandLine.Option(names = {"-u", "--username"}, description = "The AniDB username", required = false, scope = CommandLine.ScopeType.INHERIT)
+    @NonBlank(allowNull = true) String username;
 
     @CommandLine.Option(names = {"-p", "--password"}, description = "The AniDB password", required = true, scope = CommandLine.ScopeType.INHERIT)
     @NonBlank String password;
@@ -82,7 +85,13 @@ public class AnidbCommand {
     }
 
     public UdpApi getUdpApi(CliConfiguration configuration, ScheduledExecutorService executorService) {
-        return new UdpApi(executorService, localPort, username, password, configuration);
+        val username = this.username == null ? configuration.anidb().username() : this.username;
+        if (username == null) {
+            log.error("No username provided. Please provide a username in the config file or as a parameter.");
+            return null;
+        }
+
+        return new UdpApi(executorService, localPort,username, password, configuration);
     }
 
     public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService
@@ -123,5 +132,13 @@ public class AnidbCommand {
         }
 
         return Optional.of(aniAdd);
+    }
+
+    public static List<String> getOptions() {
+        return CommandHelper.getOptions(AnidbCommand.class, Set.of("password"));
+    }
+
+    public static String getName() {
+        return CommandHelper.getName(AnidbCommand.class);
     }
 }

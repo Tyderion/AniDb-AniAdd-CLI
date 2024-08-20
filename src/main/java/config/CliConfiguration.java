@@ -28,11 +28,15 @@ public class CliConfiguration {
     private PathConfig paths;
     private RunConfig run;
     private String tagSystem;
-    private KodiConfig kodi;
+    private KodiConfig kodi =  KodiConfig.builder().build();
 
     public void removeDefaults() {
         move.removeDefaults();
         anidb.removeDefaults();
+        this.kodi.removeDefaults();
+        if (this.kodi.isEmpty()) {
+            this.kodi = null;
+        }
     }
 
 
@@ -163,7 +167,20 @@ public class CliConfiguration {
         @Builder.Default
         private String host = "localhost";
         @Builder.Default
-        private int port = 9090;
+        private Integer port = 9090;
+
+        public boolean isEmpty() {
+            return host == null && port == null;
+        }
+
+        public void removeDefaults() {
+            if (host.equals("localhost")) {
+                host = null;
+            }
+            if (port == 9000) {
+                port = null;
+            }
+        }
     }
 
     @Getter
@@ -195,6 +212,7 @@ public class CliConfiguration {
         private String host = "api.anidb.net";
         @Builder.Default
         private Integer port = 9000;
+        private String username;
 
         @Builder.Default
         private CacheConfig cache = CacheConfig.builder().build();

@@ -5,10 +5,12 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
+import startup.commands.util.CommandHelper;
 import startup.validation.validators.min.Min;
 import startup.validation.validators.nonblank.NonBlank;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -47,5 +49,13 @@ public class WatchCommand implements Callable<Integer> {
             val _ = executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         }
         return 0;
+    }
+
+    public static List<String> getOptions() {
+        return CommandHelper.getOptions(WatchCommand.class);
+    }
+
+    public static String getName() {
+        return CommandHelper.getName(WatchCommand.class);
     }
 }

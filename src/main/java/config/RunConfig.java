@@ -1,8 +1,8 @@
 package config;
 
 import lombok.*;
-import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
+import startup.commands.anidb.*;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -13,15 +13,17 @@ import static config.RunConfig.Task.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RunConfig {
+    private static final String PARAM_NAME = "path";
     @Singular
     private Set<Task> tasks;
     private Map<String, String> args = new HashMap<>();
+    private String config;
 
     public enum Task {
         SCAN, WATCH, KODI
     }
 
-    public List<String> toCommandArgs(Path configPath) throws InvalidConfigException {
+    public List<String> toCommandArgs(Path runConfig) throws InvalidConfigException {
         if (tasks.isEmpty()) {
             throw new InvalidConfigException("No tasks specified in the config file.");
         }
@@ -29,7 +31,7 @@ public class RunConfig {
             log.warn("Both scan and watch tasks are enabled. Scan will be ignored as watch scans automatically.");
         }
         if (!Collections.disjoint(tasks, EnumSet.of(SCAN, WATCH))) {
-            if (!args.containsKey("path") || args.get("path").isBlank()) {
+            if (!args.containsKey(PARAM_NAME) || args.get(PARAM_NAME).isBlank()) {
                 throw new InvalidConfigException("No folder specified for scan or watch task.");
             }
         }
@@ -40,71 +42,59 @@ public class RunConfig {
             log.info("Both kodi (a persistent task) and scan (a non-persistent task) are enabled. The application will stay and listen to kodi");
         }
 
-        val arguments = createAnidbCommand(configPath);
+        val arguments = createAnidbCommand(runConfig.toString());
 
         if (tasks.contains(KODI)) {
             if (Collections.disjoint(tasks, EnumSet.of(WATCH, SCAN))) {
-                arguments.add("connect-to-kodi");
+                arguments.add(KodiWatcherCommand.getName());
+                addOptions(KodiWatcherCommand.getOptions(), arguments);
+                arguments.add(args.get(PARAM_NAME));
             } else {
-                arguments.add("watch-and-kodi");
-                arguments.add(args.get("path"));
+                arguments.add(WatchAndKodiCommand.getName());
+                addOptions(WatchAndKodiCommand.getOptions(), arguments);
+                arguments.add(args.get(PARAM_NAME));
             }
-            addKodiOptions(arguments);
         } else if (tasks.contains(SCAN)) {
-            arguments.add("scan");
-            arguments.add(args.get("path"));
+            arguments.add(ScanCommand.getName());
+            addOptions(ScanCommand.getOptions(), arguments);
+            arguments.add(args.get(PARAM_NAME));
         } else if (tasks.contains(WATCH)) {
-            arguments.add("watch");
-            arguments.add(args.get("path"));
-            addOption("interval", arguments);
+            arguments.add(WatchCommand.getName());
+            addOptions(WatchCommand.getOptions(), arguments);
+            arguments.add(args.get(PARAM_NAME));
         }
 
         return arguments;
     }
 
-    private List<String> createAnidbCommand(Path configPath) throws InvalidConfigException {
-        val anidbUsername = System.getenv("ANIDB_USERNAME");
-        val anidbPassword = System.getenv("ANIDB_PASSWORD");
-        if (anidbUsername == null || anidbUsername.isBlank() || anidbPassword == null || anidbPassword.isBlank()) {
-            throw new InvalidConfigException("No anidb username or password provided. Set the ANIDB_USERNAME and ANIDB_PASSWORD environment variables.");
+    private List<String> createAnidbCommand(String runConfig) throws InvalidConfigException {
+        val password = System.getenv("ANIDB_PASSWORD");
+        if (password == null) {
+            log.trace("ANIDB_PASSWORD environment variable not set.");
+            throw new InvalidConfigException("ANIDB_PASSWORD environment variable not set.");
         }
-        val args = new ArrayList<>(List.of("anidb", "-u", anidbUsername, "-p", anidbPassword, "-c", configPath.toString()));
-        addOption("localport", args);
-        addOption("max-retries", args);
-        addOption("db", args);
-        addBooleanOption("exit-on-ban", args);
-        return args;
+        args.put("username", System.getenv("ANIDB_USERNAME"));
+        if (config == null) {
+            log.info(STR."Run config does not contain a config file for the command. Using run config file ('\{runConfig}') as the config file for executing command.");
+            args.put("config", runConfig);
+        } else {
+            args.put("config", config);
+        }
+        val arguments = new ArrayList<>(List.of(AnidbCommand.getName()));
+        arguments.add(STR."--password=\{password}");
+        addOptions(AnidbCommand.getOptions(), arguments);
+        return arguments;
     }
 
-    private void addKodiOptions(List<String> args) throws InvalidConfigException {
-        val kodiUrl = System.getenv("KODI_HOST");
-        if (kodiUrl == null || kodiUrl.isBlank()) {
-            throw new InvalidConfigException("No kodi host provided. Set the KODI_HOST (and optionally KODI_PORT) environment variable.");
-        }
-        args.add("--kodi");
-        args.add(kodiUrl);
-        val kodiPort = System.getenv("KODI_PORT");
-        if (kodiPort != null && !kodiPort.isBlank()) {
-            args.add("--port");
-            args.add(kodiPort);
-        }
-        addOption("path-filter", args);
-        addOption("interval", args);
-    }
-
-    private void addBooleanOption(String name, List<String> arguments) {
-        if (args.containsKey(name)) {
-            arguments.add(STR."--\{name}");
-        }
+    private void addOptions(List<String> options, List<String> arguments) {
+        options.forEach(name -> addOption(name, arguments));
     }
 
     private void addOption(String name, List<String> arguments) {
-        if (args.containsKey(name)) {
-            arguments.add(STR."--\{name}");
-            arguments.add(args.get(name));
+        if (args.containsKey(name) && args.get(name) != null) {
+            arguments.add(STR."--\{name}=\{args.get(name)}");
         }
     }
-
 
     public static class InvalidConfigException extends Exception {
         public InvalidConfigException(String message) {
