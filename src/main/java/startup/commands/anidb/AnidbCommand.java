@@ -16,16 +16,13 @@ import processing.FileHandler;
 import startup.commands.CliCommand;
 import startup.commands.anidb.debug.DebugCommand;
 import startup.commands.util.CommandHelper;
+import startup.validation.config.ConfigMustBeNull;
 import startup.validation.validators.min.Min;
 import startup.validation.validators.nonblank.NonBlank;
 import startup.validation.validators.port.Port;
 import udpapi.UdpApi;
 import udpapi.reply.ReplyStatus;
-import utils.config.ConfigFileHandler;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +40,7 @@ public class AnidbCommand {
     @CommandLine.Option(names = {"-u", "--username"}, description = "The AniDB username", required = false, scope = CommandLine.ScopeType.INHERIT)
     @NonBlank(allowNull = true) String username;
 
+    @ConfigMustBeNull(configPath = "anidb.password", envVariableName = "ANIDB_PASSWORD")
     @CommandLine.Option(names = {"-p", "--password"}, description = "The AniDB password", required = true, scope = CommandLine.ScopeType.INHERIT)
     @NonBlank String password;
 
@@ -55,10 +53,6 @@ public class AnidbCommand {
     @CommandLine.Option(names = {"--exit-on-ban"}, description = "Exit the application if the user is banned", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "false")
     boolean exitOnBan;
 
-    @NonBlank
-    @CommandLine.Option(names = {"-c", "--config"}, description = "The path to the config file. Specified parameters will override values from the config file.", required = true, scope = CommandLine.ScopeType.INHERIT)
-    Path configPath;
-
     @Getter
     @NonBlank
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "aniAdd.sqlite")
@@ -66,23 +60,6 @@ public class AnidbCommand {
 
     @CommandLine.ParentCommand
     private CliCommand parent;
-
-    @Getter(lazy = true)
-    private final CliConfiguration configuration = loadConfiguration();
-    private CliConfiguration loadConfiguration() {
-        try {
-            val content = Files.readString(configPath, StandardCharsets.UTF_8);
-            if (content.contains("addToMylist")) {
-                log.error(STR."Old config detected. Please convert it with 'config convert' command.");
-                return null;
-            }
-        } catch (IOException e) {
-            log.error(STR."Error reading configuration file \{configPath}");
-            return null;
-        }
-        val handler = new ConfigFileHandler<>(CliConfiguration.class);
-        return handler.getConfiguration(configPath);
-    }
 
     public UdpApi getUdpApi(CliConfiguration configuration, ScheduledExecutorService executorService) {
         val username = this.username == null ? configuration.anidb().username() : this.username;
@@ -96,9 +73,9 @@ public class AnidbCommand {
 
     public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService
             executorService, DoOnFileSystem fileSystem, Path inputDirectory, SessionFactory sessionFactory) {
-        val config = getConfiguration();
+        val config = parent.getConfiguration();
         if (config == null) {
-            log.error(STR."No configuration loaded. Check the path to the config file. \{configPath}");
+            log.error(STR."No configuration loaded. Check the path to the config file. \{parent.getConfigPath()}");
             return Optional.empty();
         }
 
@@ -140,5 +117,9 @@ public class AnidbCommand {
 
     public static String getName() {
         return CommandHelper.getName(AnidbCommand.class);
+    }
+
+    public CliConfiguration getConfiguration() {
+        return parent.getConfiguration();
     }
 }

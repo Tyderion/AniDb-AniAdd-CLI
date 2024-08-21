@@ -81,6 +81,7 @@ public class RunConfig {
             log.trace("ANIDB_PASSWORD environment variable not set.");
             throw new InvalidConfigException("ANIDB_PASSWORD environment variable not set.");
         }
+        addOption("config", arguments);
         arguments.add(STR."--password=\{password}");
         addOptions(AnidbCommand.getOptions(), arguments);
         return arguments;

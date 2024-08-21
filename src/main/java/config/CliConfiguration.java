@@ -167,7 +167,8 @@ public class CliConfiguration {
         @Builder.Default
         private String host = "localhost";
         @Builder.Default
-        private Integer port = 9090;
+        private Integer port = null;
+        private String pathFilter = "anime";
 
         public boolean isEmpty() {
             return host == null && port == null;
@@ -213,6 +214,12 @@ public class CliConfiguration {
         @Builder.Default
         private Integer port = 9000;
         private String username;
+        /**
+         * Never used, just want to make the program fail if it is set in the config file.
+         * This is neither stored in nor loaded from the config file.
+         */
+        @Deprecated(since = "Always")
+        private String password;
 
         @Builder.Default
         private CacheConfig cache = CacheConfig.builder().build();
@@ -229,6 +236,7 @@ public class CliConfiguration {
         }
 
         public void removeDefaults() {
+            this.password = null;
             if (host.equals("api.anidb.net")) {
                 host = null;
             }

@@ -8,6 +8,7 @@ import lombok.val;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
 import startup.commands.util.CommandHelper;
+import startup.validation.config.OverrideConfig;
 import startup.validation.validators.nonblank.NonBlank;
 import startup.validation.validators.port.Port;
 
@@ -22,14 +23,16 @@ import java.util.concurrent.TimeUnit;
         description = "Connects to a kodi instance via websockets and marks watched episodes as watched on anidb as well. Filepath must contain 'anime' (configurable)")
 public class KodiWatcherCommand implements Callable<Integer> {
     @Port(allowNull = true)
-    @CommandLine.Option(names = {"--port"}, description = "The port to connect to")
+    @OverrideConfig(configPath = "kodi.port")
+    @CommandLine.Option(names = {"--port"}, required = true, description = "The port to connect to")
     private Integer port;
 
+    @OverrideConfig(configPath = "kodi.host", required = true)
     @NonBlank(allowNull = true)
     @CommandLine.Option(names = {"--kodi"}, description = "The ip/hostname of the kodi server.")
     private String kodiUrl;
 
-    @CommandLine.Option(names = {"--path-filter"}, description = "The path filter to use to detect anime files. Default is 'anime'. Case insensitive.", defaultValue = "anime")
+    @CommandLine.Option(names = {"--path-filter"}, description = "The path filter to use to detect anime files. Default is 'anime'. Case insensitive.")
     private String pathFilter;
 
     @CommandLine.ParentCommand
