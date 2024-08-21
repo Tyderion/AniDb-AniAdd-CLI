@@ -16,7 +16,7 @@ import processing.FileHandler;
 import startup.commands.CliCommand;
 import startup.commands.anidb.debug.DebugCommand;
 import startup.commands.util.CommandHelper;
-import startup.validation.config.ConfigMustBeNull;
+import startup.validation.validators.config.ConfigMustBeNull;
 import startup.validation.validators.min.Min;
 import startup.validation.validators.nonblank.NonBlank;
 import startup.validation.validators.port.Port;

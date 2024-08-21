@@ -4,7 +4,7 @@ import config.RunConfig;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
-import startup.validation.ValidatingFallbackExecutionStrategy;
+import startup.validation.ConfigValidatingExecutionStrategy;
 import utils.config.SecretsLoader;
 
 import java.util.concurrent.Callable;
@@ -31,7 +31,7 @@ public class RunCommand implements Callable<Integer> {
         try {
             val command = config.run().toCommandArgs(parent.getConfigPath(), new SecretsLoader());
             return new picocli.CommandLine(new CliCommand())
-                    .setExecutionStrategy(new ValidatingFallbackExecutionStrategy())
+                    .setExecutionStrategy(new ConfigValidatingExecutionStrategy())
                     .execute(command.toArray(String[]::new));
         } catch (RunConfig.InvalidConfigException e) {
             log.error(STR."Invalid run configuration: \{e.getMessage()}");

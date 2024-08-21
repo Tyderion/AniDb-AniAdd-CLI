@@ -1,7 +1,12 @@
 package startup.validation.validators;
 
+import config.CliConfiguration;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
+import startup.validation.validators.config.ConfigMustBeNull;
+import startup.validation.validators.config.ConfigMustBeNullValidator;
+import startup.validation.validators.config.OverrideConfig;
+import startup.validation.validators.config.OverrideConfigValidator;
 import startup.validation.validators.max.Max;
 import startup.validation.validators.max.MaxValidator;
 import startup.validation.validators.min.Min;
@@ -29,9 +34,39 @@ public final class ValidationHelpers {
     private static final Map<Class<? extends Annotation>, Map<Class, IValidator>> validators = Map.of(
             NonBlank.class, Map.of(String.class, new NonBlankStringValidator(), Path.class, new NonBlankPathValidator()),
             Max.class, Map.of(Number.class, new MaxValidator()),
-            Min.class, Map.of(Number.class,new MinValidator()),
-            Port.class, Map.of(Number.class,new PortValidator())
+            Min.class, Map.of(Number.class, new MinValidator()),
+            Port.class, Map.of(Number.class, new PortValidator())
     );
+
+    @SuppressWarnings("rawtypes")
+    private static final Map<Class<? extends Annotation>, Map<Class, Class<? extends ConfigValidator>>> configValidators = Map.of(
+            ConfigMustBeNull.class, Map.of(Object.class, ConfigMustBeNullValidator.class),
+            OverrideConfig.class, Map.of(Object.class, OverrideConfigValidator.class)
+    );
+
+    @NotNull
+    public static Optional<String> validateAndUpdateConfig(CliConfiguration configuration, Field field, Object spec, Class<? extends Annotation> annotationClass) {
+        if (field.isAnnotationPresent(annotationClass)) {
+            val annotation = field.getAnnotation(annotationClass);
+            field.setAccessible(true);
+            try {
+                val validator = configValidators.get(annotationClass);
+                if (validator.containsKey(field.getType())) {
+                    val configValidator = validator.get(field.getType()).getDeclaredConstructor(CliConfiguration.class).newInstance(configuration);
+                    return configValidator.validate(annotation, field, spec, spec.getClass());
+                }
+                if (validator.containsKey(Object.class)) {
+                    val configValidator = validator.get(Object.class).getDeclaredConstructor(CliConfiguration.class).newInstance(configuration);
+                    return configValidator.validate(annotation, field, spec, spec.getClass());
+                }
+
+            } catch (IllegalAccessException | NoSuchMethodException | InstantiationException |
+                     InvocationTargetException e) {
+                return Optional.of(STR."Field \{field.getName()} in class \{spec.getClass().getSimpleName()} has config fallback '\{annotationClass.getSimpleName()}' but there is an error using the specified value: \{e.getMessage()}");
+            }
+        }
+        return Optional.empty();
+    }
 
     @NotNull
     public static Optional<String> validate(Field field, Object spec, Class<? extends Annotation> annotationClass) {
@@ -49,6 +84,11 @@ public final class ValidationHelpers {
                     }
                     if (Number.class.isAssignableFrom(field.getType()) && validator.containsKey(Number.class)) {
                         if (!validator.get(Number.class).validate(value, annotation)) {
+                            return Optional.of(ValidationHelpers.getValidationMessage(annotation, field.getName()));
+                        }
+                    }
+                    if (validator.containsKey(Object.class)) {
+                        if (!validator.get(Object.class).validate(value, annotation)) {
                             return Optional.of(ValidationHelpers.getValidationMessage(annotation, field.getName()));
                         }
                     }

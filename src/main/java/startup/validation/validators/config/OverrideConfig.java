@@ -1,4 +1,4 @@
-package startup.validation.config;
+package startup.validation.validators.config;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

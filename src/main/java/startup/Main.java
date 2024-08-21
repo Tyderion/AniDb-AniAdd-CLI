@@ -1,7 +1,7 @@
 package startup;
 
 import startup.commands.CliCommand;
-import startup.validation.ValidatingFallbackExecutionStrategy;
+import startup.validation.ConfigValidatingExecutionStrategy;
 
 public class Main {
 
@@ -11,7 +11,7 @@ public class Main {
 
     public static void main(String[] args) {
         new picocli.CommandLine(new CliCommand())
-                .setExecutionStrategy(new ValidatingFallbackExecutionStrategy())
+                .setExecutionStrategy(new ConfigValidatingExecutionStrategy())
                 .execute(args);
     }
 }
