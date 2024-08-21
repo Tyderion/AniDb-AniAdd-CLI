@@ -23,12 +23,12 @@ import java.util.concurrent.TimeUnit;
         description = "Connects to a kodi instance via websockets and marks watched episodes as watched on anidb as well. Filepath must contain 'anime' (configurable)")
 public class KodiWatcherCommand implements Callable<Integer> {
     @Port(allowNull = true)
-    @OverrideConfig(configPath = "kodi.port")
+    @OverrideConfig(configPath = "kodi.port", envVariableName = "KODI_PORT", required = true)
     @CommandLine.Option(names = {"--port"}, required = true, description = "The port to connect to")
     private Integer port;
 
-    @OverrideConfig(configPath = "kodi.host", required = true)
     @NonBlank(allowNull = true)
+    @OverrideConfig(configPath = "kodi.host", envVariableName = "KODI_HOST", required = true)
     @CommandLine.Option(names = {"--kodi"}, description = "The ip/hostname of the kodi server.")
     private String kodiUrl;
 

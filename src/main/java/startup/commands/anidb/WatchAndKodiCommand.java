@@ -7,6 +7,7 @@ import lombok.val;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
 import startup.commands.util.CommandHelper;
+import startup.validation.validators.config.OverrideConfig;
 import startup.validation.validators.min.Min;
 import startup.validation.validators.nonblank.NonBlank;
 import startup.validation.validators.port.Port;
@@ -22,12 +23,15 @@ import java.util.concurrent.TimeUnit;
 @CommandLine.Command(name = "watch-and-kodi", mixinStandardHelpOptions = true, version = "1.0",
         description = "Watches a folder to scan and also connects to a kodi instance via websockets and marks watched episodes as watched on anidb as well. Filepath must contain 'anime' (configurable)")
 public class WatchAndKodiCommand implements Callable<Integer> {
+    @OverrideConfig(configPath = "kodi.port", envVariableName = "KODI_PORT", required = true)
     @CommandLine.Option(names = {"--port"}, description = "The port to connect to")
-    @Port(allowNull = true) private int port;
+    @Port private int port;
 
-    @CommandLine.Option(names = {"--kodi"}, description = "The ip/hostname of the kodi server.", required = true)
+    @OverrideConfig(configPath = "kodi.host", envVariableName = "KODI_HOST", required = true)
+    @CommandLine.Option(names = {"--kodi"}, description = "The ip/hostname of the kodi server.")
     @NonBlank private String kodiUrl;
 
+    @OverrideConfig(configPath = "kodi.pathFilter")
     @CommandLine.Option(names = {"--path-filter"}, description = "The path filter to use to detect anime files. Default is 'anime'. Case insensitive.", defaultValue = "anime")
     private String pathFilter;
 

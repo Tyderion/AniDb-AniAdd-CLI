@@ -8,6 +8,7 @@ import java.lang.annotation.Target;
 @Target({java.lang.annotation.ElementType.FIELD})
 public @interface OverrideConfig {
     String configPath() ;
+    String envVariableName() default "";
     boolean required() default false;
 }
 

@@ -17,6 +17,7 @@ public class OverrideConfigValidator extends ConfigValidator<Object, OverrideCon
     public Optional<String> validate(OverrideConfig annotation, Field field, Object command, Class<?> commandClass) {
         try {
             field.setAccessible(true);
+            overrideValue(annotation.configPath(), System.getenv(annotation.envVariableName()));
             val finalValue = overrideValue(annotation.configPath(), field, command);
             if (finalValue != null || !annotation.required()) {
                 return Optional.empty();
