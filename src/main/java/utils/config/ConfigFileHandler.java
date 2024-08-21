@@ -6,8 +6,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 
@@ -19,7 +20,16 @@ public class ConfigFileHandler<T> {
     private final ConfigFileParser<T> configParser = new ConfigFileParser<>(clazz);
 
     public T getConfiguration(Path path) {
-        return getConfigParser().loadFromFile(path);
+        if (path == null || path.toString().isBlank()) {
+            return null;
+        }
+        try {
+            val input = new FileInputStream(path.toFile());
+            return getConfigParser().load(input);
+        } catch (FileNotFoundException e) {
+            log.error(STR."File not found at: \{path}");
+            return null;
+        }
     }
 
     public Optional<T> getConfiguration(Path path, boolean useDefault) {
@@ -39,7 +49,11 @@ public class ConfigFileHandler<T> {
 
     public void saveTo(Path path, T configuration) {
         try {
-            getConfigParser().saveToFile(path, configuration, true);
+            if (!Files.exists(path)) {
+                Writer writer = new BufferedWriter(new FileWriter(path.toFile()));
+                log.info(STR."Saving config to file: \{path.toAbsolutePath()}");
+                getConfigParser().dump(configuration, writer);
+            }
         } catch (IOException e) {
             log.warn(STR."Could not write config to file: \{path}");
         }
