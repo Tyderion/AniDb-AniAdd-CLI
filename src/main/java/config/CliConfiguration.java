@@ -229,8 +229,7 @@ public class CliConfiguration {
         @Builder.Default
         private Integer port = 9000;
         private String username;
-        private Path db;
-        private Integer localPort;
+        private Integer localPort =  3333;
 
         @Builder.Default
         private Boolean exitOnBan = false;
@@ -253,7 +252,7 @@ public class CliConfiguration {
             @Builder.Default
             private int ttlInDays = 30;
             @Builder.Default
-            private String fileName = "aniAdd.sqlite";
+            private Path db = Path.of("aniAdd.sqlite");
         }
 
         public void removeDefaults() {

@@ -32,6 +32,7 @@ public class KodiWatcherCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"--kodi"}, description = "The ip/hostname of the kodi server.")
     private String kodiUrl;
 
+    @OverridesConfig(configPath = "kodi.pathFilter")
     @CommandLine.Option(names = {"--path-filter"}, description = "The path filter to use to detect anime files. Default is 'anime'. Case insensitive.")
     private String pathFilter;
 

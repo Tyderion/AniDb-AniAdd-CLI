@@ -37,8 +37,8 @@ import java.util.concurrent.ScheduledExecutorService;
         version = "1.0",
         description = "AniDb handling")
 public class AnidbCommand {
-    @OverridesConfig(configPath = "anidb.username", envVariableName = "ANIDB_USERNAME")
-    @CommandLine.Option(names = {"-u", "--username"}, description = "The AniDB username", required = false, scope = CommandLine.ScopeType.INHERIT)
+    @OverridesConfig(configPath = "anidb.username", envVariableName = "ANIDB_USERNAME", required = true)
+    @CommandLine.Option(names = {"-u", "--username"}, description = "The AniDB username", scope = CommandLine.ScopeType.INHERIT)
     @NonBlank String username;
 
     @ConfigMustBeNull(configPath = "anidb.password", envVariableName = "ANIDB_PASSWORD", required = true)
@@ -46,17 +46,17 @@ public class AnidbCommand {
     @NonBlank String password;
 
     @OverridesConfig(configPath = "anidb.localPort")
-    @CommandLine.Option(names = {"--localport"}, description = "The local port to use to connect to anidb", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "3333")
+    @CommandLine.Option(names = {"--localport"}, description = "The local port to use to connect to anidb", scope = CommandLine.ScopeType.INHERIT)
     @Port int localPort;
 
     @OverridesConfig(configPath = "anidb.exitOnBan")
-    @CommandLine.Option(names = {"--exit-on-ban"}, description = "Exit the application if the user is banned", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "false")
+    @CommandLine.Option(names = {"--exit-on-ban"}, description = "Exit the application if the user is banned", scope = CommandLine.ScopeType.INHERIT)
     boolean exitOnBan;
 
     @Getter
     @NonBlank
-    @OverridesConfig(configPath = "anidb.db")
-    @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", required = false, scope = CommandLine.ScopeType.INHERIT, defaultValue = "aniAdd.sqlite")
+    @OverridesConfig(configPath = "anidb.cache.db")
+    @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", scope = CommandLine.ScopeType.INHERIT)
     Path dbPath;
 
     @CommandLine.ParentCommand

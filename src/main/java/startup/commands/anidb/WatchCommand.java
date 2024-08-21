@@ -19,13 +19,13 @@ import java.util.concurrent.TimeUnit;
 @CommandLine.Command(name = "watch", mixinStandardHelpOptions = true, version = "1.0",
         description = "Periodically scans the directory for files and adds them to AniDb")
 public class WatchCommand implements Callable<Integer> {
-    @NonBlank
-    @CommandLine.Parameters(index = "0", description = "The directory to scan.")
-    private Path directory;
-
     @Min(value = 10, message = "Interval must be at least 10 minutes")
     @CommandLine.Option(names = {"-i", "--interval"}, description = "The interval in minutes to scan the directory", defaultValue = "30")
     private int interval;
+
+    @NonBlank
+    @CommandLine.Parameters(index = "0", description = "The directory to scan.")
+    private Path directory;
 
     @CommandLine.ParentCommand
     private AnidbCommand parent;
