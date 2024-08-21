@@ -62,20 +62,20 @@ public class CliConfiguration {
         @NoArgsConstructor
         @AllArgsConstructor
         public static class Single {
-            private String path;
+            private Path path;
             private String tagSystemName;
         }
 
         public Optional<Path> getEpisodePath(Path relativePath) {
             return tvShowFolders.stream()
-                    .map(folder -> Path.of(folder.path()).resolve(relativePath))
+                    .map(folder -> folder.path().resolve(relativePath))
                     .filter(Files::exists)
                     .findFirst();
         }
 
         public Optional<Path> getMoviePath(Path relativePath) {
             return movieFolders.stream()
-                    .map(folder -> Path.of(folder.path()).resolve(relativePath))
+                    .map(folder -> folder.path().resolve(relativePath))
                     .filter(Files::exists)
                     .findFirst();
         }
@@ -89,7 +89,7 @@ public class CliConfiguration {
     public static class MoveConfig {
         @Builder.Default
         Mode mode = MoveConfig.Mode.NONE;
-        private String folder;
+        private Path folder;
         private boolean deleteEmptyDirs;
 
         @Builder.Default
@@ -106,7 +106,7 @@ public class CliConfiguration {
             if (this.unknown.isDefault()) {
                 this.unknown = null;
             }
-            if (this.folder != null && this.folder.isBlank()) {
+            if (this.folder != null && this.folder.toString().isBlank()) {
                 this.folder = null;
             }
         }
@@ -125,7 +125,7 @@ public class CliConfiguration {
         public static class HandlingConfig {
             @Builder.Default
             private Mode mode = Mode.IGNORE;
-            private String folder;
+            private Path folder;
 
             public enum Mode {
                 MOVE, DELETE, IGNORE
@@ -136,7 +136,7 @@ public class CliConfiguration {
             }
 
             public void removeDefaults() {
-                if (folder != null && folder.isBlank()) {
+                if (folder != null && folder.toString().isBlank()) {
                     folder = null;
                 }
             }
@@ -148,8 +148,8 @@ public class CliConfiguration {
         @NoArgsConstructor
         @AllArgsConstructor
         public static class FolderConfig {
-            private String tvshows;
-            private String movies;
+            private Path tvshows;
+            private Path movies;
         }
     }
 
@@ -229,6 +229,7 @@ public class CliConfiguration {
         @Builder.Default
         private Integer port = 9000;
         private String username;
+        @Builder.Default
         private Integer localPort =  3333;
 
         @Builder.Default

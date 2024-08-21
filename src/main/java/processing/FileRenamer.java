@@ -57,7 +57,7 @@ public class FileRenamer {
                     } else if (duplicateConfig.mode() == CliConfiguration.MoveConfig.HandlingConfig.Mode.MOVE) {
                         val oldFilename = procFile.getFile().getName();
                         val subFolderWithFile = targetFilePath.subpath(targetFilePath.getNameCount() - 2, targetFilePath.getNameCount());
-                        val targetPath = Paths.get(duplicateConfig.folder()).resolve(subFolderWithFile);
+                        val targetPath = duplicateConfig.folder().resolve(subFolderWithFile);
                         fileHandler.renameFile(procFile.getFile().toPath(), targetPath);
                         if (renameConfig.related()) {
                             renameRelatedFiles(procFile, oldFilename, targetPath.getFileName().toString(), targetPath.getParent());
@@ -137,7 +137,7 @@ public class FileRenamer {
 
         if (moveConfig.mode() == CliConfiguration.MoveConfig.Mode.FOLDER) {
             val moveToFolder = moveConfig.folder();
-            return Pair.of(moveToFolder.isEmpty() ? procFile.getFile().getParentFile().toPath() : Paths.get(moveToFolder), null);
+            return Pair.of(moveToFolder == null || moveToFolder.toString().isBlank() ? procFile.getFile().getParentFile().toPath() : moveToFolder, null);
         }
 
         val tagSystemResult = getPathFromTagSystem(procFile);
@@ -155,7 +155,7 @@ public class FileRenamer {
             throw new Exception("Pathname too long. Check your tag system code or your base folders.");
         }
 
-        val targetFolder = Paths.get(pathName);
+        val targetFolder = Path.of(pathName);
         if (!targetFolder.isAbsolute()) {
             log.warn(STR."Folderpath for moving from TagSystem needs to be absolute but is \{targetFolder.toString()}");
             return Pair.of(null, tagSystemResult);

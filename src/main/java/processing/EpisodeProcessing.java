@@ -203,7 +203,9 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             ) {
                 fileSystem.run(() -> {
                     File currentFile = procFile.getFile();
-                    val unknownTargetPath = Paths.get(procFile.getConfiguration().move().unknown().folder(), currentFile.getParentFile().getName(), currentFile.getName());
+                    val unknownTargetPath = procFile.getConfiguration().move().unknown().folder()
+                            .resolve(currentFile.getParentFile().getName())
+                            .resolve(currentFile.getName());
                     fileHandler.renameFile(currentFile.toPath(), unknownTargetPath);
                     nextStep(FileAction.FileCmd, procFile);
                 });

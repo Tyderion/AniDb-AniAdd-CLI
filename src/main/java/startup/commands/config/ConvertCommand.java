@@ -74,14 +74,14 @@ public class ConvertCommand implements Callable<Integer> {
         if (config.getMovieFolder() != null && !config.getMovieFolder().isBlank()) {
             builder.movieFolder(PathConfig.Single.builder()
                     .tagSystemName("BaseMoviePath")
-                    .path(config.getMovieFolder())
+                    .path(Path.of(config.getMovieFolder()))
                     .build());
             hasPaths = true;
         }
         if (config.getTvShowFolder() != null && !config.getTvShowFolder().isBlank()) {
             builder.tvShowFolder(PathConfig.Single.builder()
                     .tagSystemName("BaseTVShowPath")
-                    .path(config.getTvShowFolder())
+                    .path(Path.of(config.getTvShowFolder()))
                     .build());
             hasPaths = true;
         }
@@ -98,15 +98,15 @@ public class ConvertCommand implements Callable<Integer> {
         }
         return MoveConfig.builder()
                 .mode(type)
-                .folder(config.getMoveToFolder())
+                .folder(Path.of(config.getMoveToFolder()))
                 .deleteEmptyDirs(config.isRecursivelyDeleteEmptyFolders())
                 .duplicates(HandlingConfig.builder()
                         .mode(getDuplicatesType(config))
-                        .folder(config.getDuplicatesFolder())
+                        .folder(Path.of(config.getDuplicatesFolder()))
                         .build())
                 .unknown(HandlingConfig.builder()
                         .mode(getUnknownType(config))
-                        .folder(config.getUnknownFolder())
+                        .folder(Path.of(config.getUnknownFolder()))
                         .build())
                 .build();
     }

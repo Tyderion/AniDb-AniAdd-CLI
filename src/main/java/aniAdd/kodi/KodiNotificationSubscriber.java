@@ -156,7 +156,7 @@ public class KodiNotificationSubscriber extends WebSocketClient {
             log.warn(STR."Could not split path '\{file}'");
             return Optional.empty();
         }
-        val relativePath = Paths.get(pathParts[pathParts.length - 2], pathParts[pathParts.length - 1]);
+        val relativePath = Path.of(pathParts[pathParts.length - 2], pathParts[pathParts.length - 1]);
         return type == VideoLibraryUpdateParams.Type.EPISODE ? config.getEpisodePath(relativePath) : config.getMoviePath(relativePath);
     }
 

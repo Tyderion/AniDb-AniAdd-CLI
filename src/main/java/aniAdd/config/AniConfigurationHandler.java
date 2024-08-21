@@ -49,6 +49,6 @@ public final class AniConfigurationHandler extends ConfigFileHandler<AniConfigur
 
     private static String readFile(String path, Charset encoding)
             throws IOException {
-        return String.join("\n", Files.readAllLines(Paths.get(path), encoding));
+        return String.join("\n", Files.readAllLines(Path.of(path), encoding));
     }
 }

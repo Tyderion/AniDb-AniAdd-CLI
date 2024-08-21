@@ -35,12 +35,12 @@ mylist:
 ```yaml
 anidb:
   cache:
-    filename: aniadd.sqlite
+    db: aniadd.sqlite
     ttlInDays: 31
 ```
 
 - `cache`: Cache configuration
-    - `filename`: Cache filename
+    - `db`: Cache file path
     - `ttlInDays`: Time to live in
 
 #### Rename
