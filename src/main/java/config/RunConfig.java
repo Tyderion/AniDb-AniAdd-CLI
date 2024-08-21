@@ -48,7 +48,6 @@ public class RunConfig {
             if (Collections.disjoint(tasks, EnumSet.of(WATCH, SCAN))) {
                 arguments.add(KodiWatcherCommand.getName());
                 addOptions(KodiWatcherCommand.getOptions(), arguments);
-                arguments.add(args.get(PARAM_NAME));
             } else {
                 arguments.add(WatchAndKodiCommand.getName());
                 addOptions(WatchAndKodiCommand.getOptions(), arguments);
