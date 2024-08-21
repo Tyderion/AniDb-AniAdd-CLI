@@ -18,7 +18,6 @@ public class RunConfig {
     @Singular
     private Set<Task> tasks;
     private Map<String, String> args = new HashMap<>();
-    private String config;
 
     public enum Task {
         SCAN, WATCH, KODI
@@ -42,59 +41,31 @@ public class RunConfig {
         if (Collections.disjoint(tasks, EnumSet.of(KODI, SCAN))) {
             log.info("Both kodi (a persistent task) and scan (a non-persistent task) are enabled. The application will stay and listen to kodi");
         }
+        if (args.containsKey("password")) {
+            throw new InvalidConfigException("Password must not be provided in the config file. Use the command line or env instead.");
+        }
 
-        val arguments = createAnidbCommand(runConfig.toString(), secrets);
+        val arguments = new ArrayList<>(List.of(AnidbCommand.getName()));
+        val parameter = args.remove(PARAM_NAME);
 
         if (tasks.contains(KODI)) {
             if (Collections.disjoint(tasks, EnumSet.of(WATCH, SCAN))) {
                 arguments.add(KodiWatcherCommand.getName());
-                addOptions(KodiWatcherCommand.getOptions(), arguments);
             } else {
                 arguments.add(WatchAndKodiCommand.getName());
-                addOptions(WatchAndKodiCommand.getOptions(), arguments);
-                arguments.add(args.get(PARAM_NAME));
+                arguments.add(parameter);
             }
         } else if (tasks.contains(WATCH)) {
             arguments.add(WatchCommand.getName());
-            addOptions(WatchCommand.getOptions(), arguments);
-            arguments.add(args.get(PARAM_NAME));
+            arguments.add(parameter);
         } else if (tasks.contains(SCAN)) {
             arguments.add(ScanCommand.getName());
-            addOptions(ScanCommand.getOptions(), arguments);
-            arguments.add(args.get(PARAM_NAME));
+            arguments.add(parameter);
         }
+        args.forEach((name, value) -> arguments.add(STR."--\{name}=\{value}"));
+        arguments.add(STR."--config=\{runConfig.toAbsolutePath()}");
 
         return arguments;
-    }
-
-    private List<String> createAnidbCommand(String runConfig, SecretsLoader secrets) throws InvalidConfigException {
-        val arguments = new ArrayList<>(List.of(AnidbCommand.getName()));
-        args.put("username", secrets.getSecret("ANIDB_USERNAME"));
-        if (config == null) {
-            log.info(STR."Run config does not contain a config file for the command. Using run config file ('\{runConfig}') as the config file for executing command.");
-            args.put("config", runConfig);
-        } else {
-            args.put("config", config);
-        }
-        val password = secrets.getSecret("ANIDB_PASSWORD");
-        if (password == null) {
-            log.trace("ANIDB_PASSWORD environment variable not set.");
-            throw new InvalidConfigException("ANIDB_PASSWORD environment variable not set.");
-        }
-        addOption("config", arguments);
-        arguments.add(STR."--password=\{password}");
-        addOptions(AnidbCommand.getOptions(), arguments);
-        return arguments;
-    }
-
-    private void addOptions(List<String> options, List<String> arguments) {
-        options.forEach(name -> addOption(name, arguments));
-    }
-
-    private void addOption(String name, List<String> arguments) {
-        if (args.containsKey(name) && args.get(name) != null) {
-            arguments.add(STR."--\{name}=\{args.get(name)}");
-        }
     }
 
     public static class InvalidConfigException extends Exception {

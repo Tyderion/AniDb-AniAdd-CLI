@@ -9,11 +9,11 @@ import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.inspector.TagInspector;
 import org.yaml.snakeyaml.introspector.BeanAccess;
 import org.yaml.snakeyaml.introspector.Property;
-import org.yaml.snakeyaml.nodes.NodeTuple;
-import org.yaml.snakeyaml.nodes.Tag;
+import org.yaml.snakeyaml.nodes.*;
 import org.yaml.snakeyaml.representer.Representer;
 
 import java.io.*;
+import java.nio.file.Path;
 
 @Slf4j
 public class ConfigFileParser<T> {
@@ -45,7 +45,7 @@ public class ConfigFileParser<T> {
         };
         representer.getPropertyUtils().setSkipMissingProperties(true);
 
-        mYaml = new Yaml(new Constructor(clazz, loaderoptions), representer, options);
+        mYaml = new Yaml(new CliConfigConstructor(clazz, loaderoptions), representer, options);
         mYaml.setBeanAccess(BeanAccess.FIELD);
     }
 
@@ -57,4 +57,19 @@ public class ConfigFileParser<T> {
         mYaml.dump(configuration, output);
     }
 
+    private class CliConfigConstructor extends Constructor {
+
+        public CliConfigConstructor(Class<T> clazz, LoaderOptions loaderoptions) {
+            super(clazz, loaderoptions);
+            this.yamlClassConstructors.put(NodeId.scalar, new ConstructScalar() {
+                @Override
+                public Object construct(Node node) {
+                    if (Path.class == node.getType()) {
+                        return Path.of(((ScalarNode) node).getValue());
+                    }
+                    return super.construct(node);
+                }
+            });
+        }
+    }
 }

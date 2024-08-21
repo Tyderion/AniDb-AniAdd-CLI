@@ -8,7 +8,7 @@ import lombok.val;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
 import startup.commands.util.CommandHelper;
-import startup.validation.validators.config.OverrideConfig;
+import startup.validation.validators.config.OverridesConfig;
 import startup.validation.validators.nonblank.NonBlank;
 import startup.validation.validators.port.Port;
 
@@ -22,13 +22,13 @@ import java.util.concurrent.TimeUnit;
 @CommandLine.Command(name = "connect-to-kodi", mixinStandardHelpOptions = true, version = "1.0",
         description = "Connects to a kodi instance via websockets and marks watched episodes as watched on anidb as well. Filepath must contain 'anime' (configurable)")
 public class KodiWatcherCommand implements Callable<Integer> {
-    @Port(allowNull = true)
-    @OverrideConfig(configPath = "kodi.port", envVariableName = "KODI_PORT", required = true)
-    @CommandLine.Option(names = {"--port"}, required = true, description = "The port to connect to")
+    @Port
+    @OverridesConfig(configPath = "kodi.port", envVariableName = "KODI_PORT", required = true)
+    @CommandLine.Option(names = {"--port"}, description = "The port to connect to")
     private Integer port;
 
     @NonBlank(allowNull = true)
-    @OverrideConfig(configPath = "kodi.host", envVariableName = "KODI_HOST", required = true)
+    @OverridesConfig(configPath = "kodi.host", envVariableName = "KODI_HOST", required = true)
     @CommandLine.Option(names = {"--kodi"}, description = "The ip/hostname of the kodi server.")
     private String kodiUrl;
 
@@ -37,7 +37,6 @@ public class KodiWatcherCommand implements Callable<Integer> {
 
     @CommandLine.ParentCommand
     private AnidbCommand parent;
-
 
     @Override
     public Integer call() throws Exception {

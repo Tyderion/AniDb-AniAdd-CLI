@@ -18,18 +18,17 @@ public class ConfigMustBeNullValidator extends ConfigValidator<Object, ConfigMus
         try {
             val currentValue = getCurrentValue(annotation.configPath());
             if (currentValue != null) {
-                ;
                 return Optional.of(STR."Config value \{annotation.configPath()} must be null but is not. Please remove the value from the config file and use either command line argument \{getCommandLineArgumentName(field)} or env variable \{annotation.envVariableName()} to provide the value.");
             }
             field.setAccessible(true);
-            overrideValue(annotation.configPath(), System.getenv(annotation.envVariableName()));
-            val finalValue = overrideValue(annotation.configPath(), field.get(command));
+            overrideValue(annotation.configPath(), field, command, System.getenv(annotation.envVariableName()));
+            val finalValue = overrideValue(annotation.configPath(), field, command, field.get(command));
             if (finalValue != null || !annotation.required()) {
                 return Optional.empty();
             }
             return Optional.of(STR."Required argument \{annotation.configPath()} is required but neither the command line argument \{getCommandLineArgumentName(field)} or env variable \{annotation.envVariableName()} is set");
 
-        } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+        } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException | NoSuchFieldException e) {
             return Optional.of(STR."Field \{field.getName()} in class \{commandClass.getSimpleName()} has config fallback '\{annotation.configPath()}' but there is an error using the specified value: \{e.getMessage()}");
         }
     }

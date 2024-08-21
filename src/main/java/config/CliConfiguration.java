@@ -10,7 +10,8 @@ import java.util.List;
 import java.util.Optional;
 
 @Slf4j
-@Getter
+
+    @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -28,7 +29,9 @@ public class CliConfiguration {
     private PathConfig paths;
     private RunConfig run;
     private String tagSystem;
-    private KodiConfig kodi =  KodiConfig.builder().build();
+
+    @Builder.Default
+    private KodiConfig kodi = KodiConfig.builder().build();
 
     public void removeDefaults() {
         move.removeDefaults();
@@ -37,10 +40,13 @@ public class CliConfiguration {
         if (this.kodi.isEmpty()) {
             this.kodi = null;
         }
+
+        this.anidb().exitOnBan(false);
     }
 
 
-    @Getter
+
+    @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
@@ -50,7 +56,8 @@ public class CliConfiguration {
         @Singular
         private List<Single> movieFolders;
 
-        @Getter
+
+    @Data
         @Builder
         @NoArgsConstructor
         @AllArgsConstructor
@@ -74,7 +81,8 @@ public class CliConfiguration {
         }
     }
 
-    @Getter
+
+    @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
@@ -109,7 +117,8 @@ public class CliConfiguration {
             NONE
         }
 
-        @Getter
+
+    @Data
         @Builder
         @NoArgsConstructor
         @AllArgsConstructor
@@ -133,7 +142,8 @@ public class CliConfiguration {
             }
         }
 
-        @Getter
+
+    @Data
         @Builder
         @NoArgsConstructor
         @AllArgsConstructor
@@ -143,7 +153,8 @@ public class CliConfiguration {
         }
     }
 
-    @Getter
+
+    @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
@@ -159,7 +170,8 @@ public class CliConfiguration {
         }
     }
 
-    @Getter
+
+    @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
@@ -167,7 +179,8 @@ public class CliConfiguration {
         @Builder.Default
         private String host = "localhost";
         @Builder.Default
-        private Integer port = null;
+        private Integer port = 9090;
+        @Builder.Default
         private String pathFilter = "anime";
 
         public boolean isEmpty() {
@@ -184,7 +197,8 @@ public class CliConfiguration {
         }
     }
 
-    @Getter
+
+    @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
@@ -196,6 +210,7 @@ public class CliConfiguration {
         StorageType storageType = StorageType.UNKNOWN;
         private boolean watched;
 
+
         @Getter
         @RequiredArgsConstructor
         public enum StorageType {
@@ -204,7 +219,7 @@ public class CliConfiguration {
         }
     }
 
-    @Getter
+    @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
@@ -214,6 +229,11 @@ public class CliConfiguration {
         @Builder.Default
         private Integer port = 9000;
         private String username;
+        private Path db;
+        private Integer localPort;
+
+        @Builder.Default
+        private Boolean exitOnBan = false;
         /**
          * Never used, just want to make the program fail if it is set in the config file.
          * This is neither stored in nor loaded from the config file.
@@ -224,7 +244,8 @@ public class CliConfiguration {
         @Builder.Default
         private CacheConfig cache = CacheConfig.builder().build();
 
-        @Getter
+
+    @Data
         @Builder
         @NoArgsConstructor
         @AllArgsConstructor
