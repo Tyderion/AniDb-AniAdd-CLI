@@ -1,0 +1,6 @@
+run:
+  tasks:
+    - watch
+  args:
+    path: /from
+  config: docker.yaml

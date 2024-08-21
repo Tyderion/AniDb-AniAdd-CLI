@@ -1,0 +1,4 @@
+run:
+  tasks:
+    - kodi
+  config: docker.yaml

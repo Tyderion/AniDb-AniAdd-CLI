@@ -1,0 +1,7 @@
+run:
+  tasks:
+    - watch
+    - kodi
+  args:
+    path: /from
+  config: docker.yaml
