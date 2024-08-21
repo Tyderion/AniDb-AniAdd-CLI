@@ -1,0 +1,6 @@
+run:
+  tasks:
+    - watch
+  args:
+    path: /path/to/watch
+  config: config.yaml

@@ -3,6 +3,7 @@ package config;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import startup.commands.anidb.*;
+import utils.config.SecretsLoader;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -23,7 +24,7 @@ public class RunConfig {
         SCAN, WATCH, KODI
     }
 
-    public List<String> toCommandArgs(Path runConfig) throws InvalidConfigException {
+    public List<String> toCommandArgs(Path runConfig, SecretsLoader secrets) throws InvalidConfigException {
         if (tasks.isEmpty()) {
             throw new InvalidConfigException("No tasks specified in the config file.");
         }
@@ -42,7 +43,7 @@ public class RunConfig {
             log.info("Both kodi (a persistent task) and scan (a non-persistent task) are enabled. The application will stay and listen to kodi");
         }
 
-        val arguments = createAnidbCommand(runConfig.toString());
+        val arguments = createAnidbCommand(runConfig.toString(), secrets);
 
         if (tasks.contains(KODI)) {
             if (Collections.disjoint(tasks, EnumSet.of(WATCH, SCAN))) {
@@ -66,20 +67,20 @@ public class RunConfig {
         return arguments;
     }
 
-    private List<String> createAnidbCommand(String runConfig) throws InvalidConfigException {
-        val password = System.getenv("ANIDB_PASSWORD");
-        if (password == null) {
-            log.trace("ANIDB_PASSWORD environment variable not set.");
-            throw new InvalidConfigException("ANIDB_PASSWORD environment variable not set.");
-        }
-        args.put("username", System.getenv("ANIDB_USERNAME"));
+    private List<String> createAnidbCommand(String runConfig, SecretsLoader secrets) throws InvalidConfigException {
+        val arguments = new ArrayList<>(List.of(AnidbCommand.getName()));
+        args.put("username", secrets.getSecret("ANIDB_USERNAME"));
         if (config == null) {
             log.info(STR."Run config does not contain a config file for the command. Using run config file ('\{runConfig}') as the config file for executing command.");
             args.put("config", runConfig);
         } else {
             args.put("config", config);
         }
-        val arguments = new ArrayList<>(List.of(AnidbCommand.getName()));
+        val password = secrets.getSecret("ANIDB_PASSWORD");
+        if (password == null) {
+            log.trace("ANIDB_PASSWORD environment variable not set.");
+            throw new InvalidConfigException("ANIDB_PASSWORD environment variable not set.");
+        }
         arguments.add(STR."--password=\{password}");
         addOptions(AnidbCommand.getOptions(), arguments);
         return arguments;

@@ -1,0 +1,9 @@
+run:
+  tasks:
+    - watch
+  args:
+    path: /path/to/watch
+    interval: 17
+    exit-on-ban: true
+    localport: 4444
+  config: config.yaml
