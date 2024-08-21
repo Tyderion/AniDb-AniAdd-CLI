@@ -54,13 +54,13 @@ public class RunConfig {
                 addOptions(WatchAndKodiCommand.getOptions(), arguments);
                 arguments.add(args.get(PARAM_NAME));
             }
-        } else if (tasks.contains(SCAN)) {
-            arguments.add(ScanCommand.getName());
-            addOptions(ScanCommand.getOptions(), arguments);
-            arguments.add(args.get(PARAM_NAME));
         } else if (tasks.contains(WATCH)) {
             arguments.add(WatchCommand.getName());
             addOptions(WatchCommand.getOptions(), arguments);
+            arguments.add(args.get(PARAM_NAME));
+        } else if (tasks.contains(SCAN)) {
+            arguments.add(ScanCommand.getName());
+            addOptions(ScanCommand.getOptions(), arguments);
             arguments.add(args.get(PARAM_NAME));
         }
 
