@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
 import startup.validation.ConfigValidatingExecutionStrategy;
-import utils.config.SecretsLoader;
 
 import java.util.concurrent.Callable;
 
@@ -29,7 +28,7 @@ public class RunCommand implements Callable<Integer> {
             return 1;
         }
         try {
-            val command = config.run().toCommandArgs(parent.getConfigPath(), new SecretsLoader());
+            val command = config.run().toCommandArgs(parent.getConfigPath());
             return new picocli.CommandLine(new CliCommand())
                     .setExecutionStrategy(new ConfigValidatingExecutionStrategy())
                     .execute(command.toArray(String[]::new));

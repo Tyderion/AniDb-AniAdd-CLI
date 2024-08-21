@@ -3,7 +3,6 @@ package config;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import startup.commands.anidb.*;
-import utils.config.SecretsLoader;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -17,13 +16,14 @@ public class RunConfig {
     private static final String PARAM_NAME = "path";
     @Singular
     private Set<Task> tasks;
-    private Map<String, String> args = new HashMap<>();
+    private Map<String, String> args = new TreeMap<>();
+    String config;
 
     public enum Task {
         SCAN, WATCH, KODI
     }
 
-    public List<String> toCommandArgs(Path runConfig, SecretsLoader secrets) throws InvalidConfigException {
+    public List<String> toCommandArgs(Path runConfig) throws InvalidConfigException {
         if (tasks.isEmpty()) {
             throw new InvalidConfigException("No tasks specified in the config file.");
         }
@@ -62,8 +62,14 @@ public class RunConfig {
             arguments.add(ScanCommand.getName());
             arguments.add(parameter);
         }
+        if (config == null) {
+            log.info(STR."Run config does not contain a config file for the command. Using run config file ('\{runConfig}') as the config file for executing command.");
+            args.put("config", runConfig.toString());
+        } else {
+            args.put("config", config);
+        }
         args.forEach((name, value) -> arguments.add(STR."--\{name}=\{value}"));
-        arguments.add(STR."--config=\{runConfig.toAbsolutePath()}");
+
 
         return arguments;
     }
