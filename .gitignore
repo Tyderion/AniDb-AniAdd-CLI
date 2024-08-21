@@ -1,3 +1,4 @@
+
 out/
 build/
 .idea/
@@ -8,6 +9,10 @@ build/
 *.conf
 *.properties
 *.yaml
-!config/*
 test.*
 .env
+
+
+!config/*
+!.run/*
+!src/test/resources/*/*
