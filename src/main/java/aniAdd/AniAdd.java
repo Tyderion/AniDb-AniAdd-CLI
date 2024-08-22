@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import processing.EpisodeProcessing;
+import processing.FileInfo;
 import udpapi.UdpApi;
 
 import java.nio.file.Path;
@@ -54,13 +55,15 @@ public class AniAdd implements IAniAdd {
 
     @Override
     public void MarkFileAsWatched(@NotNull Path path) {
-        val config = CliConfiguration.builder()
-                .mylist(CliConfiguration.MyListConfig.builder()
+        val config = FileInfo.Configuration.of(
+                CliConfiguration.FileConfig.builder().build(),
+                CliConfiguration.MyListConfig.builder()
                         .watched(true)
                         .overwrite(true)
                         .add(true)
-                        .build())
-                .build();
+                        .build()
+
+        );
         fileProcessor.AddFile(path, config);
     }
 

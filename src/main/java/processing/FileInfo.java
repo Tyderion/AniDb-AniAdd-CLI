@@ -2,8 +2,11 @@ package processing;
 
 import cache.entities.AniDBFileData;
 import config.CliConfiguration;
+import kotlin.internal.ContractsDsl;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import lombok.val;
 import processing.tagsystem.TagSystemTags;
 
@@ -27,16 +30,22 @@ public class FileInfo {
     @Getter private Path renamedFile;
     private String renamedFileName;
     private String renamedFolder;
-    @Getter @Setter private Boolean watched;
+    @Getter private final Boolean watched;
     @Getter @Setter private boolean hashed;
-    @Getter @Setter private CliConfiguration configuration;
 
-    public FileInfo(File file, int id) {
+    @Accessors(fluent = true)
+    @Getter
+    private final Configuration config;
+
+
+    public FileInfo(File file, int id, Boolean watched, Configuration config) {
         this.file = file;
         this.id = id;
         this.fileSize = file.length();
         this.originalFileName = file.getName();
         this.originalFolder = file.getParentFile().getName();
+        this.watched = watched;
+        this.config = config;
     }
 
     public void setRenamedFile(Path renamedFile) {
@@ -96,6 +105,13 @@ public class FileInfo {
 
         }
         return builder.build();
+    }
 
+    @Getter
+    @Accessors(fluent = true)
+    @AllArgsConstructor(staticName = "of")
+    public static class Configuration {
+        private final CliConfiguration.FileConfig file;
+        private final CliConfiguration.MyListConfig mylist;
     }
 }

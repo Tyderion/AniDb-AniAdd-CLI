@@ -44,7 +44,7 @@ public class InsertResponse implements Callable<Integer> {
                 }
                 try (val sessionFactory = PersistenceConfiguration.getSessionFactory(parent.getDbPath())) {
                     val repository = new AniDBFileRepository(sessionFactory);
-                    val info = new FileInfo(new FakeFile(Path.of(filePath), fileSize, true), 1);
+                    val info = new FileInfo(new FakeFile(Path.of(filePath), fileSize, true), 1, null, null);
                     info.getData().put(TagSystemTags.Ed2kHash, ed2k);
                     FileCommand.AddReplyToDict(info.getData(), reply, false);
                     repository.saveAniDBFileData(info.toAniDBFileData());

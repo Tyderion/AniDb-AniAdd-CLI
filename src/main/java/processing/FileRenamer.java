@@ -22,11 +22,11 @@ import java.util.Optional;
 public class FileRenamer {
 
     private final IFileHandler fileHandler;
+    private final CliConfiguration.TagsConfig tagsConfig;
 
     public boolean renameFile(FileInfo procFile) {
-        val configuration = procFile.getConfiguration();
-        val moveConfig = configuration.move();
-        val renameConfig = configuration.rename();
+        val moveConfig = procFile.config().file().move();
+        val renameConfig = procFile.config().file().rename();
         try {
 
             val targetFolder = getTargetFolder(procFile);
@@ -112,8 +112,8 @@ public class FileRenamer {
         }
     }
 
-    private static Optional<String> getTargetFileName(FileInfo procFile, TagSystemResult tagSystemResult) throws Exception {
-        val renameConfig = procFile.getConfiguration().rename();
+    private Optional<String> getTargetFileName(FileInfo procFile, TagSystemResult tagSystemResult) throws Exception {
+        val renameConfig = procFile.config().file().rename();
         if (renameConfig.mode() == CliConfiguration.RenameConfig.Mode.NONE) {
             return Optional.of(procFile.getFile().getName());
         }
@@ -129,8 +129,8 @@ public class FileRenamer {
         return Optional.of(tsResult.FileName());
     }
 
-    private static Pair<Path, TagSystemResult> getTargetFolder(FileInfo procFile) throws Exception {
-        val moveConfig = procFile.getConfiguration().move();
+    private Pair<Path, TagSystemResult> getTargetFolder(FileInfo procFile) throws Exception {
+        val moveConfig = procFile.config().file().move();
         if (moveConfig.mode() == CliConfiguration.MoveConfig.Mode.NONE) {
             return Pair.of(procFile.getFile().getParentFile().toPath(), null);
         }
@@ -164,16 +164,15 @@ public class FileRenamer {
         return Pair.of(targetFolder, tagSystemResult);
     }
 
-    private static TagSystemResult getPathFromTagSystem(FileInfo procFile) throws Exception {
+    private TagSystemResult getPathFromTagSystem(FileInfo procFile) throws Exception {
         val tags = new HashMap<>(procFile.getData());
         tags.put(TagSystemTags.FileCurrentFilename, procFile.getFile().getName());
-        val configuration = procFile.getConfiguration();
 
-        String codeStr = configuration.tagSystem();
+        String codeStr = tagsConfig.tagSystem();
         if (codeStr == null || codeStr.isEmpty()) {
             return null;
         }
 
-        return TagSystem.Evaluate(codeStr, tags, configuration.paths());
+        return TagSystem.Evaluate(codeStr, tags, tagsConfig.paths());
     }
 }

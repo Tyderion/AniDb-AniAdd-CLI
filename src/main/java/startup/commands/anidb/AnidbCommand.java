@@ -13,6 +13,7 @@ import picocli.CommandLine;
 import processing.DoOnFileSystem;
 import processing.EpisodeProcessing;
 import processing.FileHandler;
+import processing.FileInfo;
 import startup.commands.ConfigRequiredCommand;
 import startup.commands.anidb.debug.DebugCommand;
 import startup.commands.util.CommandHelper;
@@ -58,26 +59,27 @@ public class AnidbCommand extends ConfigRequiredCommand {
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", scope = CommandLine.ScopeType.INHERIT)
     Path dbPath;
 
-    public UdpApi getUdpApi(CliConfiguration configuration, ScheduledExecutorService executorService) {
-        val username = this.username == null ? configuration.anidb().username() : this.username;
-        if (username == null) {
-            log.error("No username provided. Please provide a username in the config file or as a parameter.");
-            return null;
-        }
+    @MapConfig(configPath = "anidb")
+    CliConfiguration.AniDbConfig aniDbConfig;
 
-        return new UdpApi(executorService, localPort,username, password, configuration);
+    @MapConfig(configPath = "file")
+    CliConfiguration.FileConfig fileConfig;
+
+    public UdpApi getUdpApi(ScheduledExecutorService executorService) {
+        return new UdpApi(executorService, aniDbConfig);
     }
 
     public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService
             executorService, DoOnFileSystem fileSystem, Path inputDirectory, SessionFactory sessionFactory) {
-        val config = getConfiguration();
-        val udpApi = getUdpApi(config, executorService);
+        val udpApi = getUdpApi(executorService);
         val fileHandler = new FileHandler();
         val fileRepository = new AniDBFileRepository(sessionFactory);
-        val processing = new EpisodeProcessing(config, udpApi, fileSystem, fileHandler, fileRepository);
-        val fileProcessor = new FileProcessor(processing, config, executorService);
 
-        if (config.move().deleteEmptyDirs() && inputDirectory != null) {
+        val config = getConfiguration();
+        val processing = new EpisodeProcessing(config, udpApi, fileSystem, fileHandler, fileRepository);
+        val fileProcessor = new FileProcessor(processing, FileInfo.Configuration.of(config.file(), config.mylist()), executorService);
+
+        if (fileConfig.move().deleteEmptyDirs() && inputDirectory != null) {
             processing.addListener(event -> {
                 if (event == EpisodeProcessing.ProcessingEvent.Done) {
                     fileSystem.run(new DeleteEmptyChildDirectoriesRecursively(inputDirectory));

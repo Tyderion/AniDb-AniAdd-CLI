@@ -43,7 +43,10 @@ public class ConvertCommand implements Callable<Integer> {
             return 1;
         }
         val cliConfig = CliConfiguration.builder()
-                .tagSystem(config.getTagSystemCode())
+                .tags(TagsConfig.builder()
+                        .paths(getPathConfig(config))
+                        .tagSystem(config.getTagSystemCode())
+                        .build())
                 .anidb(AniDbConfig.builder()
                         .host(config.getAnidbHost())
                         .port(config.getAnidbPort())
@@ -54,12 +57,12 @@ public class ConvertCommand implements Callable<Integer> {
                         .overwrite(config.isOverwriteMLEntries())
                         .storageType(convertStorageType(config.getSetStorageType()))
                         .build())
-                .rename(RenameConfig.builder()
-                        .related(config.isRenameRelatedFiles())
-                        .mode(getRenameType(config))
-                        .build())
-                .move(getMoveConfig(config))
-                .paths(getPathConfig(config))
+                .file(FileConfig.builder()
+                        .rename(RenameConfig.builder()
+                                .related(config.isRenameRelatedFiles())
+                                .mode(getRenameType(config))
+                                .build())
+                        .move(getMoveConfig(config)).build())
                 .build();
 
         val cliHandler = new ConfigFileHandler<>(CliConfiguration.class);

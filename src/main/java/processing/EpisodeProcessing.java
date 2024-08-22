@@ -28,6 +28,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
 
     private final UdpApi api;
     private final CliConfiguration defaultConfiguration;
+    private final CliConfiguration.AniDbConfig aniDbConfig;
     private final DoOnFileSystem fileSystem;
     private final FileRenamer fileRenamer;
     private final IAniDBFileRepository fileRepository;
@@ -52,8 +53,9 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                              IAniDBFileRepository fileRepository) {
         this.defaultConfiguration = configuration;
         this.api = udpApi;
+        this.aniDbConfig = configuration.anidb();
         this.fileHandler = fileHandler;
-        this.fileRenamer = new FileRenamer(fileHandler);
+        this.fileRenamer = new FileRenamer(fileHandler, configuration.tags());
         this.fileRepository = fileRepository;
         this.fileSystem = fileSystem;
 
@@ -79,7 +81,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
 
     private void nextStep(FileAction finishedStep, FileInfo fileInfo) {
         log.info(STR."Finished with \{finishedStep} for file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()}");
-        val configuration = fileInfo.getConfiguration();
+        val config = fileInfo.config();
         switch (finishedStep) {
             case Init -> {
                 hashFile(fileInfo);
@@ -90,11 +92,11 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     finalize(fileInfo);
                     return;
                 }
-                if (configuration.rename().mode() != CliConfiguration.RenameConfig.Mode.NONE ||
-                        configuration.move().mode() != CliConfiguration.MoveConfig.Mode.NONE) {
+                if (config.file().rename().mode() != CliConfiguration.RenameConfig.Mode.NONE ||
+                        config.file().move().mode() != CliConfiguration.MoveConfig.Mode.NONE) {
                     loadFileInfo(fileInfo);
                 }
-                if (configuration.mylist().add()) {
+                if (config.mylist().add()) {
                     addToMyList(fileInfo);
                 }
             }
@@ -104,8 +106,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     log.warn(STR."FileCommand for file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()} failed to get data. Skipping dependant steps");
                     return;
                 }
-                if (configuration.rename().mode() != CliConfiguration.RenameConfig.Mode.NONE ||
-                        configuration.move().mode() != CliConfiguration.MoveConfig.Mode.NONE) {
+                if (config.file().rename().mode() != CliConfiguration.RenameConfig.Mode.NONE ||
+                        config.file().move().mode() != CliConfiguration.MoveConfig.Mode.NONE) {
                     renameFile(fileInfo);
                 }
             }
@@ -125,7 +127,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         val cachedData = fileRepository.getAniDBFileData(procFile.getEd2k(), procFile.getFileSize());
         cachedData.ifPresentOrElse(fd -> {
             log.info(STR."Got cached data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
-            if (fd.getUpdatedAt() == null || fd.getUpdatedAt().plusDays(procFile.getConfiguration().anidb().cache().ttlInDays()).isBefore(LocalDateTime.now())) {
+            if (fd.getUpdatedAt() == null || fd.getUpdatedAt().plusDays(aniDbConfig.cache().ttlInDays()).isBefore(LocalDateTime.now())) {
                 log.info(STR."Cached data for file \{procFile.getFile().getAbsolutePath()} with Hash \{procFile.getEd2k()} is outdated, loading new info");
                 api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFileSize(), procFile.getEd2k()));
                 return;
@@ -148,7 +150,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 procFile.getId(),
                 procFile.getFile().length(),
                 procFile.getEd2k(),
-                procFile.getConfiguration().mylist().storageType().value(),
+                procFile.config().mylist().storageType().value(),
                 procFile.getWatched() != null && procFile.getWatched()));
     }
 
@@ -199,11 +201,11 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             };
             log.warn(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned error: \{replyStatus} - \{errorMessage}");
             if (replyStatus == ReplyStatus.NO_SUCH_FILE
-                    && procFile.getConfiguration().move().unknown().mode() == CliConfiguration.MoveConfig.HandlingConfig.Mode.MOVE
+                    && procFile.config().file().move().unknown().mode() == CliConfiguration.MoveConfig.HandlingConfig.Mode.MOVE
             ) {
                 fileSystem.run(() -> {
                     File currentFile = procFile.getFile();
-                    val unknownTargetPath = procFile.getConfiguration().move().unknown().folder()
+                    val unknownTargetPath = procFile.config().file().move().unknown().folder()
                             .resolve(currentFile.getParentFile().getName())
                             .resolve(currentFile.getName());
                     fileHandler.renameFile(currentFile.toPath(), unknownTargetPath);
@@ -230,7 +232,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             return;
         }
         FileInfo procFile = files.get(KeyType.Id, fileId);
-        val configuration = procFile.getConfiguration();
+        val configuration = procFile.config();
 
         if (replyStatus == ReplyStatus.MYLIST_ENTRY_ADDED
                 || replyStatus == ReplyStatus.MYLIST_ENTRY_EDITED) {
@@ -288,10 +290,10 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     }
 
     public void addFiles(Collection<File> newFiles) {
-        addFiles(newFiles, defaultConfiguration);
+        addFiles(newFiles, FileInfo.Configuration.of(defaultConfiguration.file(), defaultConfiguration.mylist()));
     }
 
-    public void addFiles(Collection<File> newFiles, CliConfiguration configuration) {
+    public void addFiles(Collection<File> newFiles, FileInfo.Configuration configuration) {
         Boolean watched = configuration.mylist().watched() ? true : null;
 
         for (File file : newFiles) {
@@ -300,10 +302,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 continue;
             }
 
-            FileInfo fileInfo = new FileInfo(file, lastFileId);
-            fileInfo.setConfiguration(configuration);
-            fileInfo.setWatched(watched);
-
+            FileInfo fileInfo = new FileInfo(file, lastFileId, watched, configuration);
             files.put(fileInfo);
             lastFileId++;
             fileInfo.actionDone(FileAction.Init);

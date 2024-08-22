@@ -35,14 +35,14 @@ public class InsertFile implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         try (val executorService = Executors.newScheduledThreadPool(10)) {
-            val udpApi = parent.getUdpApi(parent.getConfiguration(), executorService);
+            val udpApi = parent.getUdpApi(executorService);
             udpApi.registerCallback(FileCommand.class, data -> {
                 if (!data.getReply().getReplyStatus().success()) {
                     log.error(STR."Cannot insert data for non successful file command: \{data.getReply()}");
                 }
                 try (val sessionFactory = PersistenceConfiguration.getSessionFactory(parent.getDbPath())) {
                     val repository = new AniDBFileRepository(sessionFactory);
-                    val info = new FileInfo(new FakeFile(Path.of(filePath), fileSize, true), 1);
+                    val info = new FileInfo(new FakeFile(Path.of(filePath), fileSize, true), 1, null, null);
                     info.getData().put(TagSystemTags.Ed2kHash, ed2k);
                     FileCommand.AddReplyToDict(info.getData(), data.getReply(), false);
                     repository.saveAniDBFileData(info.toAniDBFileData());

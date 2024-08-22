@@ -43,6 +43,9 @@ public class KodiWatcherCommand implements Callable<Integer> {
     @MapConfig(configPath = "kodi", required = true)
     private CliConfiguration.KodiConfig kodiConfig;
 
+    @MapConfig(configPath = "tags.path", required = true)
+    private CliConfiguration.PathConfig pathsConfig;
+
     @Override
     public Integer call() throws Exception {
         log.info(STR."Connecting to kodi at \{kodiUrl} on port \{port}");
@@ -62,7 +65,9 @@ public class KodiWatcherCommand implements Callable<Integer> {
     }
 
     protected void startKodiListener(CliConfiguration.KodiConfig kodiConfig, IAniAdd aniAdd) throws URISyntaxException {
-        val subscriber = new KodiNotificationSubscriber(new URI(STR."ws://\{kodiConfig.host()}:\{kodiConfig.port()}/jsonrpc"), aniAdd, kodiConfig.pathFilter());
+        val subscriber = new KodiNotificationSubscriber(
+                new URI(STR."ws://\{kodiConfig.host()}:\{kodiConfig.port()}/jsonrpc"),
+                aniAdd, pathsConfig, kodiConfig);
         subscriber.connect();
     }
 

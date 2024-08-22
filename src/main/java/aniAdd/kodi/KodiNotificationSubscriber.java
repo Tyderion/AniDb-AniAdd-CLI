@@ -8,6 +8,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
+import config.CliConfiguration;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -18,7 +19,6 @@ import org.jetbrains.annotations.NotNull;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Optional;
 
 @Slf4j
@@ -26,12 +26,14 @@ public class KodiNotificationSubscriber extends WebSocketClient {
 
     private final Gson gson = new GsonBuilder().setFieldNamingStrategy(f -> f.getName().toLowerCase()).create();
     private final IAniAdd aniAdd;
-    private final String pathFilter;
+    private final CliConfiguration.PathConfig pathsConfig;
+    private final CliConfiguration.KodiConfig kodiConfig;
 
-    public KodiNotificationSubscriber(URI serverUri, IAniAdd aniAdd, String pathFilter) {
+    public KodiNotificationSubscriber(URI serverUri, IAniAdd aniAdd, CliConfiguration.PathConfig pathConfig, CliConfiguration.KodiConfig kodiConfig) {
         super(serverUri);
         this.aniAdd = aniAdd;
-        this.pathFilter = pathFilter.toLowerCase();
+        this.pathsConfig = pathConfig;
+        this.kodiConfig = kodiConfig;
     }
 
     @Override
@@ -113,7 +115,7 @@ public class KodiNotificationSubscriber extends WebSocketClient {
     }
 
     private void handleEpisodeWatched(EpisodeDetail episodeDetail) {
-        if (!episodeDetail.file.toLowerCase().contains(pathFilter)) {
+        if (!episodeDetail.file.toLowerCase().contains(kodiConfig.pathFilter())) {
             log.trace(STR."Not an anime episode '\{episodeDetail.file}', skipping");
             return;
         }
@@ -146,7 +148,6 @@ public class KodiNotificationSubscriber extends WebSocketClient {
 
     @NotNull
     private Optional<Path> getPath(String file, VideoLibraryUpdateParams.Type type) {
-        val config = aniAdd.getConfiguration().paths();
         var pathParts = file.split("/");
         if (pathParts.length == 1) {
             // nothing was split, so we assume it's a windows path
@@ -157,7 +158,7 @@ public class KodiNotificationSubscriber extends WebSocketClient {
             return Optional.empty();
         }
         val relativePath = Path.of(pathParts[pathParts.length - 2], pathParts[pathParts.length - 1]);
-        return type == VideoLibraryUpdateParams.Type.EPISODE ? config.getEpisodePath(relativePath) : config.getMoviePath(relativePath);
+        return type == VideoLibraryUpdateParams.Type.EPISODE ? pathsConfig.getEpisodePath(relativePath) : pathsConfig.getMoviePath(relativePath);
     }
 
     @Data

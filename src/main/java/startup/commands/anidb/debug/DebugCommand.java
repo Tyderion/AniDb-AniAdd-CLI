@@ -20,8 +20,8 @@ public class DebugCommand {
     @CommandLine.ParentCommand
     private AnidbCommand parent;
 
-    public UdpApi getUdpApi(CliConfiguration configuration, ScheduledExecutorService executorService) {
-        return parent.getUdpApi(configuration, executorService);
+    public UdpApi getUdpApi(ScheduledExecutorService executorService) {
+        return parent.getUdpApi(executorService);
     }
 
     CliConfiguration getConfiguration() {

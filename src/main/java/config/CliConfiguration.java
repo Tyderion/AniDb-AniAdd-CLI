@@ -21,20 +21,18 @@ public class CliConfiguration {
     @Builder.Default
     private MyListConfig mylist = MyListConfig.builder().build();
     @Builder.Default
-    private RenameConfig rename = RenameConfig.builder().build();
+    private FileConfig file = FileConfig.builder().build();
     @Builder.Default
     private AniDbConfig anidb = AniDbConfig.builder().build();
-    @Builder.Default
-    private MoveConfig move = MoveConfig.builder().build();
-    private PathConfig paths;
     private RunConfig run;
-    private String tagSystem;
+    @Builder.Default
+    private TagsConfig tags = TagsConfig.builder().build();
 
     @Builder.Default
     private KodiConfig kodi = KodiConfig.builder().build();
 
     public void removeDefaults() {
-        move.removeDefaults();
+        file.removeDefaults();
         anidb.removeDefaults();
         this.kodi.removeDefaults();
         if (this.kodi.isEmpty()) {
@@ -42,6 +40,15 @@ public class CliConfiguration {
         }
 
         this.anidb().exitOnBan(false);
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TagsConfig {
+        private PathConfig paths;
+        private String tagSystem;
     }
 
 
@@ -80,6 +87,38 @@ public class CliConfiguration {
                     .findFirst();
         }
     }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FileConfig {
+        @Builder.Default
+        private RenameConfig rename = RenameConfig.builder().build();
+        @Builder.Default
+        private MoveConfig move = MoveConfig.builder().build();
+
+        public void removeDefaults() {
+            this.move.removeDefaults();
+        }
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RenameConfig {
+        @Builder.Default
+        Mode mode = Mode.NONE;
+        private boolean related;
+
+        public enum Mode {
+            TAGSYSTEM,
+            ANIDB,
+            NONE
+        }
+    }
+
 
 
     @Data
@@ -154,21 +193,6 @@ public class CliConfiguration {
     }
 
 
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class RenameConfig {
-        @Builder.Default
-        Mode mode = Mode.NONE;
-        private boolean related;
-
-        public enum Mode {
-            TAGSYSTEM,
-            ANIDB,
-            NONE
-        }
-    }
 
 
     @Data
@@ -235,10 +259,8 @@ public class CliConfiguration {
         @Builder.Default
         private Boolean exitOnBan = false;
         /**
-         * Never used, just want to make the program fail if it is set in the config file.
-         * This is neither stored in nor loaded from the config file.
+         * Rejected if set in the config file
          */
-        @Deprecated(since = "Always")
         private String password;
 
         @Builder.Default

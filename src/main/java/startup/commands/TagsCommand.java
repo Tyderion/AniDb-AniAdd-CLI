@@ -2,11 +2,13 @@ package startup.commands;
 
 import cache.AniDBFileRepository;
 import cache.PersistenceConfiguration;
+import config.CliConfiguration;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
 import processing.tagsystem.TagSystem;
 import processing.tagsystem.TagSystemTags;
+import startup.validation.validators.config.MapConfig;
 
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -30,8 +32,8 @@ public class TagsCommand extends ConfigRequiredCommand implements Callable<Integ
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", required = false, scope = CommandLine.ScopeType.INHERIT)
     Path dbPath = Path.of("aniAdd.sqlite");
 
-    @CommandLine.ParentCommand
-    private CliCommand parent;
+    @MapConfig(configPath = "tags", required = true)
+    private CliConfiguration.TagsConfig tagsConfig;
 
     @Override
     public Integer call() throws Exception {
@@ -54,14 +56,12 @@ public class TagsCommand extends ConfigRequiredCommand implements Callable<Integ
                 log.info(STR."Using data from file [\{fileData.getEd2k()}][\{fileData.getSize()}]\{fileData.getFileName()}");
             }
         }
-
-        val configuration = getConfiguration();
-        if (configuration == null || configuration.tagSystem() == null
-                || configuration.tagSystem().isBlank()) {
+        if (tagsConfig.tagSystem() == null
+                || tagsConfig.tagSystem().isBlank()) {
             log.error("To test tags you must provide a non empty tagging system code");
             return 1;
         }
-        val result = TagSystem.Evaluate(configuration.tagSystem(), tags, configuration.paths());
+        val result = TagSystem.Evaluate(tagsConfig.tagSystem(), tags, tagsConfig.paths());
         val filename = result.FileName();
         val pathname = result.PathName();
         log.info(STR."Filename: \{filename}, Pathname: \{pathname}");
