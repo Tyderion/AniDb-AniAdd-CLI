@@ -3,10 +3,7 @@ package processing;
 import aniAdd.misc.ICallBack;
 import aniAdd.misc.MultiKeyDict;
 import cache.IAniDBFileRepository;
-import config.RootConfiguration;
-import config.blocks.AniDbConfig;
-import config.blocks.MoveConfig;
-import config.blocks.RenameConfig;
+import config.blocks.*;
 import fileprocessor.FileProcessor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -29,7 +26,7 @@ import java.util.List;
 public class EpisodeProcessing implements FileProcessor.Processor {
 
     private final UdpApi api;
-    private final RootConfiguration defaultConfiguration;
+    private final FileConfig fileConfig;
     private final AniDbConfig aniDbConfig;
     private final DoOnFileSystem fileSystem;
     private final FileRenamer fileRenamer;
@@ -48,16 +45,19 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     private final MultiKeyDict<KeyType, Object, FileInfo> files = new MultiKeyDict<>(KeyType.class,
             (type, fileInfo) -> type == KeyType.Id ? fileInfo.getId() : (type == KeyType.Path ? fileInfo.getFile().getAbsolutePath() : null));
 
-    public EpisodeProcessing(RootConfiguration configuration,
-                             UdpApi udpApi,
-                             DoOnFileSystem fileSystem,
-                             IFileHandler fileHandler,
-                             IAniDBFileRepository fileRepository) {
-        this.defaultConfiguration = configuration;
+    public EpisodeProcessing(
+            FileConfig fileConfig,
+            TagsConfig tagsConfig,
+            AniDbConfig aniDbConfig,
+            UdpApi udpApi,
+            DoOnFileSystem fileSystem,
+            IFileHandler fileHandler,
+            IAniDBFileRepository fileRepository) {
+        this.fileConfig = fileConfig;
         this.api = udpApi;
-        this.aniDbConfig = configuration.anidb();
+        this.aniDbConfig = aniDbConfig;
         this.fileHandler = fileHandler;
-        this.fileRenamer = new FileRenamer(fileHandler, configuration.tags());
+        this.fileRenamer = new FileRenamer(fileHandler, tagsConfig);
         this.fileRepository = fileRepository;
         this.fileSystem = fileSystem;
 
@@ -94,8 +94,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     finalize(fileInfo);
                     return;
                 }
-                if (config.file().rename().mode() != RenameConfig.Mode.NONE ||
-                        config.file().move().mode() != MoveConfig.Mode.NONE) {
+                if (config.rename().mode() != RenameConfig.Mode.NONE ||
+                        config.move().mode() != MoveConfig.Mode.NONE) {
                     loadFileInfo(fileInfo);
                 }
                 if (config.mylist().add()) {
@@ -108,8 +108,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     log.warn(STR."FileCommand for file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()} failed to get data. Skipping dependant steps");
                     return;
                 }
-                if (config.file().rename().mode() != RenameConfig.Mode.NONE ||
-                        config.file().move().mode() != MoveConfig.Mode.NONE) {
+                if (config.rename().mode() != RenameConfig.Mode.NONE ||
+                        config.move().mode() != MoveConfig.Mode.NONE) {
                     renameFile(fileInfo);
                 }
             }
@@ -203,11 +203,11 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             };
             log.warn(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned error: \{replyStatus} - \{errorMessage}");
             if (replyStatus == ReplyStatus.NO_SUCH_FILE
-                    && procFile.config().file().move().unknown().mode() == MoveConfig.HandlingConfig.Mode.MOVE
+                    && procFile.config().move().unknown().mode() == MoveConfig.HandlingConfig.Mode.MOVE
             ) {
                 fileSystem.run(() -> {
                     File currentFile = procFile.getFile();
-                    val unknownTargetPath = procFile.config().file().move().unknown().folder()
+                    val unknownTargetPath = procFile.config().move().unknown().folder()
                             .resolve(currentFile.getParentFile().getName())
                             .resolve(currentFile.getName());
                     fileHandler.renameFile(currentFile.toPath(), unknownTargetPath);
@@ -292,10 +292,10 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     }
 
     public void addFiles(Collection<File> newFiles) {
-        addFiles(newFiles, FileInfo.Configuration.of(defaultConfiguration.file(), defaultConfiguration.mylist()));
+        addFiles(newFiles, fileConfig);
     }
 
-    public void addFiles(Collection<File> newFiles, FileInfo.Configuration configuration) {
+    public void addFiles(Collection<File> newFiles, FileConfig configuration) {
         Boolean watched = configuration.mylist().watched() ? true : null;
 
         for (File file : newFiles) {

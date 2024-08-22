@@ -35,10 +35,10 @@ public class FileInfo {
 
     @Accessors(fluent = true)
     @Getter
-    private final Configuration config;
+    private final FileConfig config;
 
 
-    public FileInfo(File file, int id, Boolean watched, Configuration config) {
+    public FileInfo(File file, int id, Boolean watched, FileConfig config) {
         this.file = file;
         this.id = id;
         this.fileSize = file.length();
@@ -105,13 +105,5 @@ public class FileInfo {
 
         }
         return builder.build();
-    }
-
-    @Getter
-    @Accessors(fluent = true)
-    @AllArgsConstructor(staticName = "of")
-    public static class Configuration {
-        private final FileConfig file;
-        private final MyListConfig mylist;
     }
 }

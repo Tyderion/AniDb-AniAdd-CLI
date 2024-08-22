@@ -16,6 +16,8 @@ public class FileConfig {
     private RenameConfig rename = RenameConfig.builder().build();
     @Builder.Default
     private MoveConfig move = MoveConfig.builder().build();
+    @Builder.Default
+    private MyListConfig mylist = MyListConfig.builder().build();
 
     public void removeDefaults() {
         this.move.removeDefaults();

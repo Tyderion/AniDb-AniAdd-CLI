@@ -16,16 +16,11 @@ import java.util.concurrent.ScheduledExecutorService;
         description = "Debugging commands",
         subcommands = {InsertFile.class})
 public class DebugCommand {
-
     @CommandLine.ParentCommand
     private AnidbCommand parent;
 
     public UdpApi getUdpApi(ScheduledExecutorService executorService) {
         return parent.getUdpApi(executorService);
-    }
-
-    RootConfiguration getConfiguration() {
-        return parent.getConfiguration();
     }
 
     public Path getDbPath() {

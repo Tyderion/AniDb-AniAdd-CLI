@@ -5,7 +5,7 @@ import aniAdd.IAniAdd;
 import cache.AniDBFileRepository;
 import config.blocks.AniDbConfig;
 import config.blocks.FileConfig;
-import config.blocks.MyListConfig;
+import config.blocks.TagsConfig;
 import fileprocessor.DeleteEmptyChildDirectoriesRecursively;
 import fileprocessor.FileProcessor;
 import lombok.Getter;
@@ -16,7 +16,6 @@ import picocli.CommandLine;
 import processing.DoOnFileSystem;
 import processing.EpisodeProcessing;
 import processing.FileHandler;
-import processing.FileInfo;
 import startup.commands.ConfigRequiredCommand;
 import startup.commands.anidb.debug.DebugCommand;
 import startup.commands.util.CommandHelper;
@@ -66,8 +65,9 @@ public class AnidbCommand extends ConfigRequiredCommand {
     @MapConfig(configPath = "file")
     FileConfig fileConfig;
 
-    @MapConfig(configPath = "mylist")
-    MyListConfig myListConfig;
+    @MapConfig(configPath = "tags")
+    TagsConfig tagsConfig;
+
 
     public UdpApi getUdpApi(ScheduledExecutorService executorService) {
         return new UdpApi(executorService, aniDbConfig);
@@ -78,8 +78,8 @@ public class AnidbCommand extends ConfigRequiredCommand {
         val udpApi = getUdpApi(executorService);
         val fileHandler = new FileHandler();
         val fileRepository = new AniDBFileRepository(sessionFactory);
-        val processing = new EpisodeProcessing(getConfiguration(), udpApi, fileSystem, fileHandler, fileRepository);
-        val fileProcessor = new FileProcessor(processing, FileInfo.Configuration.of(fileConfig, myListConfig), executorService);
+        val processing = new EpisodeProcessing(fileConfig, tagsConfig, aniDbConfig, udpApi, fileSystem, fileHandler, fileRepository);
+        val fileProcessor = new FileProcessor(processing, fileConfig, executorService);
 
         if (fileConfig.move().deleteEmptyDirs() && inputDirectory != null) {
             processing.addListener(event -> {

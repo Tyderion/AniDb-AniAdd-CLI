@@ -53,15 +53,13 @@ public class AniAdd implements IAniAdd {
 
     @Override
     public void MarkFileAsWatched(@NotNull Path path) {
-        val config = FileInfo.Configuration.of(
-                FileConfig.builder().build(),
-                MyListConfig.builder()
+        val config = FileConfig.builder()
+                .mylist(MyListConfig.builder()
                         .watched(true)
                         .overwrite(true)
                         .add(true)
-                        .build()
-
-        );
+                        .build())
+                .build();
         fileProcessor.AddFile(path, config);
     }
 

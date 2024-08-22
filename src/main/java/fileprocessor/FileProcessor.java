@@ -1,10 +1,10 @@
 package fileprocessor;
 
 import aniAdd.misc.ICallBack;
+import config.blocks.FileConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import processing.FileInfo;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -19,7 +19,7 @@ import java.util.concurrent.ExecutorService;
 @RequiredArgsConstructor
 public class FileProcessor {
     private final Processor processor;
-    private final FileInfo.Configuration configuration;
+    private final FileConfig configuration;
     private final List<ICallBack<EventType>> onEvents = new ArrayList<>();
 
     private final ExecutorService executorService;
@@ -32,7 +32,7 @@ public class FileProcessor {
         onEvents.add(callback);
     }
 
-    public void AddFile(Path path, FileInfo.Configuration configuration) {
+    public void AddFile(Path path, FileConfig configuration) {
         if (Files.exists(path)) {
             processor.addFiles(List.of(path.toFile()), configuration);
         }
@@ -69,6 +69,6 @@ public class FileProcessor {
 
     public interface Processor {
         void addFiles(Collection<File> newFiles);
-        void addFiles(Collection<File> newFiles, FileInfo.Configuration configuration);
+        void addFiles(Collection<File> newFiles, FileConfig configuration);
     }
 }

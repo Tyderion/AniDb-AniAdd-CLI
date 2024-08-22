@@ -26,8 +26,8 @@ public class FileRenamer {
     private final TagsConfig tagsConfig;
 
     public boolean renameFile(FileInfo procFile) {
-        val moveConfig = procFile.config().file().move();
-        val renameConfig = procFile.config().file().rename();
+        val moveConfig = procFile.config().move();
+        val renameConfig = procFile.config().rename();
         try {
 
             val targetFolder = getTargetFolder(procFile);
@@ -114,7 +114,7 @@ public class FileRenamer {
     }
 
     private Optional<String> getTargetFileName(FileInfo procFile, TagSystemResult tagSystemResult) throws Exception {
-        val renameConfig = procFile.config().file().rename();
+        val renameConfig = procFile.config().rename();
         if (renameConfig.mode() == RenameConfig.Mode.NONE) {
             return Optional.of(procFile.getFile().getName());
         }
@@ -131,7 +131,7 @@ public class FileRenamer {
     }
 
     private Pair<Path, TagSystemResult> getTargetFolder(FileInfo procFile) throws Exception {
-        val moveConfig = procFile.config().file().move();
+        val moveConfig = procFile.config().move();
         if (moveConfig.mode() == MoveConfig.Mode.NONE) {
             return Pair.of(procFile.getFile().getParentFile().toPath(), null);
         }

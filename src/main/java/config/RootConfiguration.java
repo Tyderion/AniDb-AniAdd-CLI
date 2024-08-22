@@ -16,9 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 @Accessors(fluent = true)
 public class RootConfiguration {
-
-    @Builder.Default
-    private MyListConfig mylist = MyListConfig.builder().build();
     @Builder.Default
     private FileConfig file = FileConfig.builder().build();
     @Builder.Default
