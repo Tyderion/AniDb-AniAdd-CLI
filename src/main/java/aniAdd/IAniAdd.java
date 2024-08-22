@@ -1,6 +1,5 @@
 package aniAdd;
 
-import config.CliConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
@@ -11,7 +10,7 @@ public interface IAniAdd {
 
     void MarkFileAsWatched(@NotNull Path path);
 
-    CliConfiguration getConfiguration();
+//    CliConfiguration getConfiguration();
 
     void Stop();
 }

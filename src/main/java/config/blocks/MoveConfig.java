@@ -1,6 +1,5 @@
 package config.blocks;
 
-import config.CliConfiguration;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

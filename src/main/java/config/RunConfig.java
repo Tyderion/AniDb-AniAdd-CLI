@@ -1,13 +1,19 @@
 package config;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import startup.commands.anidb.*;
+import lombok.val;
+import startup.commands.anidb.AnidbCommand;
+import startup.commands.anidb.KodiWatcherCommand;
+import startup.commands.anidb.ScanCommand;
+import startup.commands.anidb.WatchCommand;
 
 import java.nio.file.Path;
 import java.util.*;
 
-import static config.RunConfig.Task.*;
+import static config.RunConfig.Task.SCAN;
+import static config.RunConfig.Task.WATCH;
 
 @Slf4j
 @NoArgsConstructor

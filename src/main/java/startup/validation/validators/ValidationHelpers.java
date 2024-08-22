@@ -1,9 +1,10 @@
 package startup.validation.validators;
 
-import config.CliConfiguration;
+import config.RootConfiguration;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import startup.validation.validators.config.*;
+import startup.validation.validators.config.MapConfig;
+import startup.validation.validators.config.MapConfigValidator;
 import startup.validation.validators.max.Max;
 import startup.validation.validators.max.MaxValidator;
 import startup.validation.validators.min.Min;
@@ -41,18 +42,18 @@ public final class ValidationHelpers {
     );
 
     @NotNull
-    public static Optional<String> validateAndUpdateConfig(CliConfiguration configuration, Field field, Object spec, Class<? extends Annotation> annotationClass) {
+    public static Optional<String> validateAndUpdateConfig(RootConfiguration configuration, Field field, Object spec, Class<? extends Annotation> annotationClass) {
         if (field.isAnnotationPresent(annotationClass)) {
             val annotation = field.getAnnotation(annotationClass);
             field.setAccessible(true);
             try {
                 val validator = configValidators.get(annotationClass);
                 if (validator.containsKey(field.getType())) {
-                    val configValidator = validator.get(field.getType()).getDeclaredConstructor(CliConfiguration.class).newInstance(configuration);
+                    val configValidator = validator.get(field.getType()).getDeclaredConstructor(RootConfiguration.class).newInstance(configuration);
                     return configValidator.validate(annotation, field, spec, spec.getClass());
                 }
                 if (validator.containsKey(Object.class)) {
-                    val configValidator = validator.get(Object.class).getDeclaredConstructor(CliConfiguration.class).newInstance(configuration);
+                    val configValidator = validator.get(Object.class).getDeclaredConstructor(RootConfiguration.class).newInstance(configuration);
                     return configValidator.validate(annotation, field, spec, spec.getClass());
                 }
 

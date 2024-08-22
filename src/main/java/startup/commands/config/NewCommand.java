@@ -1,6 +1,6 @@
 package startup.commands.config;
 
-import config.CliConfiguration;
+import config.RootConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
@@ -26,8 +26,8 @@ public class NewCommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         if (overwrite || !Files.exists(path)) {
-            val handler = new ConfigFileHandler<>(CliConfiguration.class);
-            val config = CliConfiguration.builder().build();
+            val handler = new ConfigFileHandler<>(RootConfiguration.class);
+            val config = RootConfiguration.builder().build();
             config.removeDefaults();
             handler.saveTo(path, config);
             log.info(STR."Configuration saved to \{path}");

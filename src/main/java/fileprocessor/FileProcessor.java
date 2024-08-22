@@ -1,7 +1,6 @@
 package fileprocessor;
 
 import aniAdd.misc.ICallBack;
-import config.CliConfiguration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;

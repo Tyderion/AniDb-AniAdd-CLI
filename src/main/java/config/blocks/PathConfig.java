@@ -1,6 +1,5 @@
 package config.blocks;
 
-import config.CliConfiguration;
 import lombok.*;
 import lombok.experimental.Accessors;
 

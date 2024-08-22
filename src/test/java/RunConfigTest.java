@@ -1,4 +1,4 @@
-import config.CliConfiguration;
+import config.RootConfiguration;
 import config.RunConfig;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
@@ -9,10 +9,9 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class RunConfigTest {
 
@@ -69,7 +68,7 @@ public class RunConfigTest {
 
     @NotNull
     private RunConfig getConfig(InputStream input) {
-        val parser = new ConfigFileParser<>(CliConfiguration.class);
+        val parser = new ConfigFileParser<>(RootConfiguration.class);
         val parsed = parser.load(input);
         assertNotNull(parsed);
         val runConfig = parsed.run();

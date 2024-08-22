@@ -1,6 +1,6 @@
 package startup.commands.anidb.debug;
 
-import config.CliConfiguration;
+import config.RootConfiguration;
 import lombok.Getter;
 import picocli.CommandLine;
 import startup.commands.anidb.AnidbCommand;
@@ -24,7 +24,7 @@ public class DebugCommand {
         return parent.getUdpApi(executorService);
     }
 
-    CliConfiguration getConfiguration() {
+    RootConfiguration getConfiguration() {
         return parent.getConfiguration();
     }
 

@@ -1,6 +1,6 @@
 package startup.validation.validators.config;
 
-import config.CliConfiguration;
+import config.RootConfiguration;
 import lombok.val;
 import picocli.CommandLine;
 import startup.validation.validators.ConfigValidator;
@@ -10,7 +10,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Optional;
 
 public class MapConfigValidator extends ConfigValidator<Object, MapConfig> {
-    public MapConfigValidator(CliConfiguration configuration) {
+    public MapConfigValidator(RootConfiguration configuration) {
         super(configuration);
     }
 

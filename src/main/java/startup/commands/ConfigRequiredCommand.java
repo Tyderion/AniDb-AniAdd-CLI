@@ -1,6 +1,6 @@
 package startup.commands;
 
-import config.CliConfiguration;
+import config.RootConfiguration;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -20,7 +20,7 @@ public abstract class ConfigRequiredCommand {
     protected Path configPath;
 
     @Getter(lazy = true)
-    private final CliConfiguration configuration = loadConfiguration();
+    private final RootConfiguration configuration = loadConfiguration();
 
     @Getter
     private String error = null;
@@ -29,7 +29,7 @@ public abstract class ConfigRequiredCommand {
         return getConfiguration() != null;
     }
 
-    private CliConfiguration loadConfiguration() {
+    private RootConfiguration loadConfiguration() {
         if (configPath == null) {
             val configFile = System.getenv("CONFIG_FILE");
             if (configFile == null) {
@@ -51,7 +51,7 @@ public abstract class ConfigRequiredCommand {
             log.error(error, e);
             return null;
         }
-        val handler = new ConfigFileHandler<>(CliConfiguration.class);
+        val handler = new ConfigFileHandler<>(RootConfiguration.class);
         return handler.getConfiguration(configPath);
     }
 }

@@ -1,11 +1,9 @@
 package aniAdd;
 
 import aniAdd.misc.ICallBack;
-import config.CliConfiguration;
 import config.blocks.FileConfig;
 import config.blocks.MyListConfig;
 import fileprocessor.FileProcessor;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
@@ -17,14 +15,12 @@ import java.nio.file.Path;
 
 @Slf4j
 public class AniAdd implements IAniAdd {
-    @NotNull @Getter private final CliConfiguration configuration;
     @NotNull private final UdpApi api;
     @NotNull private final FileProcessor fileProcessor;
     @NotNull private final EpisodeProcessing processing;
     @NotNull private final ICallBack<Void> onShutdown;
 
-    public AniAdd(@NotNull CliConfiguration configuration, @NotNull UdpApi api, boolean exitOnTermination, @NotNull FileProcessor fileProcessor, @NotNull EpisodeProcessing processing, @NotNull ICallBack<Void> onShutdown) {
-        this.configuration = configuration;
+    public AniAdd(@NotNull UdpApi api, boolean exitOnTermination, @NotNull FileProcessor fileProcessor, @NotNull EpisodeProcessing processing, @NotNull ICallBack<Void> onShutdown) {
         this.api = api;
         this.onShutdown = onShutdown;
         this.fileProcessor = fileProcessor;

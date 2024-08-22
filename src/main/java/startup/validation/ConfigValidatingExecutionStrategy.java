@@ -1,6 +1,6 @@
 package startup.validation;
 
-import config.CliConfiguration;
+import config.RootConfiguration;
 import picocli.CommandLine;
 import startup.commands.CliCommand;
 import startup.commands.ConfigRequiredCommand;
@@ -20,7 +20,7 @@ public class ConfigValidatingExecutionStrategy implements CommandLine.IExecution
         validateParseResult(parseResult, null);
     }
 
-    void validateParseResult(CommandLine.ParseResult parseResult, CliConfiguration configuration) {
+    void validateParseResult(CommandLine.ParseResult parseResult, RootConfiguration configuration) {
         if (configuration == null && parseResult.commandSpec().userObject() instanceof ConfigRequiredCommand command) {
             if (!command.configPresent()) {
                 throw new CommandLine.ParameterException(cliCommandParseResult.commandSpec().commandLine(), command.getError());

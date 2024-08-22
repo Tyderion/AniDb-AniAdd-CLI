@@ -5,10 +5,12 @@ import aniAdd.IAniAdd;
 import cache.AniDBFileRepository;
 import config.blocks.AniDbConfig;
 import config.blocks.FileConfig;
+import config.blocks.MyListConfig;
 import fileprocessor.DeleteEmptyChildDirectoriesRecursively;
 import fileprocessor.FileProcessor;
-import lombok.*;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.hibernate.SessionFactory;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
@@ -25,9 +27,7 @@ import udpapi.UdpApi;
 import udpapi.reply.ReplyStatus;
 
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
@@ -66,6 +66,9 @@ public class AnidbCommand extends ConfigRequiredCommand {
     @MapConfig(configPath = "file")
     FileConfig fileConfig;
 
+    @MapConfig(configPath = "mylist")
+    MyListConfig myListConfig;
+
     public UdpApi getUdpApi(ScheduledExecutorService executorService) {
         return new UdpApi(executorService, aniDbConfig);
     }
@@ -75,10 +78,8 @@ public class AnidbCommand extends ConfigRequiredCommand {
         val udpApi = getUdpApi(executorService);
         val fileHandler = new FileHandler();
         val fileRepository = new AniDBFileRepository(sessionFactory);
-
-        val config = getConfiguration();
-        val processing = new EpisodeProcessing(config, udpApi, fileSystem, fileHandler, fileRepository);
-        val fileProcessor = new FileProcessor(processing, FileInfo.Configuration.of(config.file(), config.mylist()), executorService);
+        val processing = new EpisodeProcessing(getConfiguration(), udpApi, fileSystem, fileHandler, fileRepository);
+        val fileProcessor = new FileProcessor(processing, FileInfo.Configuration.of(fileConfig, myListConfig), executorService);
 
         if (fileConfig.move().deleteEmptyDirs() && inputDirectory != null) {
             processing.addListener(event -> {
@@ -88,7 +89,7 @@ public class AnidbCommand extends ConfigRequiredCommand {
             });
         }
 
-        val aniAdd = new AniAdd(config, udpApi, terminateOnCompletion, fileProcessor, processing, _ -> {
+        val aniAdd = new AniAdd(udpApi, terminateOnCompletion, fileProcessor, processing, _ -> {
             log.info("Shutdown complete");
             executorService.shutdownNow();
         });
@@ -104,10 +105,6 @@ public class AnidbCommand extends ConfigRequiredCommand {
         }
 
         return Optional.of(aniAdd);
-    }
-
-    public static List<String> getOptions() {
-        return CommandHelper.getOptions(AnidbCommand.class, Set.of("password"));
     }
 
     public static String getName() {

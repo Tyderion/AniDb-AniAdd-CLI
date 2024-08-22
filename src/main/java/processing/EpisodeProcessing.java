@@ -3,7 +3,7 @@ package processing;
 import aniAdd.misc.ICallBack;
 import aniAdd.misc.MultiKeyDict;
 import cache.IAniDBFileRepository;
-import config.CliConfiguration;
+import config.RootConfiguration;
 import config.blocks.AniDbConfig;
 import config.blocks.MoveConfig;
 import config.blocks.RenameConfig;
@@ -29,7 +29,7 @@ import java.util.List;
 public class EpisodeProcessing implements FileProcessor.Processor {
 
     private final UdpApi api;
-    private final CliConfiguration defaultConfiguration;
+    private final RootConfiguration defaultConfiguration;
     private final AniDbConfig aniDbConfig;
     private final DoOnFileSystem fileSystem;
     private final FileRenamer fileRenamer;
@@ -48,7 +48,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     private final MultiKeyDict<KeyType, Object, FileInfo> files = new MultiKeyDict<>(KeyType.class,
             (type, fileInfo) -> type == KeyType.Id ? fileInfo.getId() : (type == KeyType.Path ? fileInfo.getFile().getAbsolutePath() : null));
 
-    public EpisodeProcessing(CliConfiguration configuration,
+    public EpisodeProcessing(RootConfiguration configuration,
                              UdpApi udpApi,
                              DoOnFileSystem fileSystem,
                              IFileHandler fileHandler,

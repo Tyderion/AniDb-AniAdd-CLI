@@ -2,9 +2,9 @@ package startup.commands.config;
 
 import aniAdd.config.AniConfiguration;
 import aniAdd.config.AniConfigurationHandler;
-import config.CliConfiguration;
-import config.blocks.AniDbConfig.CacheConfig;
+import config.RootConfiguration;
 import config.blocks.*;
+import config.blocks.AniDbConfig.CacheConfig;
 import config.blocks.MoveConfig.HandlingConfig;
 import config.blocks.MyListConfig.StorageType;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +42,7 @@ public class ConvertCommand implements Callable<Integer> {
             log.error(STR."Failed to convert configuration. Could not load from \{configPath}");
             return 1;
         }
-        val cliConfig = CliConfiguration.builder()
+        val cliConfig = RootConfiguration.builder()
                 .tags(TagsConfig.builder()
                         .paths(getPathConfig(config))
                         .tagSystem(config.getTagSystemCode())
@@ -65,7 +65,7 @@ public class ConvertCommand implements Callable<Integer> {
                         .move(getMoveConfig(config)).build())
                 .build();
 
-        val cliHandler = new ConfigFileHandler<>(CliConfiguration.class);
+        val cliHandler = new ConfigFileHandler<>(RootConfiguration.class);
         cliConfig.removeDefaults();
         cliHandler.saveTo(path, cliConfig);
         return 0;

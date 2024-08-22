@@ -1,6 +1,6 @@
 package startup.validation.validators;
 
-import config.CliConfiguration;
+import config.RootConfiguration;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import picocli.CommandLine;
@@ -14,7 +14,7 @@ import java.util.Optional;
 
 @RequiredArgsConstructor
 public abstract class ConfigValidator<T, U extends Annotation> {
-    private final CliConfiguration configuration;
+    private final RootConfiguration configuration;
 
     public abstract Optional<String> validate(U annotation, Field field, Object command, Class<?> commandClass);
 
