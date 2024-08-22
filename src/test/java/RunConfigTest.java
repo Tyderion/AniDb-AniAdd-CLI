@@ -16,7 +16,6 @@ import static org.hamcrest.Matchers.is;
 
 public class RunConfigTest {
 
-
     @Test
     public void Should_CorrectlyParse_SimpleScanYaml() {
         assertConfig("scan_simple",
@@ -24,12 +23,11 @@ public class RunConfigTest {
         );
     }
 
-
     @Test
-    public void Should_CorrectlyUseUserInfo_FromSecretsStore() {
-        assertConfig(
-                "scan_simple",
-                List.of("anidb", "scan", "/path/to/scan", "--config=subconfig.yaml")
+    public void Should_NotAcceptPassword_FromConfig() {
+        assertConfigError(
+                "password",
+                "Password must not be provided in the config file. Use the command line or env instead."
         );
     }
 
