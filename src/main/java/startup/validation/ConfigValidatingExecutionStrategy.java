@@ -3,9 +3,10 @@ package startup.validation;
 import config.CliConfiguration;
 import picocli.CommandLine;
 import startup.commands.CliCommand;
-import startup.commands.ConfigCommand;
+import startup.commands.ConfigRequiredCommand;
 
 public class ConfigValidatingExecutionStrategy implements CommandLine.IExecutionStrategy {
+    private CommandLine.ParseResult cliCommandParseResult;
     public int execute(CommandLine.ParseResult parseResult) {
         validateRootParseResult(parseResult);
         return new CommandLine.RunLast().execute(parseResult); // default execution strategy
@@ -15,11 +16,15 @@ public class ConfigValidatingExecutionStrategy implements CommandLine.IExecution
         if (CliCommand.class != parseResult.commandSpec().userObject().getClass()) {
             return;
         }
+        cliCommandParseResult = parseResult;
         validateParseResult(parseResult, null);
     }
 
     void validateParseResult(CommandLine.ParseResult parseResult, CliConfiguration configuration) {
-        if (configuration == null && parseResult.commandSpec().userObject() instanceof ConfigCommand command) {
+        if (configuration == null && parseResult.commandSpec().userObject() instanceof ConfigRequiredCommand command) {
+            if (!command.configPresent()) {
+                throw new CommandLine.ParameterException(cliCommandParseResult.commandSpec().commandLine(), command.getError());
+            }
             configuration = command.getConfiguration();
         }
         Validator.validate(parseResult.commandSpec(), configuration);

@@ -1,5 +1,7 @@
 package startup.commands.anidb;
 
+import aniAdd.AniAdd;
+import aniAdd.IAniAdd;
 import aniAdd.kodi.KodiNotificationSubscriber;
 import cache.PersistenceConfiguration;
 import config.CliConfiguration;
@@ -13,6 +15,7 @@ import startup.validation.validators.nonblank.NonBlank;
 import startup.validation.validators.port.Port;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -24,12 +27,12 @@ import java.util.concurrent.TimeUnit;
 public class KodiWatcherCommand implements Callable<Integer> {
     @Port
     @OverridesConfig(configPath = "kodi.port", envVariableName = "KODI_PORT", required = true)
-    @CommandLine.Option(names = {"--port"}, description = "The port to connect to")
+    @CommandLine.Option(names = {"--kodi-port"}, description = "The port to connect to")
     private Integer port;
 
     @NonBlank(allowNull = true)
     @OverridesConfig(configPath = "kodi.host", envVariableName = "KODI_HOST", required = true)
-    @CommandLine.Option(names = {"--kodi"}, description = "The ip/hostname of the kodi server.")
+    @CommandLine.Option(names = {"--kodi-host"}, description = "The ip/hostname of the kodi server.")
     private String kodiUrl;
 
     @OverridesConfig(configPath = "kodi.pathFilter")
@@ -75,6 +78,11 @@ public class KodiWatcherCommand implements Callable<Integer> {
 
 
         return 0;
+    }
+
+    protected void startKodiListener(CliConfiguration.KodiConfig kodiConfig, IAniAdd aniAdd) throws URISyntaxException {
+        val subscriber = new KodiNotificationSubscriber(new URI(STR."ws://\{kodiConfig.host()}:\{kodiConfig.port()}/jsonrpc"), aniAdd, kodiConfig.pathFilter());
+        subscriber.connect();
     }
 
     public static List<String> getOptions() {

@@ -14,7 +14,7 @@ import processing.DoOnFileSystem;
 import processing.EpisodeProcessing;
 import processing.FileHandler;
 import startup.commands.CliCommand;
-import startup.commands.ConfigCommand;
+import startup.commands.ConfigRequiredCommand;
 import startup.commands.anidb.debug.DebugCommand;
 import startup.commands.util.CommandHelper;
 import startup.validation.validators.config.ConfigMustBeNull;
@@ -37,7 +37,7 @@ import java.util.concurrent.ScheduledExecutorService;
         mixinStandardHelpOptions = true,
         version = "1.0",
         description = "AniDb handling")
-public class AnidbCommand extends ConfigCommand {
+public class AnidbCommand extends ConfigRequiredCommand {
     @OverridesConfig(configPath = "anidb.username", envVariableName = "ANIDB_USERNAME", required = true)
     @CommandLine.Option(names = {"-u", "--username"}, description = "The AniDB username", scope = CommandLine.ScopeType.INHERIT)
     @NonBlank String username;
@@ -60,9 +60,6 @@ public class AnidbCommand extends ConfigCommand {
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", scope = CommandLine.ScopeType.INHERIT)
     Path dbPath;
 
-    @CommandLine.ParentCommand
-    private CliCommand parent;
-
     public UdpApi getUdpApi(CliConfiguration configuration, ScheduledExecutorService executorService) {
         val username = this.username == null ? configuration.anidb().username() : this.username;
         if (username == null) {
@@ -77,7 +74,7 @@ public class AnidbCommand extends ConfigCommand {
             executorService, DoOnFileSystem fileSystem, Path inputDirectory, SessionFactory sessionFactory) {
         val config = getConfiguration();
         if (config == null) {
-            log.error(STR."No configuration loaded. Check the path to the config file. \{getConfigPath()}");
+            log.error(STR."No configuration loaded. Check the path to the config file. \{configPath}");
             return Optional.empty();
         }
 

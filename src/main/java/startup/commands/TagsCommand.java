@@ -18,7 +18,7 @@ import java.util.concurrent.Callable;
         mixinStandardHelpOptions = true,
         version = "1.0",
         description = "Output result of tag system for testing")
-public class TagsCommand extends ConfigCommand implements Callable<Integer> {
+public class TagsCommand extends ConfigRequiredCommand implements Callable<Integer> {
 
     @CommandLine.Option(names = {"--movie"}, description = "Test movie naming", required = false)
     private boolean movie;

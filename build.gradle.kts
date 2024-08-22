@@ -63,7 +63,7 @@ tasks.register<Jar>("fatJar") {
         attributes(
             "Implementation-Title" to "AniAdd CLI Version",
             "Implementation-Version" to version,
-            "Main-Class" to "aniAdd.startup.Main"
+            "Main-Class" to "startup.Main"
         )
     }
     archiveBaseName.set(project.name + "-all")

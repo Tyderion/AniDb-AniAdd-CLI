@@ -18,10 +18,13 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @CommandLine.Command(name = "watch", mixinStandardHelpOptions = true, version = "1.0",
         description = "Periodically scans the directory for files and adds them to AniDb")
-public class WatchCommand implements Callable<Integer> {
+public class WatchCommand extends KodiWatcherCommand {
     @Min(value = 10, message = "Interval must be at least 10 minutes")
     @CommandLine.Option(names = {"-i", "--interval"}, description = "The interval in minutes to scan the directory", defaultValue = "30")
     private int interval;
+
+    @CommandLine.Option(names = {"--kodi"}, description = "The interval in minutes to scan the directory", defaultValue = "false")
+    private boolean kodi;
 
     @NonBlank
     @CommandLine.Parameters(index = "0", description = "The directory to scan.")
@@ -43,8 +46,11 @@ public class WatchCommand implements Callable<Integer> {
             }
 
             val aniAdd = aniAddO.get();
-
             executorService.scheduleAtFixedRate(() -> aniAdd.ProcessDirectory(directory), 0, interval, TimeUnit.MINUTES);
+
+            if (kodi) {
+                this.startKodiListener(parent.getConfiguration().kodi(), aniAdd);
+            }
 
             val _ = executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         }
