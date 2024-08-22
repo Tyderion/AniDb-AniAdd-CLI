@@ -14,8 +14,7 @@ import static config.RunConfig.Task.*;
 @AllArgsConstructor
 public class RunConfig {
     private static final String PARAM_NAME = "path";
-    @Singular
-    private Set<Task> tasks;
+    private Task task;
     private Map<String, String> args = new TreeMap<>();
     String config;
 
@@ -24,22 +23,13 @@ public class RunConfig {
     }
 
     public List<String> toCommandArgs(Path runConfig) throws InvalidConfigException {
-        if (tasks.isEmpty()) {
+        if (task == null) {
             throw new InvalidConfigException("No tasks specified in the config file.");
         }
-        if (tasks.containsAll(EnumSet.of(SCAN, WATCH))) {
-            log.warn("Both scan and watch tasks are enabled. Scan will be ignored as watch scans automatically.");
-        }
-        if (!Collections.disjoint(tasks, EnumSet.of(SCAN, WATCH))) {
+        if (EnumSet.of(SCAN, WATCH).contains(task)) {
             if (!args.containsKey(PARAM_NAME) || args.get(PARAM_NAME).isBlank()) {
                 throw new InvalidConfigException("No folder specified for scan or watch task.");
             }
-        }
-        if (Collections.disjoint(tasks, EnumSet.of(WATCH, KODI))) {
-            log.info("No persistent task enabled. The application will exit after all tasks are done.");
-        }
-        if (Collections.disjoint(tasks, EnumSet.of(KODI, SCAN))) {
-            log.info("Both kodi (a persistent task) and scan (a non-persistent task) are enabled. The application will stay and listen to kodi");
         }
         if (args.containsKey("password")) {
             throw new InvalidConfigException("Password must not be provided in the config file. Use the command line or env instead.");
@@ -48,19 +38,16 @@ public class RunConfig {
         val arguments = new ArrayList<>(List.of(AnidbCommand.getName()));
         val parameter = args.remove(PARAM_NAME);
 
-        if (tasks.contains(KODI)) {
-            if (Collections.disjoint(tasks, EnumSet.of(WATCH, SCAN))) {
-                arguments.add(KodiWatcherCommand.getName());
-            } else {
-                arguments.add(WatchAndKodiCommand.getName());
+        switch (task) {
+            case KODI -> arguments.add(KodiWatcherCommand.getName());
+            case WATCH -> {
+                arguments.add(WatchCommand.getName());
                 arguments.add(parameter);
             }
-        } else if (tasks.contains(WATCH)) {
-            arguments.add(WatchCommand.getName());
-            arguments.add(parameter);
-        } else if (tasks.contains(SCAN)) {
-            arguments.add(ScanCommand.getName());
-            arguments.add(parameter);
+            case SCAN -> {
+                arguments.add(ScanCommand.getName());
+                arguments.add(parameter);
+            }
         }
         if (config == null) {
             log.info(STR."Run config does not contain a config file for the command. Using run config file ('\{runConfig}') as the config file for executing command.");

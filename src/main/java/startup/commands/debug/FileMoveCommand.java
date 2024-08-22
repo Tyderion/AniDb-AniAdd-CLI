@@ -1,4 +1,4 @@
-package startup.commands;
+package startup.commands.debug;
 
 import lombok.val;
 import picocli.CommandLine;

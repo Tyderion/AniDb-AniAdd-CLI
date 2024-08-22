@@ -42,13 +42,13 @@ public abstract class ConfigRequiredCommand {
         try {
             val content = Files.readString(configPath, StandardCharsets.UTF_8);
             if (content.contains("addToMylist")) {
-                log.error("Old config detected. Please convert it with 'config convert' command.");
                 error = "Old config detected. Please convert it with 'config convert' command.";
+                log.error(error);
                 return null;
             }
         } catch (IOException e) {
-            log.error(STR."Error reading configuration file \{configPath}", e);
             error = STR."Error reading configuration file \{configPath}: \{e.getMessage()}";
+            log.error(error, e);
             return null;
         }
         val handler = new ConfigFileHandler<>(CliConfiguration.class);

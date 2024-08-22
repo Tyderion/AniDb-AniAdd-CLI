@@ -57,10 +57,6 @@ public class WatchCommand extends KodiWatcherCommand {
         return 0;
     }
 
-    public static List<String> getOptions() {
-        return CommandHelper.getOptions(WatchCommand.class);
-    }
-
     public static String getName() {
         return CommandHelper.getName(WatchCommand.class);
     }

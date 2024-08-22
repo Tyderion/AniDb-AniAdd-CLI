@@ -30,7 +30,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
 @CommandLine.Command(
-        subcommands = {ScanCommand.class, KodiWatcherCommand.class, WatchCommand.class, WatchAndKodiCommand.class, DebugCommand.class},
+        subcommands = {ScanCommand.class, KodiWatcherCommand.class, WatchCommand.class, DebugCommand.class},
         name = "anidb",
         mixinStandardHelpOptions = true,
         version = "1.0",

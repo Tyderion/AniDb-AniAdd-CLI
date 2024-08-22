@@ -10,7 +10,7 @@ import java.nio.file.Path;
         mixinStandardHelpOptions = true,
         version = "1.0",
         description = "Debugging commands",
-        subcommands = {InsertResponse.class})
+        subcommands = {InsertResponse.class, FileMoveCommand.class})
 public class DebugCommand {
     @CommandLine.Option(names = "--db", description = "The path to the sqlite db", required = false, defaultValue = "debug.sqlite", scope = CommandLine.ScopeType.INHERIT)
     Path dbPath;
