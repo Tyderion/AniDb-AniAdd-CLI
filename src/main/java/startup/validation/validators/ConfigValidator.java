@@ -36,14 +36,7 @@ public abstract class ConfigValidator<T, U extends Annotation> {
         return "";
     }
 
-    protected Object overrideValue(String configPath, Field valueField, Object command, Object value) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, NoSuchFieldException {
-        val newValue = overrideValue(configPath, value);
-        valueField.setAccessible(true);
-        valueField.set(command, newValue);
-        return newValue;
-    }
-
-    private Object overrideValue(String configPath, Object value) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, NoSuchFieldException {
+    protected Object overrideInConfigIfNotNull(String configPath, Object value) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, NoSuchFieldException {
         val parts = configPath.split("\\.");
         val name = parts[parts.length - 1];
         Object current = configuration;

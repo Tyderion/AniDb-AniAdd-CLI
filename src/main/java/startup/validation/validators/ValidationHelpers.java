@@ -3,10 +3,7 @@ package startup.validation.validators;
 import config.CliConfiguration;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import startup.validation.validators.config.ConfigMustBeNull;
-import startup.validation.validators.config.ConfigMustBeNullValidator;
-import startup.validation.validators.config.OverridesConfig;
-import startup.validation.validators.config.OverrideConfigValidator;
+import startup.validation.validators.config.*;
 import startup.validation.validators.max.Max;
 import startup.validation.validators.max.MaxValidator;
 import startup.validation.validators.min.Min;
@@ -41,7 +38,8 @@ public final class ValidationHelpers {
     @SuppressWarnings("rawtypes")
     private static final Map<Class<? extends Annotation>, Map<Class, Class<? extends ConfigValidator>>> configValidators = Map.of(
             ConfigMustBeNull.class, Map.of(Object.class, ConfigMustBeNullValidator.class),
-            OverridesConfig.class, Map.of(Object.class, OverrideConfigValidator.class)
+            OverridesConfig.class, Map.of(Object.class, OverrideConfigValidator.class),
+            FromConfig.class, Map.of(Object.class, FromConfigValidator.class)
     );
 
     @NotNull

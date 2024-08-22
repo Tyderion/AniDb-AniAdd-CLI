@@ -21,8 +21,9 @@ public class ConfigMustBeNullValidator extends ConfigValidator<Object, ConfigMus
                 return Optional.of(STR."Config value \{annotation.configPath()} must be null but is not. Please remove the value from the config file and use either command line argument \{getCommandLineArgumentName(field)} or env variable \{annotation.envVariableName()} to provide the value.");
             }
             field.setAccessible(true);
-            overrideValue(annotation.configPath(), field, command, System.getenv(annotation.envVariableName()));
-            val finalValue = overrideValue(annotation.configPath(), field, command, field.get(command));
+            overrideInConfigIfNotNull(annotation.configPath(), System.getenv(annotation.envVariableName()));
+            val finalValue = overrideInConfigIfNotNull(annotation.configPath(), field.get(command));
+            field.set(command, finalValue);
             if (finalValue != null || !annotation.required()) {
                 return Optional.empty();
             }
