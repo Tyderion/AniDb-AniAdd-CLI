@@ -1,7 +1,0 @@
-run:
-  tasks:
-    - scan
-    - kodi
-  args:
-    path: /path/to/files
-  config: config.yaml

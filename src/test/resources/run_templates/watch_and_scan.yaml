@@ -1,7 +1,0 @@
-run:
-  tasks:
-    - watch
-    - scan
-  args:
-    path: /path/to/files
-  config: config.yaml

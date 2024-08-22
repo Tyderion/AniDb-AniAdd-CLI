@@ -42,26 +42,10 @@ public class RunConfigTest {
     }
 
     @Test
-    public void Should_CorrectlyInferWatch_IfWatchAndScanIsActive() {
-        assertConfig(
-                "watch_and_scan",
-                List.of("anidb", "watch", "/path/to/files", "--config=config.yaml")
-        );
-    }
-
-    @Test
     public void Should_CorrectlyInferWatchAndKodi_IfWatchAndKodiIsActive() {
         assertConfig(
                 "watch_and_kodi",
-                List.of("anidb", "watch-and-kodi", "/path/to/files", "--config=config.yaml")
-        );
-    }
-
-    @Test
-    public void Should_CorrectlyInferWatchAndKodi_IfScanAndKodiIsActive() {
-        assertConfig(
-                "scan_and_kodi",
-                List.of("anidb", "watch-and-kodi", "/path/to/files", "--config=config.yaml")
+                List.of("anidb", "watch", "/path/to/files", "--kodi=true", "--config=config.yaml")
         );
     }
 

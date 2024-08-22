@@ -1,6 +1,5 @@
 run:
-  tasks:
-    - watch
+  task: watch
   args:
     path: /path/to/watch
     interval: 17
