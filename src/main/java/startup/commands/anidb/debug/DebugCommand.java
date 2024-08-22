@@ -1,6 +1,5 @@
 package startup.commands.anidb.debug;
 
-import config.RootConfiguration;
 import lombok.Getter;
 import picocli.CommandLine;
 import startup.commands.anidb.AnidbCommand;

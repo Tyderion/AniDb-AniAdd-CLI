@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import processing.EpisodeProcessing;
-import processing.FileInfo;
 import udpapi.UdpApi;
 
 import java.nio.file.Path;

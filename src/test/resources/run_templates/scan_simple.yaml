@@ -2,4 +2,4 @@ run:
   task: scan
   args:
     path: /path/to/scan
-  config: subconfig.yaml
+  config: config.yaml

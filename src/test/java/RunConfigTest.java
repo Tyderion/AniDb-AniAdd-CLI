@@ -18,7 +18,7 @@ public class RunConfigTest {
     @Test
     public void Should_CorrectlyParse_SimpleScanYaml() {
         assertConfig("scan_simple",
-                List.of("anidb", "scan", "/path/to/scan", "--config=subconfig.yaml")
+                List.of("anidb", "scan", "/path/to/scan", "--config=config.yaml")
         );
     }
 

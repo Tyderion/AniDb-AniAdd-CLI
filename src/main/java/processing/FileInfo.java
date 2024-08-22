@@ -2,8 +2,6 @@ package processing;
 
 import cache.entities.AniDBFileData;
 import config.blocks.FileConfig;
-import config.blocks.MyListConfig;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;

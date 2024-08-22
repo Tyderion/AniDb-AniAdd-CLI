@@ -1,6 +1,9 @@
 package config;
 
-import config.blocks.*;
+import config.blocks.AniDbConfig;
+import config.blocks.FileConfig;
+import config.blocks.KodiConfig;
+import config.blocks.TagsConfig;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -18,7 +18,6 @@ import java.nio.file.Path;
 
 @Slf4j
 public class ConfigFileParser<T> {
-
     private final Class<T> clazz;
     private final Yaml mYaml;
 
@@ -33,10 +32,10 @@ public class ConfigFileParser<T> {
         val options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         options.setPrettyFlow(true);
-        Representer representer = new CustomRepresenter(options);
+        Representer representer = new PathRepresenter(options);
         representer.getPropertyUtils().setSkipMissingProperties(true);
 
-        mYaml = new Yaml(new CliConfigConstructor(clazz, loaderoptions), representer, options);
+        mYaml = new Yaml(new PathConstructor<>(clazz, loaderoptions), representer, options);
         mYaml.setBeanAccess(BeanAccess.FIELD);
     }
 
@@ -48,8 +47,8 @@ public class ConfigFileParser<T> {
         mYaml.dump(configuration, output);
     }
 
-    private static class CustomRepresenter extends Representer {
-        public CustomRepresenter(DumperOptions options) {
+    private static class PathRepresenter extends Representer {
+        public PathRepresenter(DumperOptions options) {
             super(options);
         }
 
@@ -66,8 +65,8 @@ public class ConfigFileParser<T> {
         }
     }
 
-    private class CliConfigConstructor extends Constructor {
-        public CliConfigConstructor(Class<T> clazz, LoaderOptions loaderoptions) {
+    private static class PathConstructor<T> extends Constructor {
+        public PathConstructor(Class<T> clazz, LoaderOptions loaderoptions) {
             super(clazz, loaderoptions);
             this.yamlClassConstructors.put(NodeId.scalar, new ConstructScalar() {
                 @Override
