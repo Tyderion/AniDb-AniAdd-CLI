@@ -28,7 +28,7 @@ public class ScanCommand implements Callable<Integer> {
         try (val executorService = Executors.newScheduledThreadPool(10);
              val sessionFactory = PersistenceConfiguration.getSessionFactory(parent.getDbPath());
              val filesystem = new DoOnFileSystem()) {
-            val aniAddO = parent.initializeAniAdd(true, executorService,filesystem , directory, sessionFactory);
+            val aniAddO = parent.initializeAniAdd(true, executorService, filesystem, directory, sessionFactory);
             if (aniAddO.isEmpty()) {
                 executorService.shutdownNow();
                 return 1;

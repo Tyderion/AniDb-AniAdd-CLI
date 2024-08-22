@@ -71,11 +71,6 @@ public class AnidbCommand extends ConfigRequiredCommand {
     public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService
             executorService, DoOnFileSystem fileSystem, Path inputDirectory, SessionFactory sessionFactory) {
         val config = getConfiguration();
-        if (config == null) {
-            log.error(STR."No configuration loaded. Check the path to the config file. \{configPath}");
-            return Optional.empty();
-        }
-
         val udpApi = getUdpApi(config, executorService);
         val fileHandler = new FileHandler();
         val fileRepository = new AniDBFileRepository(sessionFactory);

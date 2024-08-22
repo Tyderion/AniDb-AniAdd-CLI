@@ -20,6 +20,10 @@ public class MapConfigValidator extends ConfigValidator<Object, MapConfig> {
             field.setAccessible(true);
             Object value = null;
 
+            if (annotation.configPath().isBlank()) {
+                return Optional.of(STR."Field \{field.getName()} in class \{commandClass.getSimpleName()} has an empty config path.");
+            }
+
             if (annotation.configMustBeNull()) {
                 val currentValue = getCurrentValue(annotation.configPath());
                 if (currentValue != null) {
@@ -27,7 +31,7 @@ public class MapConfigValidator extends ConfigValidator<Object, MapConfig> {
                 }
             }
 
-            if (field.isAnnotationPresent(CommandLine.Option.class) || field.isAnnotationPresent(CommandLine.Parameters.class)) {
+            if (field.isAnnotationPresent(CommandLine.Option.class)) {
                 // This field is a command line argument, so we need to override the config with its value
                 val parameterValue = field.get(command);
                 if (parameterValue == null && !annotation.envVariableName().isEmpty()) {

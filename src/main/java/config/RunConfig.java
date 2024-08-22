@@ -56,8 +56,6 @@ public class RunConfig {
             args.put("config", config);
         }
         args.forEach((name, value) -> arguments.add(STR."--\{name}=\{value}"));
-
-
         return arguments;
     }
 
