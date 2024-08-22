@@ -6,10 +6,11 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({java.lang.annotation.ElementType.FIELD})
-public @interface OverridesConfig {
+public @interface MapConfig {
     String configPath() ;
     String envVariableName() default "";
     boolean required() default false;
+    boolean configMustBeNull() default false;
 }
 
 

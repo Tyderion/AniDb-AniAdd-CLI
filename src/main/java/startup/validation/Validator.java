@@ -4,8 +4,7 @@ import config.CliConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
-import startup.validation.validators.config.ConfigMustBeNull;
-import startup.validation.validators.config.OverridesConfig;
+import startup.validation.validators.config.MapConfig;
 import startup.validation.validators.ValidationHelpers;
 import startup.validation.validators.max.Max;
 import startup.validation.validators.min.Min;
@@ -24,8 +23,7 @@ public final class Validator {
         val messages = new ArrayList<String>();
 
         for (Field field : clazz.getDeclaredFields()) {
-            ValidationHelpers.validateAndUpdateConfig(configuration, field, command, ConfigMustBeNull.class).ifPresent(messages::add);
-            ValidationHelpers.validateAndUpdateConfig(configuration, field, command, OverridesConfig.class).ifPresent(messages::add);
+            ValidationHelpers.validateAndUpdateConfig(configuration, field, command, MapConfig.class).ifPresent(messages::add);
             ValidationHelpers.validate(field, command, Min.class).ifPresent(messages::add);
             ValidationHelpers.validate(field, command, Max.class).ifPresent(messages::add);
             ValidationHelpers.validate(field, command, NonBlank.class).ifPresent(messages::add);

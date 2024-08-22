@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
 import startup.validation.ConfigValidatingExecutionStrategy;
-import startup.validation.validators.config.FromConfig;
+import startup.validation.validators.config.MapConfig;
 
 import java.util.concurrent.Callable;
 
@@ -15,7 +15,7 @@ import java.util.concurrent.Callable;
         scope = CommandLine.ScopeType.INHERIT,
         description = "Run with config file")
 public class RunCommand extends ConfigRequiredCommand implements Callable<Integer> {
-    @FromConfig(configPath = "run", required = true)
+    @MapConfig(configPath = "run")
     private RunConfig runConfig;
 
     @Override

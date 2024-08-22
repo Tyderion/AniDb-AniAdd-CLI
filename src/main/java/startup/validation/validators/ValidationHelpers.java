@@ -37,9 +37,7 @@ public final class ValidationHelpers {
 
     @SuppressWarnings("rawtypes")
     private static final Map<Class<? extends Annotation>, Map<Class, Class<? extends ConfigValidator>>> configValidators = Map.of(
-            ConfigMustBeNull.class, Map.of(Object.class, ConfigMustBeNullValidator.class),
-            OverridesConfig.class, Map.of(Object.class, OverrideConfigValidator.class),
-            FromConfig.class, Map.of(Object.class, FromConfigValidator.class)
+            MapConfig.class, Map.of(Object.class, MapConfigValidator.class)
     );
 
     @NotNull

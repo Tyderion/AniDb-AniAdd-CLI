@@ -13,12 +13,10 @@ import picocli.CommandLine;
 import processing.DoOnFileSystem;
 import processing.EpisodeProcessing;
 import processing.FileHandler;
-import startup.commands.CliCommand;
 import startup.commands.ConfigRequiredCommand;
 import startup.commands.anidb.debug.DebugCommand;
 import startup.commands.util.CommandHelper;
-import startup.validation.validators.config.ConfigMustBeNull;
-import startup.validation.validators.config.OverridesConfig;
+import startup.validation.validators.config.MapConfig;
 import startup.validation.validators.nonblank.NonBlank;
 import startup.validation.validators.port.Port;
 import udpapi.UdpApi;
@@ -38,25 +36,25 @@ import java.util.concurrent.ScheduledExecutorService;
         version = "1.0",
         description = "AniDb handling")
 public class AnidbCommand extends ConfigRequiredCommand {
-    @OverridesConfig(configPath = "anidb.username", envVariableName = "ANIDB_USERNAME", required = true)
+    @MapConfig(configPath = "anidb.username", envVariableName = "ANIDB_USERNAME", required = true)
     @CommandLine.Option(names = {"-u", "--username"}, description = "The AniDB username", scope = CommandLine.ScopeType.INHERIT)
     @NonBlank String username;
 
-    @ConfigMustBeNull(configPath = "anidb.password", envVariableName = "ANIDB_PASSWORD", required = true)
+    @MapConfig(configPath = "anidb.password", envVariableName = "ANIDB_PASSWORD", required = true, configMustBeNull = true)
     @CommandLine.Option(names = {"-p", "--password"}, description = "The AniDB password", scope = CommandLine.ScopeType.INHERIT)
     @NonBlank String password;
 
-    @OverridesConfig(configPath = "anidb.localPort")
+    @MapConfig(configPath = "anidb.localPort")
     @CommandLine.Option(names = {"--localport"}, description = "The local port to use to connect to anidb", scope = CommandLine.ScopeType.INHERIT)
     @Port int localPort;
 
-    @OverridesConfig(configPath = "anidb.exitOnBan")
+    @MapConfig(configPath = "anidb.exitOnBan")
     @CommandLine.Option(names = {"--exit-on-ban"}, description = "Exit the application if the user is banned", scope = CommandLine.ScopeType.INHERIT)
     boolean exitOnBan;
 
     @Getter
     @NonBlank
-    @OverridesConfig(configPath = "anidb.cache.db")
+    @MapConfig(configPath = "anidb.cache.db")
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", scope = CommandLine.ScopeType.INHERIT)
     Path dbPath;
 
