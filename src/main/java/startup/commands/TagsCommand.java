@@ -2,7 +2,7 @@ package startup.commands;
 
 import cache.AniDBFileRepository;
 import cache.PersistenceConfiguration;
-import config.CliConfiguration;
+import config.blocks.TagsConfig;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
@@ -33,7 +33,7 @@ public class TagsCommand extends ConfigRequiredCommand implements Callable<Integ
     Path dbPath = Path.of("aniAdd.sqlite");
 
     @MapConfig(configPath = "tags", required = true)
-    private CliConfiguration.TagsConfig tagsConfig;
+    private TagsConfig tagsConfig;
 
     @Override
     public Integer call() throws Exception {

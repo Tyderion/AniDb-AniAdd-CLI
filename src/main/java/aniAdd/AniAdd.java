@@ -2,6 +2,8 @@ package aniAdd;
 
 import aniAdd.misc.ICallBack;
 import config.CliConfiguration;
+import config.blocks.FileConfig;
+import config.blocks.MyListConfig;
 import fileprocessor.FileProcessor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -56,8 +58,8 @@ public class AniAdd implements IAniAdd {
     @Override
     public void MarkFileAsWatched(@NotNull Path path) {
         val config = FileInfo.Configuration.of(
-                CliConfiguration.FileConfig.builder().build(),
-                CliConfiguration.MyListConfig.builder()
+                FileConfig.builder().build(),
+                MyListConfig.builder()
                         .watched(true)
                         .overwrite(true)
                         .add(true)

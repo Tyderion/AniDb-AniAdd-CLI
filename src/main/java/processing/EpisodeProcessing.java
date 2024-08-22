@@ -4,6 +4,9 @@ import aniAdd.misc.ICallBack;
 import aniAdd.misc.MultiKeyDict;
 import cache.IAniDBFileRepository;
 import config.CliConfiguration;
+import config.blocks.AniDbConfig;
+import config.blocks.MoveConfig;
+import config.blocks.RenameConfig;
 import fileprocessor.FileProcessor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -17,7 +20,6 @@ import udpapi.query.Query;
 import udpapi.reply.ReplyStatus;
 
 import java.io.File;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,7 +30,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
 
     private final UdpApi api;
     private final CliConfiguration defaultConfiguration;
-    private final CliConfiguration.AniDbConfig aniDbConfig;
+    private final AniDbConfig aniDbConfig;
     private final DoOnFileSystem fileSystem;
     private final FileRenamer fileRenamer;
     private final IAniDBFileRepository fileRepository;
@@ -92,8 +94,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     finalize(fileInfo);
                     return;
                 }
-                if (config.file().rename().mode() != CliConfiguration.RenameConfig.Mode.NONE ||
-                        config.file().move().mode() != CliConfiguration.MoveConfig.Mode.NONE) {
+                if (config.file().rename().mode() != RenameConfig.Mode.NONE ||
+                        config.file().move().mode() != MoveConfig.Mode.NONE) {
                     loadFileInfo(fileInfo);
                 }
                 if (config.mylist().add()) {
@@ -106,8 +108,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     log.warn(STR."FileCommand for file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()} failed to get data. Skipping dependant steps");
                     return;
                 }
-                if (config.file().rename().mode() != CliConfiguration.RenameConfig.Mode.NONE ||
-                        config.file().move().mode() != CliConfiguration.MoveConfig.Mode.NONE) {
+                if (config.file().rename().mode() != RenameConfig.Mode.NONE ||
+                        config.file().move().mode() != MoveConfig.Mode.NONE) {
                     renameFile(fileInfo);
                 }
             }
@@ -201,7 +203,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             };
             log.warn(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned error: \{replyStatus} - \{errorMessage}");
             if (replyStatus == ReplyStatus.NO_SUCH_FILE
-                    && procFile.config().file().move().unknown().mode() == CliConfiguration.MoveConfig.HandlingConfig.Mode.MOVE
+                    && procFile.config().file().move().unknown().mode() == MoveConfig.HandlingConfig.Mode.MOVE
             ) {
                 fileSystem.run(() -> {
                     File currentFile = procFile.getFile();

@@ -1,7 +1,7 @@
 package processing.tagsystem;
 
 import aniAdd.misc.Misc;
-import config.CliConfiguration;
+import config.blocks.PathConfig;
 import lombok.val;
 
 import java.util.ArrayList;
@@ -16,7 +16,7 @@ public class TagSystem {
 
     public static TagSystemResult Evaluate(String sourceCode,
                                            Map<TagSystemTags, String> vars,
-                                           CliConfiguration.PathConfig folders) throws Exception {
+                                           PathConfig folders) throws Exception {
 
         val stringVars = vars.entrySet().stream()
                 .collect(Collectors.toMap(e -> e.getKey().getTag(), entry -> {

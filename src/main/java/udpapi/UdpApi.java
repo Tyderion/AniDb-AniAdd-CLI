@@ -1,7 +1,7 @@
 package udpapi;
 
 import aniAdd.misc.ICallBack;
-import config.CliConfiguration;
+import config.blocks.AniDbConfig;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -32,7 +32,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     private DatagramSocket socket;
     private final ScheduledExecutorService executorService;
-    private final CliConfiguration.AniDbConfig aniDbConfig;
+    private final AniDbConfig aniDbConfig;
     private InetAddress aniDbIp;
     private boolean isInitialized = false;
     private String session = null;
@@ -48,7 +48,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     private ICallBack<Void> onShutdownFinished;
     private Future<?> requeueFuture;
 
-    public UdpApi(ScheduledExecutorService executorService, CliConfiguration.AniDbConfig aniDbConfig) {
+    public UdpApi(ScheduledExecutorService executorService, AniDbConfig aniDbConfig) {
         this.executorService = executorService;
         this.aniDbConfig = aniDbConfig;
         Initialize();

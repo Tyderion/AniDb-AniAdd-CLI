@@ -8,7 +8,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
-import config.CliConfiguration;
+import config.blocks.KodiConfig;
+import config.blocks.PathConfig;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -26,10 +27,10 @@ public class KodiNotificationSubscriber extends WebSocketClient {
 
     private final Gson gson = new GsonBuilder().setFieldNamingStrategy(f -> f.getName().toLowerCase()).create();
     private final IAniAdd aniAdd;
-    private final CliConfiguration.PathConfig pathsConfig;
-    private final CliConfiguration.KodiConfig kodiConfig;
+    private final PathConfig pathsConfig;
+    private final KodiConfig kodiConfig;
 
-    public KodiNotificationSubscriber(URI serverUri, IAniAdd aniAdd, CliConfiguration.PathConfig pathConfig, CliConfiguration.KodiConfig kodiConfig) {
+    public KodiNotificationSubscriber(URI serverUri, IAniAdd aniAdd, PathConfig pathConfig, KodiConfig kodiConfig) {
         super(serverUri);
         this.aniAdd = aniAdd;
         this.pathsConfig = pathConfig;

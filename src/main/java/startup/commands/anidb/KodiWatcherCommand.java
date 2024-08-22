@@ -3,7 +3,8 @@ package startup.commands.anidb;
 import aniAdd.IAniAdd;
 import aniAdd.kodi.KodiNotificationSubscriber;
 import cache.PersistenceConfiguration;
-import config.CliConfiguration;
+import config.blocks.KodiConfig;
+import config.blocks.PathConfig;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
@@ -41,10 +42,10 @@ public class KodiWatcherCommand implements Callable<Integer> {
     private AnidbCommand parent;
 
     @MapConfig(configPath = "kodi", required = true)
-    private CliConfiguration.KodiConfig kodiConfig;
+    private KodiConfig kodiConfig;
 
     @MapConfig(configPath = "tags.path", required = true)
-    private CliConfiguration.PathConfig pathsConfig;
+    private PathConfig pathsConfig;
 
     @Override
     public Integer call() throws Exception {
@@ -64,7 +65,7 @@ public class KodiWatcherCommand implements Callable<Integer> {
         return 0;
     }
 
-    protected void startKodiListener(CliConfiguration.KodiConfig kodiConfig, IAniAdd aniAdd) throws URISyntaxException {
+    protected void startKodiListener(KodiConfig kodiConfig, IAniAdd aniAdd) throws URISyntaxException {
         val subscriber = new KodiNotificationSubscriber(
                 new URI(STR."ws://\{kodiConfig.host()}:\{kodiConfig.port()}/jsonrpc"),
                 aniAdd, pathsConfig, kodiConfig);

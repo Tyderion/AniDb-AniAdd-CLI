@@ -3,7 +3,8 @@ package startup.commands.anidb;
 import aniAdd.AniAdd;
 import aniAdd.IAniAdd;
 import cache.AniDBFileRepository;
-import config.CliConfiguration;
+import config.blocks.AniDbConfig;
+import config.blocks.FileConfig;
 import fileprocessor.DeleteEmptyChildDirectoriesRecursively;
 import fileprocessor.FileProcessor;
 import lombok.*;
@@ -60,10 +61,10 @@ public class AnidbCommand extends ConfigRequiredCommand {
     Path dbPath;
 
     @MapConfig(configPath = "anidb")
-    CliConfiguration.AniDbConfig aniDbConfig;
+    AniDbConfig aniDbConfig;
 
     @MapConfig(configPath = "file")
-    CliConfiguration.FileConfig fileConfig;
+    FileConfig fileConfig;
 
     public UdpApi getUdpApi(ScheduledExecutorService executorService) {
         return new UdpApi(executorService, aniDbConfig);

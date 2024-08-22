@@ -1,8 +1,8 @@
 package processing;
 
 import cache.entities.AniDBFileData;
-import config.CliConfiguration;
-import kotlin.internal.ContractsDsl;
+import config.blocks.FileConfig;
+import config.blocks.MyListConfig;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -111,7 +111,7 @@ public class FileInfo {
     @Accessors(fluent = true)
     @AllArgsConstructor(staticName = "of")
     public static class Configuration {
-        private final CliConfiguration.FileConfig file;
-        private final CliConfiguration.MyListConfig mylist;
+        private final FileConfig file;
+        private final MyListConfig mylist;
     }
 }
