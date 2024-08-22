@@ -14,6 +14,7 @@ import processing.DoOnFileSystem;
 import processing.EpisodeProcessing;
 import processing.FileHandler;
 import startup.commands.CliCommand;
+import startup.commands.ConfigCommand;
 import startup.commands.anidb.debug.DebugCommand;
 import startup.commands.util.CommandHelper;
 import startup.validation.validators.config.ConfigMustBeNull;
@@ -36,7 +37,7 @@ import java.util.concurrent.ScheduledExecutorService;
         mixinStandardHelpOptions = true,
         version = "1.0",
         description = "AniDb handling")
-public class AnidbCommand {
+public class AnidbCommand extends ConfigCommand {
     @OverridesConfig(configPath = "anidb.username", envVariableName = "ANIDB_USERNAME", required = true)
     @CommandLine.Option(names = {"-u", "--username"}, description = "The AniDB username", scope = CommandLine.ScopeType.INHERIT)
     @NonBlank String username;
@@ -74,9 +75,9 @@ public class AnidbCommand {
 
     public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService
             executorService, DoOnFileSystem fileSystem, Path inputDirectory, SessionFactory sessionFactory) {
-        val config = parent.getConfiguration();
+        val config = getConfiguration();
         if (config == null) {
-            log.error(STR."No configuration loaded. Check the path to the config file. \{parent.getConfigPath()}");
+            log.error(STR."No configuration loaded. Check the path to the config file. \{getConfigPath()}");
             return Optional.empty();
         }
 
@@ -118,9 +119,5 @@ public class AnidbCommand {
 
     public static String getName() {
         return CommandHelper.getName(AnidbCommand.class);
-    }
-
-    public CliConfiguration getConfiguration() {
-        return parent.getConfiguration();
     }
 }

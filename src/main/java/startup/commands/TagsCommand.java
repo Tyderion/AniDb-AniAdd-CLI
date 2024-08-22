@@ -18,7 +18,7 @@ import java.util.concurrent.Callable;
         mixinStandardHelpOptions = true,
         version = "1.0",
         description = "Output result of tag system for testing")
-public class TagsCommand implements Callable<Integer> {
+public class TagsCommand extends ConfigCommand implements Callable<Integer> {
 
     @CommandLine.Option(names = {"--movie"}, description = "Test movie naming", required = false)
     private boolean movie;
@@ -55,7 +55,7 @@ public class TagsCommand implements Callable<Integer> {
             }
         }
 
-        val configuration = parent.getConfiguration();
+        val configuration = getConfiguration();
         if (configuration == null || configuration.tagSystem() == null
                 || configuration.tagSystem().isBlank()) {
             log.error("To test tags you must provide a non empty tagging system code");

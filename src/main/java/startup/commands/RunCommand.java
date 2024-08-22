@@ -13,22 +13,22 @@ import java.util.concurrent.Callable;
         mixinStandardHelpOptions = true,
         scope = CommandLine.ScopeType.INHERIT,
         description = "Run with config file")
-public class RunCommand implements Callable<Integer> {
+public class RunCommand extends ConfigCommand implements Callable<Integer> {
     @CommandLine.ParentCommand
     private CliCommand parent;
 
     @Override
     public Integer call() throws Exception {
-        val config = parent.getConfiguration();
+        val config = getConfiguration();
         if (config == null) {
             return 1;
         }
         if (config.run() == null) {
-            log.error(STR."No run configuration found in the config file. \{parent.getConfigPath()}");
+            log.error(STR."No run configuration found in the config file. \{getConfigPath()}");
             return 1;
         }
         try {
-            val command = config.run().toCommandArgs(parent.getConfigPath());
+            val command = config.run().toCommandArgs(getConfigPath());
             return new picocli.CommandLine(new CliCommand())
                     .setExecutionStrategy(new ConfigValidatingExecutionStrategy())
                     .execute(command.toArray(String[]::new));
