@@ -33,17 +33,7 @@ public class ConfigFileParser<T> {
         val options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         options.setPrettyFlow(true);
-        Representer representer = new Representer(options) {
-            @Override
-            protected NodeTuple representJavaBeanProperty(Object javaBean, Property property, Object propertyValue, Tag customTag) {
-                // if value of property is null, ignore it.
-                if (propertyValue == null) {
-                    return null;
-                } else {
-                    return super.representJavaBeanProperty(javaBean, property, propertyValue, customTag);
-                }
-            }
-        };
+        Representer representer = new CustomRepresenter(options);
         representer.getPropertyUtils().setSkipMissingProperties(true);
 
         mYaml = new Yaml(new CliConfigConstructor(clazz, loaderoptions), representer, options);
@@ -58,8 +48,25 @@ public class ConfigFileParser<T> {
         mYaml.dump(configuration, output);
     }
 
-    private class CliConfigConstructor extends Constructor {
+    private static class CustomRepresenter extends Representer {
+        public CustomRepresenter(DumperOptions options) {
+            super(options);
+        }
 
+        @Override
+        protected NodeTuple representJavaBeanProperty(Object javaBean, Property property, Object propertyValue, Tag customTag) {
+            // if value of property is null, ignore it.
+            if (propertyValue == null) {
+                return null;
+            } else if (Path.class.isAssignableFrom(propertyValue.getClass())) {
+                return super.representJavaBeanProperty(javaBean, property, ((Path) propertyValue).toString(), customTag);
+            } else {
+                return super.representJavaBeanProperty(javaBean, property, propertyValue, customTag);
+            }
+        }
+    }
+
+    private class CliConfigConstructor extends Constructor {
         public CliConfigConstructor(Class<T> clazz, LoaderOptions loaderoptions) {
             super(clazz, loaderoptions);
             this.yamlClassConstructors.put(NodeId.scalar, new ConstructScalar() {

@@ -47,9 +47,9 @@ public class ConfigFileHandler<T> {
         return Optional.ofNullable(config);
     }
 
-    public void saveTo(Path path, T configuration) {
+    public void saveTo(Path path, T configuration, boolean overwrite) {
         try {
-            if (!Files.exists(path)) {
+            if (!Files.exists(path) || overwrite) {
                 Writer writer = new BufferedWriter(new FileWriter(path.toFile()));
                 log.info(STR."Saving config to file: \{path.toAbsolutePath()}");
                 getConfigParser().dump(configuration, writer);

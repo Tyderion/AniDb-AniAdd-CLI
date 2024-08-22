@@ -29,7 +29,7 @@ public class NewCommand implements Callable<Integer> {
             val handler = new ConfigFileHandler<>(RootConfiguration.class);
             val config = RootConfiguration.builder().build();
             config.removeDefaults();
-            handler.saveTo(path, config);
+            handler.saveTo(path, config, overwrite);
             log.info(STR."Configuration saved to \{path}");
             return 0;
         }
