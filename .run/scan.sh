@@ -11,7 +11,7 @@ fi
 
 if [ -z "$LOCAL_CACHE_FILE" ]
 then
-  java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF  scan $FROM_FOLDER
+  java --enable-preview -jar /app/aniadd-cli.jar anidb scan -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF $FROM_FOLDER
 else
-  java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF --db $LOCAL_CACHE_FILE scan $FROM_FOLDER
+  java --enable-preview -jar /app/aniadd-cli.jar anidb scan -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF --db $LOCAL_CACHE_FILE $FROM_FOLDER
 fi

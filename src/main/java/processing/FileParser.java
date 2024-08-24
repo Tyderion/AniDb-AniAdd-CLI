@@ -3,7 +3,10 @@ package processing;
 import ed2kHasher.Edonkey;
 import lombok.RequiredArgsConstructor;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 
 @RequiredArgsConstructor

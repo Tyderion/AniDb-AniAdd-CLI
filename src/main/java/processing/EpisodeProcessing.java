@@ -1,21 +1,14 @@
 package processing;
 
-import java.io.*;
-import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.util.*;
-
-import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
+import aniAdd.misc.MultiKeyDict;
 import cache.IAniDBFileRepository;
+import config.blocks.*;
 import fileprocessor.FileProcessor;
 import kodi.KodiMetadataGenerator;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import processing.FileInfo.FileAction;
-
-import aniAdd.misc.MultiKeyDict;
-
 import processing.tagsystem.TagSystemTags;
 import udpapi.UdpApi;
 import udpapi.command.FileCommand;
@@ -25,11 +18,18 @@ import udpapi.command.MylistCommand;
 import udpapi.query.Query;
 import udpapi.reply.ReplyStatus;
 
+import java.io.File;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 @Slf4j
 public class EpisodeProcessing implements FileProcessor.Processor {
 
     private final UdpApi api;
-    private final AniConfiguration defaultConfiguration;
+    private final FileConfig fileConfig;
+    private final AniDbConfig aniDbConfig;
     private final DoOnFileSystem fileSystem;
     private final KodiMetadataGenerator kodiMetadataGenerator;
     private final FileRenamer fileRenamer;
@@ -48,17 +48,20 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     private final MultiKeyDict<KeyType, Object, FileInfo> files = new MultiKeyDict<>(KeyType.class,
             (type, fileInfo) -> type == KeyType.Id ? fileInfo.getId() : (type == KeyType.Path ? fileInfo.getFile().getAbsolutePath() : null));
 
-    public EpisodeProcessing(AniConfiguration configuration,
-                             UdpApi udpApi,
-                             KodiMetadataGenerator kodiMetadataGenerator,
-                             DoOnFileSystem fileSystem,
-                             IFileHandler fileHandler,
-                             IAniDBFileRepository fileRepository) {
-        this.defaultConfiguration = configuration;
+    public EpisodeProcessing(
+            FileConfig fileConfig,
+            TagsConfig tagsConfig,
+            AniDbConfig aniDbConfig,
+            UdpApi udpApi,
+            KodiMetadataGenerator kodiMetadataGenerator,                 
+            DoOnFileSystem fileSystem,
+            IFileHandler fileHandler,
+            IAniDBFileRepository fileRepository) {
+        this.fileConfig = fileConfig;
         this.api = udpApi;
-        this.kodiMetadataGenerator = kodiMetadataGenerator;
+        this.aniDbConfig = aniDbConfig;
         this.fileHandler = fileHandler;
-        this.fileRenamer = new FileRenamer(fileHandler);
+        this.fileRenamer = new FileRenamer(fileHandler, tagsConfig);
         this.fileRepository = fileRepository;
         this.fileSystem = fileSystem;
 
@@ -85,7 +88,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
 
     private void nextStep(FileAction finishedStep, FileInfo fileInfo) {
         log.info(STR."Finished with \{finishedStep} for file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()}");
-        val configuration = fileInfo.getConfiguration();
+        val config = fileInfo.config();
         switch (finishedStep) {
             case Init -> {
                 hashFile(fileInfo);
@@ -96,10 +99,11 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     finalize(fileInfo);
                     return;
                 }
-                if (configuration.isEnableFileRenaming() || configuration.isEnableFileMove() || configuration.isGenerateKodiMetadata()) {
+                if (config.rename().mode() != RenameConfig.Mode.NONE ||
+                        config.move().mode() != MoveConfig.Mode.NONE) {
                     loadFileInfo(fileInfo);
                 }
-                if (configuration.isAddToMylist()) {
+                if (config.mylist().add()) {
                     addToMyList(fileInfo);
                 }
             }
@@ -109,7 +113,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     log.warn(STR."FileCommand for file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()} failed to get data. Skipping dependant steps");
                     return;
                 }
-                if (configuration.isEnableFileRenaming() || configuration.isEnableFileMove()) {
+                if (config.rename().mode() != RenameConfig.Mode.NONE ||
+                        config.move().mode() != MoveConfig.Mode.NONE) {
                     renameFile(fileInfo);
                 } else if (configuration.isGenerateKodiMetadata()) {
                     if (configuration.isSyncWatchedStateToKodi()) {
@@ -174,7 +179,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         val cachedData = fileRepository.getAniDBFileData(procFile.getEd2k(), procFile.getFileSize());
         cachedData.ifPresentOrElse(fd -> {
             log.info(STR."Got cached data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
-            if (fd.getUpdatedAt() == null || fd.getUpdatedAt().plusDays(procFile.getConfiguration().getCacheTTLInDays()).isBefore(LocalDateTime.now())) {
+            if (fd.getUpdatedAt() == null || fd.getUpdatedAt().plusDays(aniDbConfig.cache().ttlInDays()).isBefore(LocalDateTime.now())) {
                 log.info(STR."Cached data for file \{procFile.getFile().getAbsolutePath()} with Hash \{procFile.getEd2k()} is outdated, loading new info");
                 api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFileSize(), procFile.getEd2k()));
                 return;
@@ -197,7 +202,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 procFile.getId(),
                 procFile.getFile().length(),
                 procFile.getEd2k(),
-                procFile.getConfiguration().getSetStorageType().getValue(),
+                procFile.config().mylist().storageType().value(),
                 procFile.getWatched() != null && procFile.getWatched()));
     }
 
@@ -247,10 +252,14 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 default -> "Unknown error";
             };
             log.warn(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} returned error: \{replyStatus} - \{errorMessage}");
-            if (replyStatus == ReplyStatus.NO_SUCH_FILE && procFile.getConfiguration().isMoveUnknownFiles()) {
+            if (replyStatus == ReplyStatus.NO_SUCH_FILE
+                    && procFile.config().move().unknown().mode() == MoveConfig.HandlingConfig.Mode.MOVE
+            ) {
                 fileSystem.run(() -> {
                     File currentFile = procFile.getFile();
-                    val unknownTargetPath = Paths.get(procFile.getConfiguration().getUnknownFolder(), currentFile.getParentFile().getName(), currentFile.getName());
+                    val unknownTargetPath = procFile.config().move().unknown().folder()
+                            .resolve(currentFile.getParentFile().getName())
+                            .resolve(currentFile.getName());
                     fileHandler.renameFile(currentFile.toPath(), unknownTargetPath);
                     nextStep(FileAction.FileCmd, procFile);
                 });
@@ -275,7 +284,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             return;
         }
         FileInfo procFile = files.get(KeyType.Id, fileId);
-        val configuration = procFile.getConfiguration();
+        val configuration = procFile.config();
 
         if (replyStatus == ReplyStatus.MYLIST_ENTRY_ADDED
                 || replyStatus == ReplyStatus.MYLIST_ENTRY_EDITED) {
@@ -284,7 +293,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             procFile.actionDone(FileAction.MyListAddCmd);
             nextStep(FileAction.MyListAddCmd, procFile);
         } else if (replyStatus == ReplyStatus.FILE_ALREADY_IN_MYLIST) {
-            if (configuration.isOverwriteMLEntries()) {
+            if (configuration.mylist().overwrite()) {
                 api.queueCommand(query.getCommand().WithEdit());
                 log.debug(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} already added on MyList, retrying with edit");
             } else {
@@ -347,11 +356,11 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     }
 
     public void addFiles(Collection<File> newFiles) {
-        addFiles(newFiles, defaultConfiguration);
+        addFiles(newFiles, fileConfig);
     }
 
-    public void addFiles(Collection<File> newFiles, AniConfiguration configuration) {
-        Boolean watched = configuration.isSetWatched() ? true : null;
+    public void addFiles(Collection<File> newFiles, FileConfig configuration) {
+        Boolean watched = configuration.mylist().watched() ? true : null;
 
         for (File file : newFiles) {
             if (files.contains(KeyType.Path, file.getAbsolutePath())) {
@@ -359,10 +368,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 continue;
             }
 
-            FileInfo fileInfo = new FileInfo(file, lastFileId);
-            fileInfo.setConfiguration(configuration);
-            fileInfo.setWatched(watched);
-
+            FileInfo fileInfo = new FileInfo(file, lastFileId, watched, configuration);
             files.put(fileInfo);
             lastFileId++;
             fileInfo.actionDone(FileAction.Init);

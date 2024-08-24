@@ -1,3 +1,4 @@
+
 out/
 build/
 .idea/
@@ -7,6 +8,11 @@ build/
 *.bak
 *.conf
 *.properties
-!config/*
+*.yaml
 test.*
-TestCommand.java
+.env
+
+
+!config/*
+!.run/*
+!src/test/resources/*/*

@@ -1,12 +1,14 @@
 package udpapi;
 
-import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
+import config.blocks.AniDbConfig;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import udpapi.command.*;
+import udpapi.command.Command;
+import udpapi.command.LoginCommand;
+import udpapi.command.LogoutCommand;
 import udpapi.query.Query;
 import udpapi.receive.Receive;
 import udpapi.reply.Reply;
@@ -30,9 +32,8 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     private DatagramSocket socket;
     private final ScheduledExecutorService executorService;
-    private final int localPort;
+    private final AniDbConfig aniDbConfig;
     private InetAddress aniDbIp;
-    private int aniDbPort;
     private boolean isInitialized = false;
     private String session = null;
 
@@ -42,20 +43,15 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     private Date lastSentDate = null;
     private boolean isSendScheduled = false;
     private boolean shouldWaitLong = false;
-
-    private final String username;
-    private final String password;
     private boolean shutdown;
     private Future<?> receiveFuture;
     private ICallBack<Void> onShutdownFinished;
     private Future<?> requeueFuture;
 
-    public UdpApi(ScheduledExecutorService executorService, int localPort, String username, String password, AniConfiguration configuration) {
+    public UdpApi(ScheduledExecutorService executorService, AniDbConfig aniDbConfig) {
         this.executorService = executorService;
-        this.localPort = localPort;
-        this.username = username;
-        this.password = password;
-        Initialize(configuration);
+        this.aniDbConfig = aniDbConfig;
+        Initialize();
     }
 
     public <T extends Command> void registerCallback(Class<T> command, IQueryCallback<T> callback) {
@@ -74,7 +70,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         }
     }
 
-    private void Initialize(AniConfiguration configuration) {
+    private void Initialize() {
         registerCallback(LoginCommand.class, query -> {
             switch (query.getReply().getReplyStatus()) {
                 case LOGIN_ACCEPTED, LOGIN_ACCEPTED_NEW_VERSION -> {
@@ -99,9 +95,8 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         });
 
         try {
-            socket = new DatagramSocket(localPort);
-            aniDbIp = InetAddress.getByName(configuration.getAnidbHost());
-            aniDbPort = configuration.getAnidbPort();
+            socket = new DatagramSocket(aniDbConfig.localPort());
+            aniDbIp = InetAddress.getByName(aniDbConfig.host());
         } catch (SocketException e) {
             log.error(STR."Failed to create socket \{e.getMessage()}");
             return;
@@ -153,7 +148,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             return false;
         }
         try {
-            val command = LoginCommand.Create(username, password);
+            val command = LoginCommand.Create(aniDbConfig.username(), aniDbConfig.password());
             scheduleCommand(command, getNextSendDelay());
             isSendScheduled = true;
             loginStatus = LoginStatus.LOGIN_PENDING;
@@ -210,7 +205,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     private void scheduleCommand(@NotNull Command command, Duration delay) {
         log.info(STR."Scheduling command \{command.toString()} in \{delay.toMillis()}ms at \{formatDelay(delay)}");
-        executorService.schedule(new Send<>(this, command, aniDbIp, aniDbPort), delay.toMillis(), TimeUnit.MILLISECONDS);
+        executorService.schedule(new Send<>(this, command, aniDbIp, aniDbConfig.port()), delay.toMillis(), TimeUnit.MILLISECONDS);
         requeueFuture = executorService.schedule(() -> {
             log.info(STR."Did not receive a response for \{command.toString()} in \{UdpApiConfiguration.MAX_RESPONSE_WAIT_TIME.toSeconds()}s. Assuming it was lost in transit. Rescheduling command and sending next one.");
             rescheduleCommandInFlight();
@@ -326,7 +321,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         if (logoutFuture != null) {
             logoutFuture.cancel(false);
         }
-        logoutFuture = executorService.schedule(new Send<>(this, LogoutCommand.Create(!now), aniDbIp, aniDbPort), delay.toMillis(), TimeUnit.MILLISECONDS);
+        logoutFuture = executorService.schedule(new Send<>(this, LogoutCommand.Create(!now), aniDbIp, aniDbConfig.port()), delay.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     @Override

@@ -85,7 +85,7 @@ Runs the `connect-to-kodi` command.
 ### Watch and Kodi
 entrypoint: `/app/watch-and-kodi.sh`
 
-Runs the `watch-and-kodi` command which combines `watch` and `connect-to-kodi`.
+Runs the `watch` command and enables kodi command as well.
 
 
 ### Noop
@@ -96,15 +96,16 @@ Keeps container alive, so you can connect a shell and run commands manually.
 ### Flexible Run Configuration
 entrypoint: `/app/run.sh` 
 
-Enables you to run any command you want by specifying it in an env variable.
+Enables you to run run config file stored in `$ANIDB_CONF`
 
 #### Env Vars
-- `COMMAND` [required]: the command to run (see above), any required args must be set
+- `$ANIDB_CONF` [required]: the run config file to run, e.g. run.yaml
 
 # Development
 I recommend to use IntelliJ (Community Edition is enough) to develop this project.
 Be sure to install the Lombok Plugin and enable annotation processing in the settings.
 It currently only works with Java 21, higher/lower does not work due to the usage of template strings
+If you want, install the git hooks by running `./hooks/install.ps1` (Windows) or `./hooks/install.sh` (Linux/MacOS)
 
 # DISCLAIMER
 This software is provided as is. I am not responsible for any damage caused by this software. Use at your own risk.

@@ -2,7 +2,10 @@ package aniAdd.misc;
 
 import lombok.val;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MultiKeyDict<C extends Enum<C>, K, V> {

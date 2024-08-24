@@ -13,18 +13,22 @@ public class FileHandler implements IFileHandler {
 
     @Override
     public boolean renameFile(@NotNull Path from, @NotNull Path to) {
+        if (to.toString().isBlank()) {
+            log.error(STR."Target path is blank for File '\{from.toAbsolutePath().toString()}': '\{to.toString()}'");
+            return false;
+        }
         if (from.toAbsolutePath().equals(to.toAbsolutePath())) {
-            log.info(STR."File \{from.toAbsolutePath()} is already at the correct location.");
+            log.info(STR."File '\{from.toAbsolutePath()}' is already at the correct location.");
             return true;
         }
-        log.debug(STR."Moving file from \{from.toAbsolutePath()} to \{to.toAbsolutePath()}");
+        log.debug(STR."Moving file from '\{from.toAbsolutePath()}' to '\{to.toAbsolutePath()}'");
 
         if (!Files.exists(to.getParent())) {
-            log.debug(STR."Creating parent directory \{to.getParent().toAbsolutePath()}");
+            log.debug(STR."Creating parent directory '\{to.getParent().toAbsolutePath()}'");
             try {
                 Files.createDirectories(to.getParent());
             } catch (IOException e) {
-                log.error(STR."Could not create parent directory \{to.getParent().toAbsolutePath()}: \{e.getMessage()}");
+                log.error(STR."Could not create parent directory '\{to.getParent().toAbsolutePath()}': \{e.getMessage()}");
                 return false;
             }
         }
@@ -33,19 +37,19 @@ public class FileHandler implements IFileHandler {
             Files.move(from, to, StandardCopyOption.ATOMIC_MOVE);
             return true;
         } catch (IOException e) {
-            log.info(STR."Could not move file from \{from.toAbsolutePath()} to \{to.toAbsolutePath()}: \{e.getMessage()}. Will try to copy instead");
+            log.info(STR."Could not move file from '\{from.toAbsolutePath()}' to '\{to.toAbsolutePath()}': \{e.getMessage()}. Will try to copy instead");
         }
-        log.debug(STR."Copying file from \{from.toAbsolutePath()} to \{to.toAbsolutePath()}");
+        log.debug(STR."Copying file from '\{from.toAbsolutePath()}' to '\{to.toAbsolutePath()}'");
         try {
             Files.copy(from, to, StandardCopyOption.COPY_ATTRIBUTES);
             // Even though Files.copy should throw an exception if it fails, we still check if the file was copied correctly
             if (Files.exists(to) && Files.size(to) == Files.size(from)) {
-                log.debug(STR."Successfully copied file from \{from.toAbsolutePath()} to \{to.toAbsolutePath()}. Deleting original file.");
+                log.debug(STR."Successfully copied file from '\{from.toAbsolutePath()}' to '\{to.toAbsolutePath()}'. Deleting original file.");
                 Files.delete(from);
             }
             return true;
         } catch (IOException e) {
-            log.error(STR."Could not move file from \{from.toAbsolutePath()} to \{to.toAbsolutePath()}: \{e.getMessage()}.");
+            log.error(STR."Could not move file from '\{from.toAbsolutePath()}' to '\{to.toAbsolutePath()}': \{e.getMessage()}.");
         }
         return false;
     }

@@ -1,0 +1,5 @@
+run:
+  task: scan
+  args:
+    path: /path/to/scan
+  config: config.yaml

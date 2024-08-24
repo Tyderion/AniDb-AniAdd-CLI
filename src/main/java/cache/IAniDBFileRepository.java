@@ -11,4 +11,6 @@ public interface IAniDBFileRepository {
     Optional<AniDBFileData> getByFilename(@NonNull String filename);
 
     boolean saveAniDBFileData(AniDBFileData aniDBFileData);
+
+    Optional<AniDBFileData> getByFileId(int fileId);
 }

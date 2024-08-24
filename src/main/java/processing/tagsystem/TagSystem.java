@@ -1,6 +1,7 @@
 package processing.tagsystem;
 
 import aniAdd.misc.Misc;
+import config.blocks.PathConfig;
 import lombok.val;
 
 import java.util.ArrayList;
@@ -13,7 +14,10 @@ public class TagSystem {
 
     private static final char[] delimiters = new char[]{',', ')', ']', '}', '=', '?', ':'};
 
-    public static TagSystemResult Evaluate(String sourceCode, Map<TagSystemTags, String> vars) throws Exception {
+    public static TagSystemResult Evaluate(String sourceCode,
+                                           Map<TagSystemTags, String> vars,
+                                           PathConfig folders) throws Exception {
+
         val stringVars = vars.entrySet().stream()
                 .collect(Collectors.toMap(e -> e.getKey().getTag(), entry -> {
                     if (entry.getValue() == null) {
@@ -21,7 +25,16 @@ public class TagSystem {
                     }
                     return entry.getValue();
                 }));
-        Environment e = new Environment(sourceCode.split("[\n\r]"), stringVars, null);
+
+        if (folders != null) {
+            folders.movieFolders().forEach(c -> stringVars.put(c.tagSystemName(), c.path().toString()));
+            folders.tvShowFolders().forEach(c -> stringVars.put(c.tagSystemName(), c.path().toString()));
+        }
+        return Evaluate(sourceCode, stringVars);
+    }
+
+    private static TagSystemResult Evaluate(String sourceCode, Map<String, String> vars) throws Exception {
+        Environment e = new Environment(sourceCode.split("[\n\r]"), vars, null);
         Start(e);
         return new TagSystemResult(e.vars.get("PathName"), e.vars.get("FileName"));
     }

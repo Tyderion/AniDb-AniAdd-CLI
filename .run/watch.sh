@@ -16,8 +16,8 @@ fi
 
 if [ -z "$LOCAL_CACHE_FILE" ]
 then
-  java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF watch --interval $SCAN_INTERVAL $FROM_FOLDER
+  java --enable-preview -jar /app/aniadd-cli.jar anidb watch -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF --interval $SCAN_INTERVAL $FROM_FOLDER
 else
-  java --enable-preview -jar /app/aniadd-cli.jar anidb -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF --db $LOCAL_CACHE_FILE watch --interval $SCAN_INTERVAL $FROM_FOLDER
+  java --enable-preview -jar /app/aniadd-cli.jar anidb watch -u $ANIDB_USERNAME -p $ANIDB_PASSWORD -c $ANIDB_CONF --db $LOCAL_CACHE_FILE --interval $SCAN_INTERVAL $FROM_FOLDER
 fi
 

@@ -1,11 +1,14 @@
 package fileprocessor;
 
-import aniAdd.config.AniConfiguration;
 import aniAdd.misc.ICallBack;
-import lombok.*;
+import config.blocks.FileConfig;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -16,12 +19,12 @@ import java.util.concurrent.ExecutorService;
 @RequiredArgsConstructor
 public class FileProcessor {
     private final Processor processor;
-    private final AniConfiguration configuration;
+    private final FileConfig configuration;
     private final List<ICallBack<EventType>> onEvents = new ArrayList<>();
 
     private final ExecutorService executorService;
 
-    public void AddFile(String path) {
+    public void AddFile(Path path) {
         AddFile(path, configuration);
     }
 
@@ -29,15 +32,13 @@ public class FileProcessor {
         onEvents.add(callback);
     }
 
-    public void AddFile(String path, AniConfiguration configuration) {
-        File file = new File(path);
-        if (file.exists()) {
-            processor.addFiles(List.of(file), configuration);
+    public void AddFile(Path path, FileConfig configuration) {
+        if (Files.exists(path)) {
+            processor.addFiles(List.of(path.toFile()), configuration);
         }
     }
 
-
-    public void Scan(String directory) {
+    public void Scan(Path directory) {
         val findFiles = executorService.submit(new FindFiles(directory));
         try {
             val files = findFiles.get();
@@ -68,7 +69,6 @@ public class FileProcessor {
 
     public interface Processor {
         void addFiles(Collection<File> newFiles);
-
-        void addFiles(Collection<File> newFiles, AniConfiguration configuration);
+        void addFiles(Collection<File> newFiles, FileConfig configuration);
     }
 }
