@@ -50,6 +50,20 @@ public class ConfigFileParser<T> {
     private static class PathRepresenter extends Representer {
         public PathRepresenter(DumperOptions options) {
             super(options);
+            this.multiRepresenters.put(Path.class, node -> {
+                if (node == null) {
+                    return representScalar(Tag.NULL, "");
+                }
+                var value = ((Path) node).toString();
+                if (!value.matches("^[A-Z]:.*")) {
+                    value = value.replace("\\", "/");
+                }
+                return representScalar(Tag.STR, value, null);
+            });
+            this.multiRepresenters.put(Enum.class, node -> {
+                Tag tag = new Tag(node.getClass());
+                return representScalar(getTag(node.getClass(), tag), ((Enum<?>) node).name().toLowerCase());
+            });
         }
 
         @Override
@@ -57,11 +71,8 @@ public class ConfigFileParser<T> {
             // if value of property is null, ignore it.
             if (propertyValue == null) {
                 return null;
-            } else if (Path.class.isAssignableFrom(propertyValue.getClass())) {
-                return super.representJavaBeanProperty(javaBean, property, ((Path) propertyValue).toString(), customTag);
-            } else {
-                return super.representJavaBeanProperty(javaBean, property, propertyValue, customTag);
             }
+            return super.representJavaBeanProperty(javaBean, property, propertyValue, customTag);
         }
     }
 

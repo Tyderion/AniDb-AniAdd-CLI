@@ -51,15 +51,15 @@ public class MoveConfig {
     @AllArgsConstructor
     public static class HandlingConfig {
         @Builder.Default
-        private HandlingConfig.Mode mode = HandlingConfig.Mode.IGNORE;
+        private HandlingConfig.Mode mode = HandlingConfig.Mode.NONE;
         private Path folder;
 
         public enum Mode {
-            MOVE, DELETE, IGNORE
+            MOVE, DELETE, NONE
         }
 
         public boolean isDefault() {
-            return mode == HandlingConfig.Mode.IGNORE && folder == null;
+            return mode == HandlingConfig.Mode.NONE && folder == null;
         }
 
         public void removeDefaults() {

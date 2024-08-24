@@ -101,24 +101,28 @@ public class ConvertCommand implements Callable<Integer> {
         }
         return MoveConfig.builder()
                 .mode(type)
-                .folder(Path.of(config.getMoveToFolder()))
+                .folder(getPath(config.getMoveToFolder()))
                 .deleteEmptyDirs(config.isRecursivelyDeleteEmptyFolders())
                 .duplicates(HandlingConfig.builder()
                         .mode(getDuplicatesType(config))
-                        .folder(Path.of(config.getDuplicatesFolder()))
+                        .folder(getPath(config.getDuplicatesFolder()))
                         .build())
                 .unknown(HandlingConfig.builder()
                         .mode(getUnknownType(config))
-                        .folder(Path.of(config.getUnknownFolder()))
+                        .folder(getPath(config.getUnknownFolder()))
                         .build())
                 .build();
+    }
+
+    private Path getPath(String path) {
+        return path != null ? Path.of(path) : null;
     }
 
     private HandlingConfig.Mode getUnknownType(AniConfiguration config) {
         if (config.isMoveUnknownFiles()) {
             return HandlingConfig.Mode.MOVE;
         }
-        return HandlingConfig.Mode.IGNORE;
+        return HandlingConfig.Mode.NONE;
     }
 
     private HandlingConfig.Mode getDuplicatesType(AniConfiguration config) {
@@ -128,7 +132,7 @@ public class ConvertCommand implements Callable<Integer> {
         if (config.isDeleteDuplicateFiles()) {
             return HandlingConfig.Mode.DELETE;
         }
-        return HandlingConfig.Mode.IGNORE;
+        return HandlingConfig.Mode.NONE;
     }
 
     private MoveConfig.Mode getMoveType(AniConfiguration config) {
