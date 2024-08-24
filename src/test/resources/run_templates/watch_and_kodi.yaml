@@ -1,0 +1,6 @@
+run:
+  task: watch
+  args:
+    kodi: true
+    path: /path/to/files
+  config: config.yaml

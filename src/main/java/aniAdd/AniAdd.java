@@ -1,26 +1,25 @@
 package aniAdd;
 
-import aniAdd.config.AniConfiguration;
-
 import aniAdd.misc.ICallBack;
-import lombok.Getter;
+import config.blocks.FileConfig;
+import config.blocks.MyListConfig;
+import fileprocessor.FileProcessor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import fileprocessor.FileProcessor;
 import processing.EpisodeProcessing;
 import udpapi.UdpApi;
 
+import java.nio.file.Path;
+
 @Slf4j
 public class AniAdd implements IAniAdd {
-    @NotNull @Getter private final AniConfiguration configuration;
     @NotNull private final UdpApi api;
     @NotNull private final FileProcessor fileProcessor;
     @NotNull private final EpisodeProcessing processing;
     @NotNull private final ICallBack<Void> onShutdown;
 
-    public AniAdd(@NotNull AniConfiguration configuration, @NotNull UdpApi api, boolean exitOnTermination, @NotNull FileProcessor fileProcessor, @NotNull EpisodeProcessing processing, @NotNull ICallBack<Void> onShutdown) {
-        this.configuration = configuration;
+    public AniAdd(@NotNull UdpApi api, boolean exitOnTermination, @NotNull FileProcessor fileProcessor, @NotNull EpisodeProcessing processing, @NotNull ICallBack<Void> onShutdown) {
         this.api = api;
         this.onShutdown = onShutdown;
         this.fileProcessor = fileProcessor;
@@ -47,18 +46,18 @@ public class AniAdd implements IAniAdd {
     }
 
     @Override
-    public void ProcessDirectory(String directory) {
+    public void ProcessDirectory(Path directory) {
         fileProcessor.Scan(directory);
     }
 
     @Override
-    public void MarkFileAsWatched(@NotNull String path) {
-        val config = getConfiguration().toBuilder()
-                .addToMylist(true)
-                .enableFileMove(false)
-                .enableFileRenaming(false)
-                .setWatched(true)
-                .overwriteMLEntries(true)
+    public void MarkFileAsWatched(@NotNull Path path) {
+        val config = FileConfig.builder()
+                .mylist(MyListConfig.builder()
+                        .watched(true)
+                        .overwrite(true)
+                        .add(true)
+                        .build())
                 .build();
         fileProcessor.AddFile(path, config);
     }

@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "ch.tyderion"
-version = "5.0.0.a.3"
+version = "5.0.0.a.4"
 
 java {
     targetCompatibility = JavaVersion.VERSION_21
@@ -38,6 +38,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.0-M2")
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.11.0-M2")
     testImplementation("org.mockito:mockito-core:5.12.0")
+    testImplementation("org.hamcrest:hamcrest:3.0")
 
     implementation("org.hibernate.orm:hibernate-core:6.5.2.Final")
     implementation("org.hibernate.orm:hibernate-community-dialects:6.5.2.Final")
@@ -62,7 +63,7 @@ tasks.register<Jar>("fatJar") {
         attributes(
             "Implementation-Title" to "AniAdd CLI Version",
             "Implementation-Version" to version,
-            "Main-Class" to "aniAdd.startup.Main"
+            "Main-Class" to "startup.Main"
         )
     }
     archiveBaseName.set(project.name + "-all")

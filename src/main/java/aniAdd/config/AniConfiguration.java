@@ -4,7 +4,7 @@ package aniAdd.config;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 @Slf4j
 @Data
@@ -107,11 +107,11 @@ public class AniConfiguration {
     @Builder.Default private int cacheTTLInDays = 30;
 
     public String getEpisodePath(String relativePath) {
-        return Paths.get(tvShowFolder, relativePath).toString();
+        return Path.of(tvShowFolder, relativePath).toString();
     }
 
     public String getMoviePath(String relativePath) {
-        return Paths.get(movieFolder, relativePath).toString();
+        return Path.of(movieFolder, relativePath).toString();
     }
 
     @Getter

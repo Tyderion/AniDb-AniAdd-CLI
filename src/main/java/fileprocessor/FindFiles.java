@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -15,15 +16,13 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class FindFiles implements Callable<List<File>> {
 
-    private final String directory;
+    private final Path directory;
 
     @Override
     public List<File> call() throws Exception {
-        File folder = new File(directory);
+        log.debug(STR."Folder: \{directory.toAbsolutePath()}");
 
-        log.debug(STR."Folder: \{folder.getAbsolutePath()}");
-
-        val files = recursivelyGetFilesToScrape(folder).collect(Collectors.toList());
+        val files = recursivelyGetFilesToScrape(directory.toFile()).collect(Collectors.toList());
         files.forEach(f -> log.trace(STR."Found file: \{f.getAbsolutePath()}"));
         log.info(STR."Number of found files: \{files.size()}");
         return files;

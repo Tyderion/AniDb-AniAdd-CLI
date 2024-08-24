@@ -1,0 +1,5 @@
+run:
+  task: scan
+  args:
+    path: /from
+  config: docker.yaml
