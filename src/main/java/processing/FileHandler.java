@@ -60,7 +60,7 @@ public class FileHandler implements IFileHandler {
         try {
             Files.delete(path);
         } catch (IOException e) {
-            log.error(STR."Could not delete file \{path.toAbsolutePath()}: \{e.getMessage()}");
+            log.error(STR."Could not delete file \{path.toAbsolutePath()}: \{e.toString()}");
         }
     }
 }
