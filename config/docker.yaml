@@ -31,7 +31,7 @@ file:
 kodi:
   pathFilter: anime
   port: 9090
-  
+
 tags:
   paths:
     movieFolders:
