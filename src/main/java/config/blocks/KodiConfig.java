@@ -19,11 +19,15 @@ public class KodiConfig {
     @Builder.Default
     private String pathFilter = "anime";
 
+    @Builder.Default
+    private KodiMetadataConfig metadata = KodiMetadataConfig.builder().build();
+
     public boolean isEmpty() {
         return host == null && port == null;
     }
 
     public void removeDefaults() {
+        metadata.removeDefaults();
         if (host.equals("localhost")) {
             host = null;
         }

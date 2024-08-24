@@ -27,6 +27,7 @@ import java.util.List;
 @Slf4j
 public class EpisodeProcessing implements FileProcessor.Processor {
 
+    private final KodiConfig kodiConfig;
     private final UdpApi api;
     private final FileConfig fileConfig;
     private final AniDbConfig aniDbConfig;
@@ -52,16 +53,19 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             FileConfig fileConfig,
             TagsConfig tagsConfig,
             AniDbConfig aniDbConfig,
+            KodiConfig kodiConfig,
             UdpApi udpApi,
-            KodiMetadataGenerator kodiMetadataGenerator,                 
+            KodiMetadataGenerator kodiMetadataGenerator,
             DoOnFileSystem fileSystem,
             IFileHandler fileHandler,
             IAniDBFileRepository fileRepository) {
         this.fileConfig = fileConfig;
+        this.kodiConfig = kodiConfig;
         this.api = udpApi;
         this.aniDbConfig = aniDbConfig;
         this.fileHandler = fileHandler;
         this.fileRenamer = new FileRenamer(fileHandler, tagsConfig);
+        this.kodiMetadataGenerator = kodiMetadataGenerator;
         this.fileRepository = fileRepository;
         this.fileSystem = fileSystem;
 
@@ -116,17 +120,17 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 if (config.rename().mode() != RenameConfig.Mode.NONE ||
                         config.move().mode() != MoveConfig.Mode.NONE) {
                     renameFile(fileInfo);
-                } else if (configuration.isGenerateKodiMetadata()) {
-                    if (configuration.isSyncWatchedStateToKodi()) {
+                } else if (kodiConfig.metadata().generate()) {
+                    if (kodiConfig.metadata().syncWatchedStateFromMylist()) {
                         loadWatchedState(fileInfo);
                     } else {
                         generateKodiMetadata(fileInfo);
                     }
                 }
             }
-            case Rename ->  {
-                if (configuration.isGenerateKodiMetadata()) {
-                    if (configuration.isSyncWatchedStateToKodi()) {
+            case Rename -> {
+                if (kodiConfig.metadata().generate()) {
+                    if (kodiConfig.metadata().syncWatchedStateFromMylist()) {
                         loadWatchedState(fileInfo);
                     } else {
                         generateKodiMetadata(fileInfo);
@@ -138,7 +142,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 }
             }
             case LoadWatchedState -> {
-                if (configuration.isGenerateKodiMetadata()) {
+                if (kodiConfig.metadata().generate()) {
                     generateKodiMetadata(fileInfo);
                 }
             }

@@ -5,10 +5,14 @@ import aniAdd.IAniAdd;
 import cache.AniDBFileRepository;
 import config.blocks.AniDbConfig;
 import config.blocks.FileConfig;
+import config.blocks.KodiConfig;
 import config.blocks.TagsConfig;
 import fileprocessor.DeleteEmptyChildDirectoriesRecursively;
 import fileprocessor.FileProcessor;
-import lombok.Getter;
+import kodi.KodiMetadataGenerator;
+import kodi.OverwriteConfiguration;
+import kodi.tmdb.TmDbApi;
+import kodi.tvdb.TvDbApi;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.hibernate.SessionFactory;
@@ -24,8 +28,10 @@ import startup.validation.validators.nonblank.NonBlank;
 import startup.validation.validators.port.Port;
 import udpapi.UdpApi;
 import udpapi.reply.ReplyStatus;
+import utils.http.DownloadHelper;
 
 import java.nio.file.Path;
+import java.util.EnumSet;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -58,6 +64,14 @@ public class AnidbCommand extends ConfigRequiredCommand {
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", scope = CommandLine.ScopeType.INHERIT)
     Path dbPath;
 
+    @MapConfig(configPath = "kodi.metadata.tmDbApiToken", envVariableName = "TMDB_ACCESS_TOKEN", required = true, configMustBeNull = true)
+    @CommandLine.Option(names = {"--tmDbApiToken"}, description = "Token to access tmdb api", scope = CommandLine.ScopeType.INHERIT)
+    @NonBlank String tmDbApiToken;
+
+    @MapConfig(configPath = "kodi.metadata.tvDbApiKey", envVariableName = "TVDB_APIKEY", required = true, configMustBeNull = true)
+    @CommandLine.Option(names = {"--tvDbApiKey"}, description = "ApiKey to access tvdb api", scope = CommandLine.ScopeType.INHERIT)
+    @NonBlank String tvDbApiKey;
+
     @MapConfig(configPath = "anidb")
     AniDbConfig aniDbConfig;
 
@@ -66,6 +80,9 @@ public class AnidbCommand extends ConfigRequiredCommand {
 
     @MapConfig(configPath = "tags")
     TagsConfig tagsConfig;
+
+    @MapConfig(configPath = "kodi")
+    KodiConfig kodiConfig;
 
 
     public UdpApi getUdpApi(ScheduledExecutorService executorService) {
@@ -77,7 +94,12 @@ public class AnidbCommand extends ConfigRequiredCommand {
         val udpApi = getUdpApi(executorService);
         val fileHandler = new FileHandler();
         val fileRepository = new AniDBFileRepository(sessionFactory);
-        val processing = new EpisodeProcessing(fileConfig, tagsConfig, aniDbConfig, udpApi, fileSystem, fileHandler, fileRepository);
+        val tvDbApi = new TvDbApi(kodiConfig.metadata().tvDbApiKey(), executorService);
+        val tmDbApi = new TmDbApi(kodiConfig.metadata().tmDbApiToken(), executorService);
+        val kodiMetadataGenerator = new KodiMetadataGenerator(
+                new DownloadHelper(executorService), tvDbApi, tmDbApi, kodiConfig.metadata().animeMappingUrl(),
+                EnumSet.allOf(OverwriteConfiguration.class));
+        val processing = new EpisodeProcessing(fileConfig, tagsConfig, aniDbConfig, kodiConfig, udpApi, kodiMetadataGenerator, fileSystem, fileHandler, fileRepository);
         val fileProcessor = new FileProcessor(processing, fileConfig, executorService);
 
         if (fileConfig.move().deleteEmptyDirs() && inputDirectory != null) {
