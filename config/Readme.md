@@ -93,7 +93,7 @@ file:
   - `mode`: Duplicates mode, possible values:
       - `move`: Move duplicates
       - `delete`: Delete duplicates
-      - `ignore`: Ignore duplicates
+      - `none`: Do nothing
   - `folder`: Duplicates folder (if mode is move)
 - `unknown`: Same as duplicates, just for unknown files
 

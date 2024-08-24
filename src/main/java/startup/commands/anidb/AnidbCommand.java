@@ -47,11 +47,11 @@ public class AnidbCommand extends ConfigRequiredCommand {
 
     @MapConfig(configPath = "anidb.localPort")
     @CommandLine.Option(names = {"--localport"}, description = "The local port to use to connect to anidb", scope = CommandLine.ScopeType.INHERIT)
-    @Port int localPort;
+    @Port Integer localPort;
 
     @MapConfig(configPath = "anidb.exitOnBan")
     @CommandLine.Option(names = {"--exit-on-ban"}, description = "Exit the application if the user is banned", scope = CommandLine.ScopeType.INHERIT)
-    boolean exitOnBan;
+    Boolean exitOnBan;
 
     @Getter
     @NonBlank

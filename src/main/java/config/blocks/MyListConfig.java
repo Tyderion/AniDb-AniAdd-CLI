@@ -9,7 +9,6 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Accessors(fluent = true)
 public class MyListConfig {
-    public String username;
     private boolean overwrite;
     private boolean add;
     @Builder.Default

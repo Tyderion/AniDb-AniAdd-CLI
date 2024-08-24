@@ -59,7 +59,11 @@ public class RunConfig {
             log.info(STR."Run config does not contain a config file for the command. Using run config file ('\{runConfig}') as the config file for executing command.");
             args.put("config", runConfig.toString());
         } else {
-            args.put("config", config);
+            if (Path.of(config).isAbsolute()) {
+                args.put("config", config);
+            } else {
+                args.put("config", runConfig.getParent().resolve(config).normalize().toString());
+            }
         }
         args.forEach((name, value) -> arguments.add(STR."--\{name}=\{value}"));
         return arguments;
