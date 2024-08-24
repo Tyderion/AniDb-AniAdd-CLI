@@ -12,8 +12,7 @@ import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-
-    @Data
+@Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -36,8 +35,6 @@ public class RootConfiguration {
         if (this.kodi.isEmpty()) {
             this.kodi = null;
         }
-
-        this.anidb().exitOnBan(false);
     }
 
 }

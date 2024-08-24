@@ -53,7 +53,6 @@ public class AnidbCommand extends ConfigRequiredCommand {
     @CommandLine.Option(names = {"--exit-on-ban"}, description = "Exit the application if the user is banned", scope = CommandLine.ScopeType.INHERIT)
     Boolean exitOnBan;
 
-    @Getter
     @NonBlank
     @MapConfig(configPath = "anidb.cache.db")
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", scope = CommandLine.ScopeType.INHERIT)

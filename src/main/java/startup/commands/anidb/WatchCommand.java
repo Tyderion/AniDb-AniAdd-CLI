@@ -1,11 +1,13 @@
 package startup.commands.anidb;
 
 import cache.PersistenceConfiguration;
+import config.blocks.AniDbConfig;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
 import startup.commands.util.CommandHelper;
+import startup.validation.validators.config.MapConfig;
 import startup.validation.validators.min.Min;
 import startup.validation.validators.nonblank.NonBlank;
 
@@ -31,11 +33,14 @@ public class WatchCommand extends KodiWatcherCommand {
     @CommandLine.ParentCommand
     private AnidbCommand parent;
 
+    @MapConfig(configPath = "anidb")
+    private AniDbConfig aniDbConfig;
+
     @Override
     public Integer call() throws Exception {
         log.info(STR."Watching directory \{directory} every \{interval} minutes");
         try (val executorService = Executors.newScheduledThreadPool(10);
-             val sessionFactory = PersistenceConfiguration.getSessionFactory(parent.getDbPath());
+             val sessionFactory = PersistenceConfiguration.getSessionFactory(aniDbConfig.cache().db());
              val filesystem = new DoOnFileSystem()) {
             val aniAddO = parent.initializeAniAdd(false, executorService, filesystem, directory, sessionFactory);
             if (aniAddO.isEmpty()) {

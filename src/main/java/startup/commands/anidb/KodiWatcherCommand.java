@@ -3,6 +3,7 @@ package startup.commands.anidb;
 import aniAdd.IAniAdd;
 import aniAdd.kodi.KodiNotificationSubscriber;
 import cache.PersistenceConfiguration;
+import config.blocks.AniDbConfig;
 import config.blocks.KodiConfig;
 import config.blocks.PathConfig;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import startup.validation.validators.port.Port;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -47,11 +49,14 @@ public class KodiWatcherCommand implements Callable<Integer> {
     @MapConfig(configPath = "tags.path", required = true)
     private PathConfig pathsConfig;
 
+    @MapConfig(configPath = "anidb")
+    private AniDbConfig aniDbConfig;
+
     @Override
     public Integer call() throws Exception {
         log.info(STR."Connecting to kodi at \{kodiUrl} on port \{port}");
         try (val executorService = Executors.newScheduledThreadPool(10);
-             val sessionFactory = PersistenceConfiguration.getSessionFactory(parent.getDbPath());
+             val sessionFactory = PersistenceConfiguration.getSessionFactory(aniDbConfig.cache().db());
              val filesystem = new DoOnFileSystem()) {
             val aniAddO = parent.initializeAniAdd(false, executorService, filesystem, null, sessionFactory);
             if (aniAddO.isEmpty()) {

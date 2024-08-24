@@ -2,12 +2,14 @@ package startup.commands.anidb.debug;
 
 import cache.AniDBFileRepository;
 import cache.PersistenceConfiguration;
+import config.blocks.AniDbConfig;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
 import processing.FileInfo;
 import processing.tagsystem.TagSystemTags;
 import startup.commands.debug.FakeFile;
+import startup.validation.validators.config.MapConfig;
 import udpapi.command.FileCommand;
 
 import java.nio.file.Path;
@@ -32,6 +34,9 @@ public class InsertFile implements Callable<Integer> {
     @CommandLine.ParentCommand
     DebugCommand parent;
 
+    @MapConfig(configPath = "anidb")
+    private AniDbConfig aniDbConfig;
+
     @Override
     public Integer call() throws Exception {
         try (val executorService = Executors.newScheduledThreadPool(10)) {
@@ -40,7 +45,7 @@ public class InsertFile implements Callable<Integer> {
                 if (!data.getReply().getReplyStatus().success()) {
                     log.error(STR."Cannot insert data for non successful file command: \{data.getReply()}");
                 }
-                try (val sessionFactory = PersistenceConfiguration.getSessionFactory(parent.getDbPath())) {
+                try (val sessionFactory = PersistenceConfiguration.getSessionFactory(aniDbConfig.cache().db())) {
                     val repository = new AniDBFileRepository(sessionFactory);
                     val info = new FileInfo(new FakeFile(Path.of(filePath), fileSize, true), 1, null, null);
                     info.getData().put(TagSystemTags.Ed2kHash, ed2k);

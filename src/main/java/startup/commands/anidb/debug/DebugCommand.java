@@ -21,8 +21,4 @@ public class DebugCommand {
     public UdpApi getUdpApi(ScheduledExecutorService executorService) {
         return parent.getUdpApi(executorService);
     }
-
-    public Path getDbPath() {
-        return parent.getDbPath();
-    }
 }

@@ -26,8 +26,8 @@ public class TagsCommand extends ConfigRequiredCommand implements Callable<Integ
     @CommandLine.Option(names = {"--movie"}, description = "Test movie naming", required = false)
     private boolean movie;
 
-    @CommandLine.Option(names = {"--fid"}, description = "The file id to use for testing. Make sure it is already cached.", required = true, scope = CommandLine.ScopeType.INHERIT, defaultValue = "-1")
-    int fileId;
+    @CommandLine.Option(names = {"--fid"}, description = "The file id to use for testing. Make sure it is already cached.", required = false, scope = CommandLine.ScopeType.INHERIT)
+    Integer fileId;
 
     @Getter
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", required = false, scope = CommandLine.ScopeType.INHERIT)
@@ -41,8 +41,8 @@ public class TagsCommand extends ConfigRequiredCommand implements Callable<Integ
         if (fileId != -1 && dbPath == null) {
             log.warn("File id is set but no db path is provided. Ignoring file id.");
         }
-        var tags = getExampleTagData(movie);
-        if (fileId != -1 && dbPath != null) {
+        Map<TagSystemTags, String> tags;
+        if (fileId != null && dbPath != null) {
             try (val factory = PersistenceConfiguration.getSessionFactory(dbPath)) {
                 val repository = new AniDBFileRepository(factory);
                 val file = repository.getByFileId(fileId);
@@ -56,6 +56,8 @@ public class TagsCommand extends ConfigRequiredCommand implements Callable<Integ
                 tags.put(TagSystemTags.Ed2kHash, fileData.getEd2k());
                 log.info(STR."Using data from file [\{fileData.getEd2k()}][\{fileData.getSize()}]\{fileData.getFileName()}");
             }
+        } else {
+            tags = getExampleTagData(movie);
         }
         if (tagsConfig.tagSystem() == null
                 || tagsConfig.tagSystem().isBlank()) {

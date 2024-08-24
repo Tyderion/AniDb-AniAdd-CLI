@@ -37,7 +37,7 @@ public abstract class ConfigRequiredCommand {
                 error = "No config file provided. Set the CONFIG_FILE environment variable or use the --config option.";
                 return null;
             }
-            configPath = Path.of(System.getenv("CONFIG_FILE"));
+            configPath = Path.of(configFile);
         }
         try {
             val content = Files.readString(configPath, StandardCharsets.UTF_8);

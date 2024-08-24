@@ -1,10 +1,12 @@
 package startup.commands.anidb;
 
 import cache.PersistenceConfiguration;
+import config.blocks.AniDbConfig;
 import lombok.val;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
 import startup.commands.util.CommandHelper;
+import startup.validation.validators.config.MapConfig;
 import startup.validation.validators.nonblank.NonBlank;
 
 import java.nio.file.Path;
@@ -23,10 +25,13 @@ public class ScanCommand implements Callable<Integer> {
     @CommandLine.ParentCommand
     private AnidbCommand parent;
 
+    @MapConfig(configPath = "anidb")
+    private AniDbConfig aniDbConfig;
+
     @Override
     public Integer call() throws Exception {
         try (val executorService = Executors.newScheduledThreadPool(10);
-             val sessionFactory = PersistenceConfiguration.getSessionFactory(parent.getDbPath());
+             val sessionFactory = PersistenceConfiguration.getSessionFactory(aniDbConfig.cache().db());
              val filesystem = new DoOnFileSystem()) {
             val aniAddO = parent.initializeAniAdd(true, executorService, filesystem, directory, sessionFactory);
             if (aniAddO.isEmpty()) {
@@ -40,10 +45,6 @@ public class ScanCommand implements Callable<Integer> {
             val _ = executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         }
         return 0;
-    }
-
-    public static List<String> getOptions() {
-        return CommandHelper.getOptions(ScanCommand.class);
     }
 
     public static String getName() {
