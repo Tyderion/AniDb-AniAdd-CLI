@@ -43,12 +43,23 @@ anidb:
     - `db`: Cache file path
     - `ttlInDays`: Time to live in
 
-#### Rename
+#### File
 
 ```yaml
-rename:
-  mode: tagsystem
-  related: true
+file:
+  rename:
+    # Rename Config
+  move:
+    # Move Config
+```
+
+##### Rename
+
+```yaml
+file:
+  rename:
+    mode: tagsystem
+    related: true
 ```
 
 - `mode`: Rename mode possible values:
@@ -57,19 +68,20 @@ rename:
     - `none`: No rename
 - `related`: Rename related files
 
-#### Move
+##### Move
 
 ```yaml
-move:
-  mode: tagsystem # or folder or none
-  folder: /unused/with/tagsystem
-  deleteEmptyDirs: true
-  duplicates:
-    mode: move # or delete or ignore
-    folder: /duplicates/
-  unknown:
-    mode: move # or delete or ignore
-    folder: /unknown/
+file: 
+  move:
+    mode: tagsystem # or folder or none
+    folder: /unused/with/tagsystem
+    deleteEmptyDirs: true
+    duplicates:
+      mode: move # or delete or none
+      folder: /duplicates/
+    unknown:
+      mode: move # or delete or none
+      folder: /unknown/
 ```
 
 - `mode`: Move mode, possible values:
@@ -85,17 +97,28 @@ move:
   - `folder`: Duplicates folder (if mode is move)
 - `unknown`: Same as duplicates, just for unknown files
 
-#### Paths
+#### Tagsystem
+
+```yaml
+tags:
+  paths:
+    # Path Config
+  tagSystem: 
+    # Tag System Code
+```
+
+##### Paths
 Configured paths will be injected into the tagsystem with the given name
 Will also be used to find the correct file for the kodi watcher.
 ```yaml
-paths:
-  movieFolders:
-    - path: /movies/
-      tagSystemName: BaseMoviePath
-  tvShowFolders:
-    - path: /shows/
-      tagSystemName: BaseTVShowPath
+tags:
+  paths:
+    movieFolders:
+      - path: /movies/
+        tagSystemName: BaseMoviePath
+    tvShowFolders:
+      - path: /shows/
+        tagSystemName: BaseTVShowPath
 ```
 
 - `movieFolders`: List of movie folders
@@ -103,6 +126,19 @@ paths:
   - `tagSystemName`: Tag system name
 - `tvShowFolders`: Same configuration as movieFolders, just for series
 
+#### Kodi
+Kodi watcher will mark files as watched on anidb if they are watched in kodi.
+```yaml
+kodi:
+  host: kodi.local
+  pathFilter: anime
+  port: 9090
+```
+
+- `kodi`: Kodi Configuration
+  - `host`: Kodi host (or ip)Configuration
+  - `port`: Kodi port (default: 9090)
+  - `pathFilter`: Only paths containing this string will be marked as watched
 
 #### Run
 If this block is present, you can run the configured task with `run -r <config-file-path>`.
@@ -110,18 +146,16 @@ If this block is present, you can run the configured task with `run -r <config-f
 example (Scan folder every 45 minutes):
 ```yaml
 run:
-  tasks:
-    - watch
+  task: watch
   args:
     path: /newfiles/
     interval: 45
 ```
-- `tasks`: List of tasks to run, possible values:
+- `task`: The task to run:
   - `watch`: Watch folder
   - `scan`: Scan folder
   - `kodi`: Connect to kodi and mark watched files as watched on anidb
-- `args`: Arguments for the tasks, Key-Value pair with the task option as key and the value as value, e.g.
-  - `path: /newfiles/`: Path to watch or scan
-  - `path-filter: anime`: Filter for the kodi task
-  - `interval: 60`: Interval for the watch task
+- `args`: Arguments for the tasks.
+  - `path: /newfiles/`: Will be used as parameter for watch and scan task
+  - `anyarg: anyValue`: Set arbitrary argument of the given task
 
