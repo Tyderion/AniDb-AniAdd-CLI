@@ -10,8 +10,10 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        new picocli.CommandLine(new CliCommand())
+        int exitCode = new picocli.CommandLine(new CliCommand())
                 .setExecutionStrategy(new ConfigValidatingExecutionStrategy())
                 .execute(args);
+
+        System.exit(exitCode);
     }
 }
