@@ -117,10 +117,6 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     @Synchronized
     private void setCommandInFlight(Command command) {
-        if (command instanceof  LoginCommand || command instanceof LogoutCommand) {
-            // We don't care about login/logout, those don't need to be rescheduled
-            return;
-        }
         commandInFlight = command;
     }
 
@@ -202,7 +198,8 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         executorService.schedule(new Send<>(this, command, aniDbIp, aniDbConfig.port()), delay.toMillis(), TimeUnit.MILLISECONDS);
         requeueFuture = executorService.schedule(() -> {
             log.info(STR."Did not receive a response for \{command.toString()} in \{UdpApiConfiguration.MAX_RESPONSE_WAIT_TIME.toSeconds()}s. Assuming it was lost in transit. Rescheduling command and sending next one.");
-            rescheduleCommandInFlight();
+            requeueCommandInFlight();
+            scheduleNextCommand();
         }, delay.plus(UdpApiConfiguration.MAX_RESPONSE_WAIT_TIME).toMillis(), TimeUnit.MILLISECONDS);
         setCommandInFlight(command);
     }
@@ -238,21 +235,22 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         if (reply.getReplyStatus().isFatal()) {
             disconnect();
             log.warn(STR."Fatal reply: \{reply.toString()}, will wait for a \{UdpApiConfiguration.LONG_WAIT_TIME.toMinutes()} minutes until \{formatDelay(UdpApiConfiguration.LONG_WAIT_TIME)} before trying again.");
-            rescheduleCommandInFlight();
+            requeueCommandInFlight();
             scheduleNextCommand();
             return;
         }
         val query = queries.get(reply.getFullTag());
         if (query == null) {
             log.warn(STR."Reply without corresponding query \{reply.toString()}");
-            rescheduleCommandInFlight();
+            requeueCommandInFlight();
+            scheduleNextCommand();
             return;
         }
         query.setReply(reply);
         handleQueryReply(query);
     }
 
-    private void rescheduleCommandInFlight() {
+    private void requeueCommandInFlight() {
         val command = getCommandInFlight();
         setCommandInFlight(null);
         if (command == null || command instanceof  LoginCommand || command instanceof LogoutCommand) {
@@ -260,7 +258,6 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         }
         log.info(STR."Rescheduling command: \{command}");
         commandQueue.add(command);
-        scheduleNextCommand();
     }
 
     @SuppressWarnings("rawtypes")
