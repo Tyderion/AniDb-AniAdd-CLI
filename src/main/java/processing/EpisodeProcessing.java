@@ -106,6 +106,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 if (fileInfo.hasActionFailed(FileAction.FileCmd)) {
                     // Error, file data not found, skip continuing with dependant steps
                     log.warn(STR."FileCommand for file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()} failed to get data. Skipping dependant steps");
+                    finalize(fileInfo);
                     return;
                 }
                 if (config.rename().mode() != RenameConfig.Mode.NONE ||
