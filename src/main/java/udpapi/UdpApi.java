@@ -41,7 +41,6 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     private ScheduledFuture<?> logoutFuture;
 
     private Date lastSentDate = null;
-    private boolean isSendScheduled = false;
     private boolean shouldWaitLong = false;
     private boolean shutdown;
     private Future<?> receiveFuture;
@@ -111,7 +110,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
 
     public void queueCommand(Command command) {
         commandQueue.add(command);
-        if (!isSendScheduled && loginStatus != LoginStatus.LOGIN_PENDING) {
+        if (getCommandInFlight() == null && loginStatus != LoginStatus.LOGIN_PENDING) {
             scheduleNextCommand();
         }
     }
@@ -130,27 +129,26 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         return commandInFlight;
     }
 
-    private boolean queueLogin() {
+    private boolean scheduleLogin() {
         if (!isInitialized) {
             log.warn("Must be initialized before logging in");
             return false;
         }
-        if (isSendScheduled) {
-            log.warn("Command is scheduled, not scheduling login");
+        if (getCommandInFlight() != null) {
+            log.warn(STR."Command in flight , not running login: \{getCommandInFlight().toString()}");
             return false;
         }
         if (loginStatus == LoginStatus.LOGIN_PENDING) {
-            log.warn("Login already scheduled, not scheduling login");
+            log.warn("Login already scheduled, not running login");
             return false;
         }
         if (loginStatus == LoginStatus.LOGGED_IN) {
-            log.warn("Already logged in, not scheduling login");
+            log.warn("Already logged in, not running login");
             return false;
         }
         try {
             val command = LoginCommand.Create(aniDbConfig.username(), aniDbConfig.password());
             scheduleCommand(command, getNextSendDelay());
-            isSendScheduled = true;
             loginStatus = LoginStatus.LOGIN_PENDING;
             return true;
         } catch (IllegalArgumentException e) {
@@ -165,16 +163,12 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             return;
         }
         if (getCommandInFlight() != null) {
-            log.debug("Command in flight, not scheduling next command");
-            return;
-        }
-        if (isSendScheduled) {
-            log.trace("Send scheduled, not scheduling next command");
+            log.debug(STR."Command in flight, not scheduling next command: \\{getCommandInFlight().toString()}");
             return;
         }
         if (shouldWaitLong) {
             log.trace("Should wait long, not scheduling next command");
-            queueLogin();
+            scheduleLogin();
             return;
         }
         log.trace(STR."\{commandQueue.size()} commands in queue. Scheduled next command");
@@ -195,7 +189,7 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
         if (command.isNeedsLogin() && loginStatus != LoginStatus.LOGGED_IN) {
             log.trace("Command needs login, not logged in, queueing login and command");
             if (loginStatus == LoginStatus.LOGGED_OUT) {
-                queueLogin();
+                scheduleLogin();
             }
             queueCommand(command);
             return;
@@ -210,7 +204,6 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
             log.info(STR."Did not receive a response for \{command.toString()} in \{UdpApiConfiguration.MAX_RESPONSE_WAIT_TIME.toSeconds()}s. Assuming it was lost in transit. Rescheduling command and sending next one.");
             rescheduleCommandInFlight();
         }, delay.plus(UdpApiConfiguration.MAX_RESPONSE_WAIT_TIME).toMillis(), TimeUnit.MILLISECONDS);
-        isSendScheduled = true;
         setCommandInFlight(command);
     }
 
@@ -375,7 +368,6 @@ public class UdpApi implements AutoCloseable, Receive.Integration, Send.Integrat
     @Override
     public void onSent() {
         lastSentDate = new Date();
-        isSendScheduled = false;
     }
 
     public void queueShutdown(ICallBack<Void> onShutdownFinished) {
