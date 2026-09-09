@@ -19,6 +19,9 @@ file:
     unknown:
       folder: /unknown
       mode: none
+    duplicates:
+      folder: /duplicates
+      mode: none
   mylist:
     add: true
     overwrite: false
