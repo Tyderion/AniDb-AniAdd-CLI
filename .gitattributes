@@ -1,1 +1,11 @@
-*.sh eol=lf
+# Normalize all text files to LF in the repository, regardless of authoring platform.
+* text=auto eol=lf
+
+# Windows script hosts require CRLF to execute correctly.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+*.sh  text eol=lf
+
+*.jar binary
