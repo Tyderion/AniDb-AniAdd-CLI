@@ -3,6 +3,7 @@ package startup.commands.anidb;
 import aniAdd.AniAdd;
 import aniAdd.IAniAdd;
 import cache.AniDBFileRepository;
+import cache.AnimeXmlRepository;
 import config.blocks.AniDbConfig;
 import config.blocks.FileConfig;
 import config.blocks.KodiConfig;
@@ -96,8 +97,10 @@ public class AnidbCommand extends ConfigRequiredCommand {
         val fileRepository = new AniDBFileRepository(sessionFactory);
         val tvDbApi = new TvDbApi(kodiConfig.metadata().tvDbApiKey(), executorService);
         val tmDbApi = new TmDbApi(kodiConfig.metadata().tmDbApiToken(), executorService);
+        val animeXmlRepository = new AnimeXmlRepository(sessionFactory);
         val kodiMetadataGenerator = new KodiMetadataGenerator(
-                new DownloadHelper(executorService), tvDbApi, tmDbApi, kodiConfig.metadata().animeMappingUrl(),
+                new DownloadHelper(executorService), tvDbApi, tmDbApi, animeXmlRepository,
+                aniDbConfig.cache().ttlInDays(), kodiConfig.metadata().animeMappingUrl(),
                 EnumSet.allOf(OverwriteConfiguration.class));
         val processing = new EpisodeProcessing(fileConfig, tagsConfig, aniDbConfig, kodiConfig, udpApi, kodiMetadataGenerator, fileSystem, fileHandler, fileRepository);
         val fileProcessor = new FileProcessor(processing, fileConfig, executorService);

@@ -1,5 +1,7 @@
 package kodi;
 
+import cache.IAnimeXmlRepository;
+import cache.entities.AnimeXml;
 import kodi.anime_details.AnimeDetailsLoader;
 import kodi.anime_details.model.Anime;
 import kodi.anime_mapping.AnimeMappingLoader;
@@ -21,8 +23,10 @@ import processing.tagsystem.TagSystemTags;
 import utils.http.DownloadHelper;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,6 +43,8 @@ public class KodiMetadataGenerator {
     private final DownloadHelper downloadHelper;
     private final TvDbApi tvDbApi;
     private final TmDbApi tmDbApi;
+    private final IAnimeXmlRepository animeXmlRepository;
+    private final int cacheTtlInDays;
     private final String animeMappingUrl;
     private final EnumSet<OverwriteConfiguration> overwriteConfiguration;
 
@@ -170,15 +176,19 @@ public class KodiMetadataGenerator {
     }
 
     private InputStream getXmlInput(int aniDbAnimeId) {
-        val path = Path.of(STR."\{aniDbAnimeId}.xml");
-        try {
-            if (!Files.exists(path)) {
-                downloadHelper.downloadToFile(AnimeDetailsLoader.getAnidbDetailsXmlUrl(aniDbAnimeId), path);
-            }
-            return new FileInputStream(path.toFile());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        val xml = animeXmlRepository.getAnimeXml(aniDbAnimeId)
+                .filter(this::isFresh)
+                .map(AnimeXml::getXml)
+                .orElseGet(() -> {
+                    val content = downloadHelper.downloadToString(AnimeDetailsLoader.getAnidbDetailsXmlUrl(aniDbAnimeId));
+                    animeXmlRepository.saveAnimeXml(AnimeXml.builder().animeId(aniDbAnimeId).xml(content).build());
+                    return content;
+                });
+        return new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private boolean isFresh(AnimeXml animeXml) {
+        return animeXml.getUpdatedAt() != null && !animeXml.getUpdatedAt().plusDays(cacheTtlInDays).isBefore(LocalDateTime.now());
     }
 
     public interface OnDone {

@@ -18,6 +18,21 @@ public class DownloadHelper {
         client = OkHttpClientFactory.createOkHttpClient(executorService).build();
     }
 
+    public String downloadToString(String url) {
+        log.info(STR."Content at \{url} will be downloaded");
+        try {
+            val request = new okhttp3.Request.Builder().url(url).build();
+            val response = client.newCall(request).execute();
+            if (!response.isSuccessful()) {
+                throw new RuntimeException(STR."Failed to download content: \{response}");
+            }
+            log.trace(STR."Downloaded content from \{url}");
+            return response.body().string();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void downloadToFile(String url, Path path) {
         log.info(STR."File at \{url} will be saved to \{path}");
         try {
