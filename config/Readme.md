@@ -40,8 +40,8 @@ anidb:
 ```
 
 - `cache`: Cache configuration
-    - `db`: Cache file path
-    - `ttlInDays`: Time to live in
+    - `db`: Path to the sqlite cache db. Stores hashed file data, downloaded AniDB anime details XML, and the Anime-Lists anime mapping list (`anime-list.xml` content, keyed by its source URL) — everything cached lives and moves with this one file.
+    - `ttlInDays`: Time to live for all cached entries (file data, anime XML, and the anime mapping list)
 
 #### File
 
@@ -133,12 +133,21 @@ kodi:
   host: kodi.local
   pathFilter: anime
   port: 9090
+  metadata:
+    generate: true
+    syncWatchedStateFromMylist: true
+    animeMappingUrl: https://raw.githubusercontent.com/Anime-Lists/anime-lists/master/anime-list.xml
 ```
 
 - `kodi`: Kodi Configuration
   - `host`: Kodi host (or ip)Configuration
   - `port`: Kodi port (default: 9090)
   - `pathFilter`: Only paths containing this string will be marked as watched
+  - `metadata`: Kodi NFO metadata generation
+    - `generate`: Generate `.nfo` files and artwork next to processed files (default: false)
+    - `syncWatchedStateFromMylist`: Write the MyList watched state into episode NFOs as `lastplayed` (default: false)
+    - `animeMappingUrl`: Source URL of the Anime-Lists mapping list (default: the Anime-Lists GitHub master `anime-list.xml`). The downloaded list is cached in the sqlite db configured at `anidb.cache.db` (keyed by this URL, refreshed after `anidb.cache.ttlInDays`), not as a file next to the app; a pre-existing fresh `anime-list.xml` in the working directory is imported into the db once as a seed.
+    - `tvDbApiKey` / `tmDbApiToken`: API credentials for TVDB (series) and TMDB (movies). Like the AniDB password they must not be placed in the config file — pass them via CLI (`--tvDbApiKey`, `--tmDbApiToken`) or env (`TVDB_APIKEY`, `TMDB_ACCESS_TOKEN`)
 
 #### Run
 If this block is present, you can run the configured task with `run -r <config-file-path>`.

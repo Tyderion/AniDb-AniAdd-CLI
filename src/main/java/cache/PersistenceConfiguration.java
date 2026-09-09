@@ -21,6 +21,7 @@ public class PersistenceConfiguration {
                 .setProperty("hibernate.format_sql", "false")
                 .setProperty("hibernate.hbm2ddl.auto", "update")
                 .addAnnotatedClass(cache.entities.AniDBFileData.class)
-                .addAnnotatedClass(cache.entities.AnimeXml.class);
+                .addAnnotatedClass(cache.entities.AnimeXml.class)
+                .addAnnotatedClass(cache.entities.AnimeMappingXml.class);
     }
 }

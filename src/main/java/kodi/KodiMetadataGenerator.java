@@ -1,5 +1,6 @@
 package kodi;
 
+import cache.IAnimeMappingRepository;
 import cache.IAnimeXmlRepository;
 import cache.entities.AnimeXml;
 import kodi.anime_details.AnimeDetailsLoader;
@@ -44,12 +45,13 @@ public class KodiMetadataGenerator {
     private final TvDbApi tvDbApi;
     private final TmDbApi tmDbApi;
     private final IAnimeXmlRepository animeXmlRepository;
+    private final IAnimeMappingRepository animeMappingRepository;
     private final int cacheTtlInDays;
     private final String animeMappingUrl;
     private final EnumSet<OverwriteConfiguration> overwriteConfiguration;
 
     private Map<Long, AnimeMapping> initAnimeMapping() {
-        return new AnimeMappingLoader(animeMappingUrl).getAnimeMapping();
+        return new AnimeMappingLoader(animeMappingUrl, animeMappingRepository, cacheTtlInDays).getAnimeMapping();
     }
 
     public void generateMetadata(FileInfo fileInfo, OnDone onDone) {
