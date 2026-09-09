@@ -68,14 +68,4 @@ public class MoveConfig {
             }
         }
     }
-
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class FolderConfig {
-        private Path tvshows;
-        private Path movies;
-    }
 }
