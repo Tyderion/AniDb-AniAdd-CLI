@@ -166,20 +166,20 @@ tasks.register<Exec>("createGitTag") {
     dependsOn("pushDockerImage")
     description = "Creates a Git tag for the release"
 
-    val branch: String = ByteArrayOutputStream().use { outputStream ->
-        project.exec {
-            commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")
-            standardOutput = outputStream
+    // Branch check must happen at execution time: throwing during task configuration
+    // fails every Gradle sync (IntelliJ included) on non-master branches.
+    doFirst {
+        val branch: String = ByteArrayOutputStream().use { outputStream ->
+            project.exec {
+                commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")
+                standardOutput = outputStream
+            }
+            outputStream.toString()
+        }.trim()
+        if (branch != "master" && !version.toString().contains("-SNAPSHOT")) {
+            throw GradleException("Not on master branch, no tag created")
         }
-        outputStream.toString()
-    }
-    if (branch.trim() == "master" || version.toString().contains("-SNAPSHOT")) {
         commandLine("git", "tag", "-a", version, "-m", "Release $version")
-        if (branch.trim() == "master") {
-            commandLine("git", "push", "origin", "tag", version)
-        }
-    } else {
-        throw GradleException("Not on master branch, no tag created")
     }
 }
 
