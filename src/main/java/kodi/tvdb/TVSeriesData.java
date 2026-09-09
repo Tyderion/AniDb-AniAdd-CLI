@@ -39,6 +39,20 @@ public class TVSeriesData {
             return this.plot != null && this.episodesFinished && this.nonFanarts != null && this.fanarts != null && this.status != null;
         }
 
+        public String missingParts() {
+            val missing = new java.util.ArrayList<String>();
+            if (this.plot == null) missing.add("plot");
+            if (!this.episodesFinished) missing.add("episodes");
+            if (this.fanarts == null) missing.add("fanarts");
+            if (this.nonFanarts == null) missing.add("nonFanarts");
+            if (this.status == null) missing.add("status");
+            return String.join(", ", missing);
+        }
+
+        public int getSeriesId() {
+            return this.seriesId;
+        }
+
         public TVSeriesDataBuilder description(TvDbDescriptionResponse response) {
             if (response == null) {
                 log.trace(STR."No description found for series \{seriesId}");
