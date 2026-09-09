@@ -103,6 +103,10 @@ public class TVSeriesData {
                             .build()).toList();
 
             log.trace(STR."Found \{relevantArtworks.size()} relevant artworks for series \{seriesId}");
+            // The @Singular lists stay null until touched and isComplete() requires both non-null,
+            // so initialize them even when no artwork of that kind exists (appends nothing).
+            fanarts(List.of());
+            nonFanarts(List.of());
             relevantArtworks.stream().filter(a -> a.getUrl().contains("fanart")).forEach(this::fanart);
             relevantArtworks.stream().filter(a -> !a.getUrl().contains("fanart")).forEach(this::nonFanart);
             return this;
