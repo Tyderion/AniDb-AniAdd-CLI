@@ -74,7 +74,7 @@ public class KodiWatcherCommand implements Callable<Integer> {
         val subscriber = new KodiNotificationSubscriber(
                 new URI(STR."ws://\{kodiConfig.host()}:\{kodiConfig.port()}/jsonrpc"),
                 aniAdd, pathsConfig, kodiConfig);
-        subscriber.connect();
+        subscriber.start();
     }
 
     public static String getName() {

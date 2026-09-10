@@ -21,14 +21,37 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 public class KodiNotificationSubscriber extends WebSocketClient {
+
+    private static final long INITIAL_RECONNECT_DELAY_SECONDS = 5;
+    private static final long MAX_RECONNECT_DELAY_SECONDS = 300;
+    /**
+     * Kodi disappearing without a TCP FIN (power cut, VM paused, NAT timeout) leaves a half-open socket that
+     * would otherwise never report a close. The library's ping/pong watchdog is what turns that into an onClose.
+     */
+    private static final int CONNECTION_LOST_TIMEOUT_SECONDS = 60;
 
     private final Gson gson = new GsonBuilder().setFieldNamingStrategy(f -> f.getName().toLowerCase()).create();
     private final IAniAdd aniAdd;
     private final PathConfig pathsConfig;
     private final KodiConfig kodiConfig;
+
+    private final AtomicBoolean stopped = new AtomicBoolean(false);
+    private final AtomicBoolean reconnectPending = new AtomicBoolean(false);
+    private final AtomicLong reconnectDelaySeconds = new AtomicLong(INITIAL_RECONNECT_DELAY_SECONDS);
+    private final ScheduledExecutorService reconnectExecutor = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        val thread = new Thread(runnable, "kodi-reconnect");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     public KodiNotificationSubscriber(URI serverUri, IAniAdd aniAdd, PathConfig pathConfig, KodiConfig kodiConfig) {
         super(serverUri);
@@ -37,13 +60,41 @@ public class KodiNotificationSubscriber extends WebSocketClient {
         this.kodiConfig = kodiConfig;
     }
 
+    /**
+     * Opens the connection and keeps it open for the lifetime of the process, reconnecting on every drop.
+     * Use this instead of {@link #connect()}, which does not arm the connection-lost watchdog.
+     */
+    public void start() {
+        setConnectionLostTimeout(CONNECTION_LOST_TIMEOUT_SECONDS);
+        connect();
+    }
+
+    /**
+     * Stops reconnecting and closes the connection. After this the subscriber is dead for good.
+     */
+    public void shutdown() {
+        stopped.set(true);
+        reconnectExecutor.shutdownNow();
+        close();
+    }
+
     @Override
     public void onOpen(ServerHandshake handshakedata) {
-        log.debug(STR."Connection opened \{handshakedata.getHttpStatus()} \{handshakedata.getHttpStatusMessage()}");
+        reconnectDelaySeconds.set(INITIAL_RECONNECT_DELAY_SECONDS);
+        log.info(STR."Connection to kodi opened \{handshakedata.getHttpStatus()} \{handshakedata.getHttpStatusMessage()}");
     }
 
     @Override
     public void onMessage(String message) {
+        try {
+            handleMessage(message);
+        } catch (Exception e) {
+            // A single unparseable or unexpected notification must not take the connection down with it.
+            log.warn(STR."Failed to handle kodi message '\{message}'", e);
+        }
+    }
+
+    private void handleMessage(String message) {
         if (message == null || message.isEmpty()) {
             return;
         }
@@ -81,20 +132,49 @@ public class KodiNotificationSubscriber extends WebSocketClient {
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        log.warn(STR."Connection closed by \{remote ? "remote peer" : "us"} Code: \{code} Reason: \{reason}. Will try to reconnect in 5s");
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        if (stopped.get()) {
+            log.info(STR."Connection to kodi closed. Code: \{code} Reason: \{reason}");
+            return;
         }
-        connect();
+        val delay = reconnectDelaySeconds.getAndUpdate(current -> Math.min(current * 2, MAX_RECONNECT_DELAY_SECONDS));
+        log.warn(STR."Connection to kodi closed by \{remote ? "remote peer" : "us"} Code: \{code} Reason: \{reason}. Will try to reconnect in \{delay}s");
+        scheduleReconnect(delay);
+    }
+
+    /**
+     * Reconnects from a thread of our own: the library refuses both {@code connect()} (single use per instance)
+     * and {@code reconnect()} (explicitly rejected) when called from the websocket thread that delivers onClose.
+     */
+    private void scheduleReconnect(long delaySeconds) {
+        if (stopped.get() || !reconnectPending.compareAndSet(false, true)) {
+            return;
+        }
+        try {
+            val _ = reconnectExecutor.schedule(() -> {
+                reconnectPending.set(false);
+                if (stopped.get() || isOpen()) {
+                    return;
+                }
+                try {
+                    log.info("Reconnecting to kodi");
+                    reconnect();
+                } catch (Exception e) {
+                    // A throw here means the attempt never got far enough to produce an onClose, so retry from here.
+                    val retryDelay = reconnectDelaySeconds.getAndUpdate(current -> Math.min(current * 2, MAX_RECONNECT_DELAY_SECONDS));
+                    log.warn(STR."Reconnect to kodi failed, retrying in \{retryDelay}s", e);
+                    scheduleReconnect(retryDelay);
+                }
+            }, delaySeconds, TimeUnit.SECONDS);
+        } catch (RejectedExecutionException e) {
+            reconnectPending.set(false);
+            log.debug("Not scheduling a kodi reconnect, the subscriber is shutting down");
+        }
     }
 
     @Override
     public void onError(Exception ex) {
-        ex.printStackTrace();
-        System.exit(1);
-        // if the error is fatal then onClose will be called additionally
+        // Never kill the process here: a dropped websocket is routine, and onClose drives the reconnect.
+        log.warn("Error on the kodi connection", ex);
     }
 
     private void handleVideoLibraryOnUpdate(VideoLibraryUpdateParams parameters) {
