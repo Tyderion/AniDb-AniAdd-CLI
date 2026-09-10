@@ -16,7 +16,7 @@ plugins {
 val functionalTest: SourceSet by sourceSets.creating
 
 group = "ch.tyderion"
-version = "5.0.0.kodi.a.7"
+version = "5.0.0.transcode.a.1"
 
 java {
     targetCompatibility = JavaVersion.VERSION_21
@@ -149,8 +149,13 @@ tasks.register("prepareForRelease") {
 tasks.register<Dockerfile>("createDockerfile") {
     group = "docker"
     dependsOn("prepareForRelease")
-    from("amazoncorretto:21.0.3-al2023-headless")
+    // Alpine rather than corretto because transcoding needs ffmpeg, and Amazon Linux 2023 has no
+    // package for it. Pinning the alpine release pins the ffmpeg minor along with it: 3.24 ships
+    // ffmpeg 8.x with libx265 and libopus, and sqlite-jdbc carries musl natives, both verified.
+    // bash is not in the base image and every /app/*.sh entrypoint needs it.
+    from("eclipse-temurin:21-jre-alpine-3.24")
     label(mapOf("maintainer" to "Tyderion"))
+    runCommand("apk add --no-cache ffmpeg bash")
 
     val fatJarTask = tasks.named<Jar>("fatJar").get()
     val jarFileName = fatJarTask.archiveFileName.get()
