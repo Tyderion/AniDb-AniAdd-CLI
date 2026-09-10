@@ -103,8 +103,12 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     finalize(fileInfo);
                     return;
                 }
+                // Kodi metadata needs the AniDB file data too, so a metadata-only run (rename and
+                // move both NONE) must still look the file up. Without this the chain stopped here
+                // and the FileCmd branch below that handles exactly that case was unreachable.
                 if (config.rename().mode() != RenameConfig.Mode.NONE ||
-                        config.move().mode() != MoveConfig.Mode.NONE) {
+                        config.move().mode() != MoveConfig.Mode.NONE ||
+                        kodiConfig.metadata().generate()) {
                     loadFileInfo(fileInfo);
                 }
                 if (config.mylist().add()) {
