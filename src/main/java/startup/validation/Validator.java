@@ -22,12 +22,17 @@ public final class Validator {
         val clazz = command.getClass();
         val messages = new ArrayList<String>();
 
-        for (Field field : clazz.getDeclaredFields()) {
-            ValidationHelpers.validateAndUpdateConfig(configuration, field, command, MapConfig.class).ifPresent(messages::add);
-            ValidationHelpers.validate(field, command, Min.class).ifPresent(messages::add);
-            ValidationHelpers.validate(field, command, Max.class).ifPresent(messages::add);
-            ValidationHelpers.validate(field, command, NonBlank.class).ifPresent(messages::add);
-            ValidationHelpers.validate(field, command, Port.class).ifPresent(messages::add);
+        // Walk the hierarchy: getDeclaredFields() alone skips inherited fields, so every
+        // @MapConfig declared in a parent command (all the kodi ones in KodiWatcherCommand)
+        // was left unbound and blew up as an NPE the first time it was used.
+        for (Class<?> current = clazz; current != null && current != Object.class; current = current.getSuperclass()) {
+            for (Field field : current.getDeclaredFields()) {
+                ValidationHelpers.validateAndUpdateConfig(configuration, field, command, MapConfig.class).ifPresent(messages::add);
+                ValidationHelpers.validate(field, command, Min.class).ifPresent(messages::add);
+                ValidationHelpers.validate(field, command, Max.class).ifPresent(messages::add);
+                ValidationHelpers.validate(field, command, NonBlank.class).ifPresent(messages::add);
+                ValidationHelpers.validate(field, command, Port.class).ifPresent(messages::add);
+            }
         }
         if (!messages.isEmpty()) {
             throw new CommandLine.ParameterException(spec.commandLine(), String.join(System.lineSeparator(), messages));
