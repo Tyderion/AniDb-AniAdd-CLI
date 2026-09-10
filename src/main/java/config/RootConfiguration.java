@@ -4,6 +4,7 @@ import config.blocks.AniDbConfig;
 import config.blocks.FileConfig;
 import config.blocks.KodiConfig;
 import config.blocks.TagsConfig;
+import config.blocks.TranscodeConfig;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,6 +28,8 @@ public class RootConfiguration {
     private TagsConfig tags = TagsConfig.builder().build();
     @Builder.Default
     private KodiConfig kodi = KodiConfig.builder().build();
+    @Builder.Default
+    private TranscodeConfig transcode = TranscodeConfig.builder().build();
 
     public void removeDefaults() {
         file.removeDefaults();
@@ -35,6 +38,7 @@ public class RootConfiguration {
         if (this.kodi.isEmpty()) {
             this.kodi = null;
         }
+        this.transcode.removeDefaults();
     }
 
 }

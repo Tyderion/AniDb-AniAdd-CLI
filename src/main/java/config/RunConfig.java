@@ -7,6 +7,7 @@ import lombok.val;
 import startup.commands.anidb.AnidbCommand;
 import startup.commands.anidb.KodiWatcherCommand;
 import startup.commands.anidb.ScanCommand;
+import startup.commands.anidb.TranscodeCommand;
 import startup.commands.anidb.WatchCommand;
 import utils.config.ConfigFileParser;
 
@@ -14,6 +15,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 import static config.RunConfig.Task.SCAN;
+import static config.RunConfig.Task.TRANSCODE;
 import static config.RunConfig.Task.WATCH;
 
 @Slf4j
@@ -35,7 +37,7 @@ public class RunConfig {
     String config;
 
     public enum Task {
-        SCAN, WATCH, KODI
+        SCAN, WATCH, KODI, TRANSCODE
     }
 
     /**
@@ -49,7 +51,7 @@ public class RunConfig {
         }
         val configFile = runConfig.toAbsolutePath().normalize();
         val baseDir = ConfigFileParser.baseDirectoryOf(runConfig);
-        if (EnumSet.of(SCAN, WATCH).contains(task)) {
+        if (EnumSet.of(SCAN, WATCH, TRANSCODE).contains(task)) {
             if (!args.containsKey(PARAM_NAME) || args.get(PARAM_NAME).isBlank()) {
                 throw new InvalidConfigException("No folder specified for scan or watch task.");
             }
@@ -78,6 +80,10 @@ public class RunConfig {
             }
             case SCAN -> {
                 arguments.add(ScanCommand.getName());
+                arguments.add(parameter);
+            }
+            case TRANSCODE -> {
+                arguments.add(TranscodeCommand.getName());
                 arguments.add(parameter);
             }
         }

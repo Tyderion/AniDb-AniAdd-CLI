@@ -5,10 +5,12 @@ import aniAdd.IAniAdd;
 import cache.AniDBFileRepository;
 import cache.AnimeMappingRepository;
 import cache.AnimeXmlRepository;
+import cache.FileHashMappingRepository;
 import config.blocks.AniDbConfig;
 import config.blocks.FileConfig;
 import config.blocks.KodiConfig;
 import config.blocks.TagsConfig;
+import config.blocks.TranscodeConfig;
 import fileprocessor.DeleteEmptyChildDirectoriesRecursively;
 import fileprocessor.FileProcessor;
 import kodi.KodiMetadataGenerator;
@@ -29,6 +31,8 @@ import startup.validation.validators.config.MapConfig;
 import startup.validation.validators.nonblank.NonBlank;
 import startup.validation.validators.port.Port;
 import udpapi.UdpApi;
+import transcode.MediaProber;
+import transcode.Transcoder;
 import udpapi.reply.ReplyStatus;
 import utils.http.DownloadHelper;
 
@@ -40,7 +44,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
 @CommandLine.Command(
-        subcommands = {ScanCommand.class, KodiWatcherCommand.class, WatchCommand.class, DebugCommand.class},
+        subcommands = {ScanCommand.class, KodiWatcherCommand.class, WatchCommand.class, TranscodeCommand.class, DebugCommand.class},
         name = "anidb",
         mixinStandardHelpOptions = true,
         version = "1.0",
@@ -148,6 +152,13 @@ public class AnidbCommand extends ConfigRequiredCommand {
     @MapConfig(configPath = "kodi")
     KodiConfig kodiConfig;
 
+    @MapConfig(configPath = "transcode.enabled")
+    @CommandLine.Option(names = {"--transcode"}, negatable = true, description = "Re-encode matching files, overriding transcode.enabled", scope = CommandLine.ScopeType.INHERIT)
+    Boolean transcodeEnabled;
+
+    @MapConfig(configPath = "transcode")
+    TranscodeConfig transcodeConfig;
+
 
     public UdpApi getUdpApi(ScheduledExecutorService executorService) {
         return new UdpApi(executorService, aniDbConfig);
@@ -174,11 +185,23 @@ public class AnidbCommand extends ConfigRequiredCommand {
         val tmDbApi = new TmDbApi(kodiConfig.metadata().tmDbApiToken(), executorService);
         val animeXmlRepository = new AnimeXmlRepository(sessionFactory);
         val animeMappingRepository = new AnimeMappingRepository(sessionFactory);
+        val hashMappingRepository = new FileHashMappingRepository(sessionFactory);
+        val configError = transcodeConfig.validationError();
+        if (configError.isPresent()) {
+            log.error(STR."Refusing to start: \{configError.get()}");
+            return Optional.empty();
+        }
+        val mediaProber = new MediaProber(transcodeConfig.ffprobePath());
+        val transcoder = new Transcoder(transcodeConfig, mediaProber, fileHandler);
+        if (transcodeConfig.enabled()) {
+            log.info(STR."Transcoding is on: \{String.join(", ", transcodeConfig.videoCodecs())} -> \{transcodeConfig.videoArgs()}");
+        }
         val kodiMetadataGenerator = new KodiMetadataGenerator(
                 new DownloadHelper(executorService), tvDbApi, tmDbApi, animeXmlRepository, animeMappingRepository,
                 aniDbConfig.cache().ttlInDays(), kodiConfig.metadata().animeMappingUrl(),
                 kodiConfig.metadata().overwrite());
-        val processing = new EpisodeProcessing(fileConfig, tagsConfig, aniDbConfig, kodiConfig, udpApi, kodiMetadataGenerator, fileSystem, fileHandler, fileRepository);
+        val processing = new EpisodeProcessing(fileConfig, tagsConfig, aniDbConfig, kodiConfig, udpApi,
+                kodiMetadataGenerator, fileSystem, fileHandler, fileRepository, hashMappingRepository, transcoder, mediaProber);
         val fileProcessor = new FileProcessor(processing, fileConfig, executorService);
 
         if (fileConfig.move().deleteEmptyDirs() && inputDirectory != null) {

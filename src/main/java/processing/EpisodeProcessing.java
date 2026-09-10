@@ -3,6 +3,7 @@ package processing;
 import aniAdd.misc.ICallBack;
 import aniAdd.misc.MultiKeyDict;
 import cache.IAniDBFileRepository;
+import cache.IFileHashMappingRepository;
 import config.blocks.*;
 import fileprocessor.FileProcessor;
 import kodi.KodiMetadataGenerator;
@@ -17,6 +18,10 @@ import udpapi.command.MylistAddCommand;
 import udpapi.command.MylistCommand;
 import udpapi.query.Query;
 import udpapi.reply.ReplyStatus;
+import transcode.CodecNames;
+import transcode.MediaInfo;
+import transcode.MediaProber;
+import transcode.Transcoder;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -25,6 +30,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 public class EpisodeProcessing implements FileProcessor.Processor {
@@ -38,6 +44,9 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     private final FileRenamer fileRenamer;
     private final IAniDBFileRepository fileRepository;
     private final IFileHandler fileHandler;
+    private final IFileHashMappingRepository hashMappingRepository;
+    private final Transcoder transcoder;
+    private final MediaProber mediaProber;
     private final List<ICallBack<ProcessingEvent>> eventHandlers = new ArrayList<>();
     private final List<ICallBack<List<FileInfo>>> scanRunFinishedHandlers = new ArrayList<>();
     /** Files of each directory scan still in progress. Holds the FileInfos themselves, which survive the logout clearing {@link #files}. */
@@ -63,7 +72,10 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             KodiMetadataGenerator kodiMetadataGenerator,
             DoOnFileSystem fileSystem,
             IFileHandler fileHandler,
-            IAniDBFileRepository fileRepository) {
+            IAniDBFileRepository fileRepository,
+            IFileHashMappingRepository hashMappingRepository,
+            Transcoder transcoder,
+            MediaProber mediaProber) {
         this.fileConfig = fileConfig;
         this.kodiConfig = kodiConfig;
         this.api = udpApi;
@@ -72,6 +84,9 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         this.fileRenamer = new FileRenamer(fileHandler, tagsConfig);
         this.kodiMetadataGenerator = kodiMetadataGenerator;
         this.fileRepository = fileRepository;
+        this.hashMappingRepository = hashMappingRepository;
+        this.transcoder = transcoder;
+        this.mediaProber = mediaProber;
         this.fileSystem = fileSystem;
 
         api.registerCallback(LogoutCommand.class, cmd -> {
@@ -136,16 +151,17 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     finalize(fileInfo);
                     return;
                 }
-                if (config.rename().mode() != RenameConfig.Mode.NONE ||
-                        config.move().mode() != MoveConfig.Mode.NONE) {
-                    renameFile(fileInfo);
-                } else if (kodiConfig.metadata().generate()) {
-                    if (kodiConfig.metadata().syncWatchedStateFromMylist()) {
-                        loadWatchedState(fileInfo);
-                    } else {
-                        generateKodiMetadata(fileInfo);
-                    }
+                // Convert only what AniDB knows: an unidentified file is left alone so it lands in the
+                // unknown folder in its original format, and no encode is spent on it.
+                if (startTranscode(fileInfo)) {
+                    return;
                 }
+                describeLocalMedia(fileInfo);
+                afterIdentification(fileInfo);
+            }
+            case Transcode -> {
+                describeLocalMedia(fileInfo);
+                afterIdentification(fileInfo);
             }
             case Rename -> {
                 if (kodiConfig.metadata().generate()) {
@@ -172,6 +188,87 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             }
 
         }
+    }
+
+    /**
+     * Rename, move, and Kodi metadata: everything that happens once the file is identified and, where
+     * configured, converted.
+     */
+    private void afterIdentification(FileInfo fileInfo) {
+        val config = fileInfo.config();
+        if (config.rename().mode() != RenameConfig.Mode.NONE ||
+                config.move().mode() != MoveConfig.Mode.NONE) {
+            renameFile(fileInfo);
+        } else if (kodiConfig.metadata().generate()) {
+            if (kodiConfig.metadata().syncWatchedStateFromMylist()) {
+                loadWatchedState(fileInfo);
+            } else {
+                generateKodiMetadata(fileInfo);
+            }
+        }
+    }
+
+    /**
+     * @return true when an encode was queued and the pipeline should continue from the Transcode step.
+     */
+    private boolean startTranscode(FileInfo fileInfo) {
+        if (fileInfo.isActionInProcess(FileAction.Transcode) || fileInfo.isActionDone(FileAction.Transcode)
+                || fileInfo.hasActionFailed(FileAction.Transcode)) {
+            return false;
+        }
+        val source = fileInfo.getWorkingFile().toPath();
+        val sourceInfo = transcoder.matches(source);
+        if (sourceInfo.isEmpty()) {
+            return false;
+        }
+        fileInfo.startAction(FileAction.Transcode);
+        transcoder.transcode(source, sourceInfo.get(), result -> onTranscodeDone(fileInfo, result));
+        return true;
+    }
+
+    private void onTranscodeDone(FileInfo fileInfo, Optional<Transcoder.Result> result) {
+        if (result.isEmpty()) {
+            log.warn(STR."Keeping \{fileInfo.getWorkingFile().getName()} as it is, the transcode did not succeed");
+            fileInfo.actionFailed(FileAction.Transcode);
+            nextStep(FileAction.Transcode, fileInfo);
+            return;
+        }
+        val identityEd2k = fileInfo.getEd2k();
+        val identitySize = fileInfo.getIdentitySize();
+        val originalName = fileInfo.getWorkingFile().getName();
+        fileInfo.setTranscodedFile(result.get().file());
+        // Re-hash so the new file can be recognised on any later run, and record what it came from
+        // before anything else touches it.
+        fileSystem.run(new FileParser(fileInfo.getWorkingFile(), fileInfo.getId(), (_, ed2k, crc32) -> {
+            if (ed2k == null) {
+                log.error(STR."Could not hash the converted file \{fileInfo.getWorkingFile()}. It stays on disk but will not be recognised on the next run.");
+            } else {
+                fileInfo.setLocalEd2k(ed2k);
+                fileInfo.setLocalCrc32(crc32);
+                fileInfo.setMapped(true);
+                hashMappingRepository.save(ed2k, fileInfo.getWorkingFile().length(), identityEd2k, identitySize, originalName);
+            }
+            fileInfo.actionDone(FileAction.Transcode);
+            nextStep(FileAction.Transcode, fileInfo);
+        }, () -> shouldShutdown));
+    }
+
+    /**
+     * For a locally produced file, AniDB's codec and CRC describe the release it was made from, not
+     * what is on disk. Overriding both from the file itself keeps names honest, and it runs on every
+     * later pass as well, because the mapping is what marks a file as locally produced.
+     */
+    private void describeLocalMedia(FileInfo fileInfo) {
+        if (!fileInfo.isMapped()) {
+            return;
+        }
+        if (fileInfo.getLocalCrc32() != null) {
+            fileInfo.getData().put(TagSystemTags.FileCrc, fileInfo.getLocalCrc32());
+        }
+        val info = mediaProber.probe(fileInfo.getWorkingFile().toPath());
+        info.map(MediaInfo::videoCodec)
+                .map(CodecNames::toAniDbVideoCodec)
+                .ifPresent(codec -> fileInfo.getData().put(TagSystemTags.FileVideoCodec, codec));
     }
 
     private void loadWatchedState(FileInfo fileInfo) {
@@ -212,12 +309,12 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             return;
         }
         procFile.startAction(FileAction.FileCmd);
-        val cachedData = fileRepository.getAniDBFileData(procFile.getEd2k(), procFile.getFileSize());
+        val cachedData = fileRepository.getAniDBFileData(procFile.getEd2k(), procFile.getIdentitySize());
         cachedData.ifPresentOrElse(fd -> {
             log.info(STR."Got cached data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
             if (fd.getUpdatedAt() == null || fd.getUpdatedAt().plusDays(aniDbConfig.cache().ttlInDays()).isBefore(LocalDateTime.now())) {
                 log.info(STR."Cached data for file \{procFile.getFile().getAbsolutePath()} with Hash \{procFile.getEd2k()} is outdated, loading new info");
-                api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFileSize(), procFile.getEd2k()));
+                api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getIdentitySize(), procFile.getEd2k()));
                 return;
             }
             procFile.getData().putAll(fd.getTags());
@@ -225,7 +322,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             nextStep(FileAction.FileCmd, procFile);
         }, () -> {
             log.info(STR."Requesting data for file \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}");
-            api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getFileSize(), procFile.getEd2k()));
+            api.queueCommand(FileCommand.Create(procFile.getId(), procFile.getIdentitySize(), procFile.getEd2k()));
         });
     }
 
@@ -236,7 +333,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         procFile.startAction(FileAction.MyListAddCmd);
         api.queueCommand(MylistAddCommand.Create(
                 procFile.getId(),
-                procFile.getFile().length(),
+                procFile.getIdentitySize(),
                 procFile.getEd2k(),
                 procFile.config().mylist().storageType().value(),
                 procFile.getWatched() != null && procFile.getWatched()));
@@ -250,17 +347,19 @@ public class EpisodeProcessing implements FileProcessor.Processor {
 
         fileInfo.startAction(FileAction.HashFile);
         log.debug(STR."Processing file \{fileInfo.getFile().getAbsolutePath()} with Id \{fileInfo.getId()}");
-        fileSystem.run(new FileParser(fileInfo.getFile(), fileInfo.getId(), this::onHashComputed, () -> shouldShutdown));
+        fileSystem.run(new FileParser(fileInfo.getWorkingFile(), fileInfo.getId(), this::onHashComputed, () -> shouldShutdown));
     }
 
-    private void onHashComputed(Integer tag, String hash) {
+    private void onHashComputed(Integer tag, String hash, String crc32) {
         if (!files.contains(KeyType.Id, tag)) {
             // This shouldn't actually happen
             return;
         }
         FileInfo procFile = files.get(KeyType.Id, tag);
         if (hash != null) {
-            procFile.getData().put(TagSystemTags.Ed2kHash, hash);
+            procFile.setLocalEd2k(hash);
+            procFile.setLocalCrc32(crc32);
+            resolveIdentity(procFile, hash);
             log.debug(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} has been hashed");
             procFile.actionDone(FileAction.HashFile);
             nextStep(FileAction.HashFile, procFile);
@@ -268,6 +367,23 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             procFile.actionFailed(FileAction.HashFile);
             nextStep(FileAction.HashFile, procFile);
         }
+    }
+
+    /**
+     * A file we produced ourselves has a hash and size AniDB has never seen. The mapping turns those
+     * back into the original release's pair, so identification, MyList and the cache all behave as if
+     * the file were still in its original format.
+     */
+    private void resolveIdentity(FileInfo procFile, String localEd2k) {
+        val mapping = hashMappingRepository.get(localEd2k, procFile.getWorkingFile().length());
+        if (mapping.isEmpty()) {
+            procFile.setIdentity(localEd2k, procFile.getWorkingFile().length());
+            return;
+        }
+        val original = mapping.get();
+        procFile.setMapped(true);
+        procFile.setIdentity(original.getOriginalEd2k(), original.getOriginalSize());
+        log.info(STR."\{procFile.getWorkingFile().getName()} is a locally converted file, identifying it as \{original.getOriginalEd2k()} (\{original.getOriginalSize()} bytes)");
     }
 
     private void onAniDbFileReply(Query<FileCommand> query) {
@@ -292,7 +408,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     && procFile.config().move().unknown().mode() == MoveConfig.HandlingConfig.Mode.MOVE
             ) {
                 fileSystem.run(() -> {
-                    File currentFile = procFile.getFile();
+                    File currentFile = procFile.getWorkingFile();
                     val unknownTargetPath = procFile.config().move().unknown().folder()
                             .resolve(currentFile.getParentFile().getName())
                             .resolve(currentFile.getName());

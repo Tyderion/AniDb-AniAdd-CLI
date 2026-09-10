@@ -39,6 +39,32 @@ kodi:
   pathFilter: anime
   port: 9090
 
+# Re-encode video into one output format, leaving audio, subtitles, attachments and chapters alone.
+# Files are identified on AniDB first and only then converted, so nothing unknown is ever encoded.
+# The new file's ed2k hash and size are mapped back to the original's in the sqlite cache, which is
+# how identification, MyList and the tag system keep working as if the file had never changed format.
+transcode:
+  enabled: false
+  # Matched against the video codec as ffprobe names it.
+  videoCodecs:
+    - h264
+  # PROVISIONAL default, never benchmarked against a real library. Tune it before you trust it.
+  videoArgs: "-c:v libx265 -crf 23 -preset medium -pix_fmt yuv420p10le"
+  # Everything that is not video is copied, so the video re-encode is the only lossy step.
+  streamArgs: "-map 0 -c:a copy -c:s copy -c:t copy -map_metadata 0 -map_chapters 0"
+  # Encodes run one at a time. nice keeps them off the rest of the machine's back.
+  nice: 10
+  timeoutMinutes: 480
+  # A converted file replaces its source only if ffmpeg exits 0, the duration still matches, the output
+  # is not suspiciously small, and no stream went missing.
+  durationToleranceSeconds: 1.0
+  minSizeRatio: 0.05
+  # What happens to the source once the converted file passed verification: move, delete or none.
+  # move needs a folder. With none, the converted file gets its own name so nothing is overwritten.
+  original:
+    mode: move
+    folder: /originals
+
 tags:
   paths:
     movieFolders:

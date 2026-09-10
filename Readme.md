@@ -42,6 +42,25 @@ Use a small DSL to compute the new names of your files. Here is two similar exam
 The logging configuration is done via a properties file. You can specify the path to the file via the `LOG_CONFIG_FILE` environment variable.
 Here is a sample override with the default log levels: [logging.override.properties](config/logging.override.properties);
 
+# Transcoding
+
+Optional, off by default. Turn `transcode.enabled` on to re-encode matching video into a single output format while audio, subtitles, attachments and chapters are copied through untouched.
+
+Files are identified on AniDB **before** they are converted, so an unidentified file is never encoded and still lands in the unknown folder in its original format. Once a converted file passes verification, its ed2k hash and size are mapped back to the original's in the sqlite cache (`FileHashMapping`). Everything downstream keeps using the original pair, so AniDB lookups, MyList and the cache behave exactly as they did before the file changed format, and a converted file is recognised again on any later run no matter what it is called.
+
+Because a locally produced file is no longer the release AniDB describes, its `%FVCodec%` and `%FCrc%` tags come from the file on disk rather than from AniDB, so tag-system names stay honest. That override applies on every later run too, since the mapping is what marks a file as locally produced. Nothing else about identity changes: `%FCrc%` is a real CRC32 of the new file, computed in the same read as the ed2k hash.
+
+Verification before a source file is touched: ffmpeg exits 0, the duration still matches within `durationToleranceSeconds`, the output is at least `minSizeRatio` of the source, and video, audio, subtitle and attachment stream counts all match. Anything short of that deletes the temporary file and leaves the source exactly where it was.
+
+Encodes run one at a time on their own thread, so a long encode never blocks hashing or the AniDB session. `ffmpeg` and `ffprobe` come from the docker image; outside docker, set `transcode.ffmpegPath` and `transcode.ffprobePath` or have both on the PATH.
+
+Two ways to run it:
+
+- **As part of the normal pipeline**: enable it in the config and run `scan` or `watch` as usual. New downloads are converted after they are identified.
+- **As a pass over an existing library**: `anidb transcode <folder>`, or `run` with `task: transcode`. Identical to `scan` except transcoding is on regardless of `transcode.enabled`, so pointing it at `series/` needs no config edit.
+
+Config reference: the `transcode:` block in [docker.yaml](config/docker.yaml). The shipped `videoArgs` default is provisional and was never benchmarked against a real library; tune it before running this over anything you care about.
+
 # Docker
 
 There is a docker image available : https://hub.docker.com/r/tyderion/aniadd-cli

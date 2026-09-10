@@ -37,7 +37,7 @@ public class FileRenamer {
                 return false;
             }
 
-            val fileExtension = procFile.getFile().getName().substring(procFile.getFile().getName().lastIndexOf("."));
+            val fileExtension = procFile.getWorkingFile().getName().substring(procFile.getWorkingFile().getName().lastIndexOf("."));
             var filename = targetFileName.get() + fileExtension;
             filename = filename.replaceAll("[\\\\:\"/*|<>?]", "");
 
@@ -49,17 +49,17 @@ public class FileRenamer {
             val targetFilePath = targetFolderPath.resolve(filename);
 
             if (Files.exists(targetFilePath)) {
-                log.info(STR."Destination for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} already exists: \{targetFilePath.toString()}");
+                log.info(STR."Destination for File \{procFile.getWorkingFile().getAbsolutePath()} with Id \{procFile.getId()} already exists: \{targetFilePath.toString()}");
                 if (moveConfig.mode() != MoveConfig.Mode.NONE) {
                     val duplicateConfig = moveConfig.duplicates();
                     // Only handle duplicates if moving is enabled, else we want to rename in place so duplicate means it's name is correct
                     if (duplicateConfig.mode() == MoveConfig.HandlingConfig.Mode.DELETE) {
-                        fileHandler.deleteFile(procFile.getFile().toPath());
+                        fileHandler.deleteFile(procFile.getWorkingFile().toPath());
                     } else if (duplicateConfig.mode() == MoveConfig.HandlingConfig.Mode.MOVE) {
-                        val oldFilename = procFile.getFile().getName();
+                        val oldFilename = procFile.getWorkingFile().getName();
                         val subFolderWithFile = targetFilePath.subpath(targetFilePath.getNameCount() - 2, targetFilePath.getNameCount());
                         val targetPath = duplicateConfig.folder().resolve(subFolderWithFile);
-                        fileHandler.renameFile(procFile.getFile().toPath(), targetPath);
+                        fileHandler.renameFile(procFile.getWorkingFile().toPath(), targetPath);
                         if (renameConfig.related()) {
                             renameRelatedFiles(procFile, oldFilename, targetPath.getFileName().toString(), targetPath.getParent());
                         }
@@ -67,14 +67,14 @@ public class FileRenamer {
                 }
                 return false;
             }
-            if (targetFilePath.equals(procFile.getFile().toPath().toAbsolutePath())) {
-                log.debug(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} does not need renaming.");
+            if (targetFilePath.equals(procFile.getWorkingFile().toPath().toAbsolutePath())) {
+                log.debug(STR."File \{procFile.getWorkingFile().getAbsolutePath()} with Id \{procFile.getId()} does not need renaming.");
                 return true;
             }
 
-            val oldFilename = procFile.getFile().getName();
-            if (fileHandler.renameFile(procFile.getFile().toPath(), targetFilePath)) {
-                log.debug(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} renamed to \{targetFilePath.toString()}");
+            val oldFilename = procFile.getWorkingFile().getName();
+            if (fileHandler.renameFile(procFile.getWorkingFile().toPath(), targetFilePath)) {
+                log.debug(STR."File \{procFile.getWorkingFile().getAbsolutePath()} with Id \{procFile.getId()} renamed to \{targetFilePath.toString()}");
                 if (renameConfig.related()) {
                     renameRelatedFiles(procFile, oldFilename, targetFilePath.getFileName().toString(), targetFolderPath);
                 }
@@ -85,14 +85,14 @@ public class FileRenamer {
             return false;
         } catch (Exception ex) {
             ex.printStackTrace();
-            log.error(STR."Renaming failed for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}: \{ex.getMessage()}");
+            log.error(STR."Renaming failed for File \{procFile.getWorkingFile().getAbsolutePath()} with Id \{procFile.getId()}: \{ex.getMessage()}");
             return false;
         }
     }
 
     private void renameRelatedFiles(FileInfo procFile, String oldFilename, String newFilename, Path folderPath) {
         try {
-            val srcFolder = procFile.getFile().getParentFile();
+            val srcFolder = procFile.getWorkingFile().getParentFile();
             val oldFilenameWithoutExtension = oldFilename.substring(0, oldFilename.lastIndexOf("."));
             val srcFiles = srcFolder.listFiles((file) -> file.getName().startsWith(oldFilenameWithoutExtension) && !file.getName().equals(oldFilename));
 
@@ -106,24 +106,24 @@ public class FileRenamer {
                 }
             }
             if (!relatedFileSuffixes.isEmpty()) {
-                log.debug(STR."Renamed related files for \{procFile.getFile().getAbsolutePath()} with suffixes: \{String.join(", ", relatedFileSuffixes)}");
+                log.debug(STR."Renamed related files for \{procFile.getWorkingFile().getAbsolutePath()} with suffixes: \{String.join(", ", relatedFileSuffixes)}");
             }
         } catch (Exception e) {
-            log.error(STR."Failed to rename related files for \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}: \{e.getMessage()}");
+            log.error(STR."Failed to rename related files for \{procFile.getWorkingFile().getAbsolutePath()} with Id \{procFile.getId()}: \{e.getMessage()}");
         }
     }
 
     private Optional<String> getTargetFileName(FileInfo procFile, TagSystemResult tagSystemResult) throws Exception {
         val renameConfig = procFile.config().rename();
         if (renameConfig.mode() == RenameConfig.Mode.NONE) {
-            return Optional.of(procFile.getFile().getName());
+            return Optional.of(procFile.getWorkingFile().getName());
         }
         if (renameConfig.mode() == RenameConfig.Mode.ANIDB) {
             return Optional.of(procFile.getData().get(TagSystemTags.FileAnidbFilename));
         }
         var tsResult = tagSystemResult == null ? getPathFromTagSystem(procFile) : tagSystemResult;
         if (tsResult == null) {
-            log.error(STR."TagSystem script failed for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}. Check your tag system code.");
+            log.error(STR."TagSystem script failed for File \{procFile.getWorkingFile().getAbsolutePath()} with Id \{procFile.getId()}. Check your tag system code.");
             return Optional.empty();
         }
 
@@ -133,23 +133,23 @@ public class FileRenamer {
     private Pair<Path, TagSystemResult> getTargetFolder(FileInfo procFile) throws Exception {
         val moveConfig = procFile.config().move();
         if (moveConfig.mode() == MoveConfig.Mode.NONE) {
-            return Pair.of(procFile.getFile().getParentFile().toPath(), null);
+            return Pair.of(procFile.getWorkingFile().getParentFile().toPath(), null);
         }
 
         if (moveConfig.mode() == MoveConfig.Mode.FOLDER) {
             val moveToFolder = moveConfig.folder();
-            return Pair.of(moveToFolder == null || moveToFolder.toString().isBlank() ? procFile.getFile().getParentFile().toPath() : moveToFolder, null);
+            return Pair.of(moveToFolder == null || moveToFolder.toString().isBlank() ? procFile.getWorkingFile().getParentFile().toPath() : moveToFolder, null);
         }
 
         val tagSystemResult = getPathFromTagSystem(procFile);
         if (tagSystemResult == null) {
-            log.error(STR."TagSystem script failed for File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()}. Check your tag system code.");
+            log.error(STR."TagSystem script failed for File \{procFile.getWorkingFile().getAbsolutePath()} with Id \{procFile.getId()}. Check your tag system code.");
             return Pair.of(null, null);
         }
 
         val pathName = tagSystemResult.PathName();
         if (pathName == null) {
-            return Pair.of(procFile.getFile().getParentFile().toPath(), tagSystemResult);
+            return Pair.of(procFile.getWorkingFile().getParentFile().toPath(), tagSystemResult);
         }
 
         if (pathName.length() > 240) {
@@ -167,7 +167,7 @@ public class FileRenamer {
 
     private TagSystemResult getPathFromTagSystem(FileInfo procFile) throws Exception {
         val tags = new HashMap<>(procFile.getData());
-        tags.put(TagSystemTags.FileCurrentFilename, procFile.getFile().getName());
+        tags.put(TagSystemTags.FileCurrentFilename, procFile.getWorkingFile().getName());
 
         String codeStr = tagsConfig.tagSystem();
         if (codeStr == null || codeStr.isEmpty()) {
