@@ -102,6 +102,40 @@ public class TranscoderTest {
     }
 
     @Test
+    public void theShippedDefaultArgumentsAreAValidCommandLine(@TempDir Path tempDir) throws Exception {
+        // The first version of the default carried "-x265-params profile=main10", which ffmpeg accepted
+        // while x265 rejected it as an unknown option. Only running it catches that class of typo.
+        assumeTrue(ffmpegAvailable, "ffmpeg and ffprobe are needed for this test");
+        Path source = generateSource(tempDir);
+        Path originals = Files.createDirectory(tempDir.resolve("originals"));
+        MediaProber prober = new MediaProber("ffprobe");
+        TranscodeConfig config = TranscodeConfig.builder()
+                .enabled(true)
+                .nice(0)
+                .original(MoveConfig.HandlingConfig.builder()
+                        .mode(MoveConfig.HandlingConfig.Mode.MOVE)
+                        .folder(originals)
+                        .build())
+                .build();
+
+        try (Transcoder transcoder = new Transcoder(config, prober, new FileHandler())) {
+            var sourceInfo = transcoder.matches(source);
+            assertThat("h264 matches the shipped videoCodecs default", sourceInfo.isPresent(), is(true));
+
+            AtomicReference<Optional<Transcoder.Result>> result = new AtomicReference<>();
+            CountDownLatch done = new CountDownLatch(1);
+            transcoder.transcode(source, sourceInfo.get(), transcodeResult -> {
+                result.set(transcodeResult);
+                done.countDown();
+            });
+            assertThat("transcode did not finish in time", done.await(10, TimeUnit.MINUTES), is(true));
+            assertThat("the shipped default arguments failed to produce a valid encode",
+                    result.get().isPresent(), is(true));
+            assertThat(prober.probe(result.get().get().file()).orElseThrow().videoCodec(), is("hevc"));
+        }
+    }
+
+    @Test
     public void leavesFilesAloneWhenTheirCodecIsNotConfigured(@TempDir Path tempDir) throws Exception {
         assumeTrue(ffmpegAvailable, "ffmpeg and ffprobe are needed for this test");
         Path source = generateSource(tempDir);

@@ -15,12 +15,21 @@ import java.util.List;
 @Accessors(fluent = true)
 public class TranscodeConfig {
     /**
-     * PROVISIONAL default, not a considered choice: crf and preset were never benchmarked against the
-     * library. Tune videoArgs before running this over anything you care about. 10-bit is explicit
-     * because that is what the target format uses; note that x265's profile is derived from the pixel
-     * format, and passing profile= through -x265-params is rejected as an unknown option.
+     * Chosen by measurement, on a grainy 1080p Blu-ray anime opening scored against its source:
+     * CRF 18 to 22 came out near-lossless and larger than the original (VMAF 99.3+, 103-151% of the
+     * source size), CRF 24 lands at 83% of the source at VMAF 98.97, and CRF 30 drops to 41% at 96.26.
+     * Gabriel could not distinguish any of them on the target hardware, so 24 is the middle ground
+     * rather than the smallest file. CAMBI showed no banding differences anywhere in that range.
+     * <p>
+     * The x265 params are the ones anime encoders reach for; by VMAF they are a wash against defaults
+     * (about 0.1 better at equal bitrate), and they are kept because CRF 24 with them is exactly what
+     * was reviewed on the TV. 10-bit is explicit to match the target format, and note that x265 derives
+     * its profile from the pixel format: profile= inside -x265-params is rejected as unknown.
+     * <p>
+     * Cost: preset slow ran at roughly 0.33x realtime on a Ryzen 7 5800X3D, so about an hour per
+     * 24-minute episode there, and slower on a NAS.
      */
-    private static final String DEFAULT_VIDEO_ARGS = "-c:v libx265 -crf 23 -preset medium -pix_fmt yuv420p10le";
+    private static final String DEFAULT_VIDEO_ARGS = "-c:v libx265 -crf 24 -preset slow -pix_fmt yuv420p10le -x265-params no-sao=1:aq-mode=3:psy-rd=1.5:deblock=-1,-1:bframes=8:ref=4:rc-lookahead=60";
     private static final String DEFAULT_STREAM_ARGS = "-map 0 -c:a copy -c:s copy -c:t copy -map_metadata 0 -map_chapters 0";
 
     @Builder.Default

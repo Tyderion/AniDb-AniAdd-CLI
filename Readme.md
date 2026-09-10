@@ -59,7 +59,7 @@ Two ways to run it:
 - **As part of the normal pipeline**: enable it in the config and run `scan` or `watch` as usual. New downloads are converted after they are identified.
 - **As a pass over an existing library**: `anidb transcode <folder>`, or `run` with `task: transcode`. Identical to `scan` except transcoding is on regardless of `transcode.enabled`, so pointing it at `series/` needs no config edit.
 
-Config reference: the `transcode:` block in [docker.yaml](config/docker.yaml). The shipped `videoArgs` default is provisional and was never benchmarked against a real library; tune it before running this over anything you care about.
+Config reference: the `transcode:` block in [docker.yaml](config/docker.yaml). The shipped `videoArgs` default is x265 CRF 24, preset slow, 10-bit, with the usual anime parameters. It was picked by measurement on a grainy 1080p Blu-ray opening: CRF 18 through 22 came out near-lossless and *larger* than the source, CRF 24 lands at 83% of the source size at VMAF 98.97 against it, and CRF 30 reaches 41% at VMAF 96.26. CAMBI found no banding differences across that whole range. Expect roughly 0.33x realtime at preset slow, so about an hour per 24-minute episode on a fast desktop and longer on a NAS.
 
 # Docker
 
