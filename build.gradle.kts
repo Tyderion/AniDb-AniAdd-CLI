@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "ch.tyderion"
-version = "5.0.0.a.4"
+version = "5.0.0.kodi.a.4"
 
 java {
     targetCompatibility = JavaVersion.VERSION_21
@@ -119,8 +119,11 @@ tasks.register("prepareForRelease") {
             into(project.layout.buildDirectory.dir("docker").get().asFile)
         }
         copy {
-            from(file(".run/logging.properties"))
+            // .run/logging.properties was removed in a8df8d6; config/logging.override.properties
+            // is its documented successor and ships as the image default (Readme.md "Logging Configuration").
+            from(file("config/logging.override.properties"))
             into(project.layout.buildDirectory.dir("docker").get().asFile)
+            rename { "logging.properties" }
         }
     }
 }
