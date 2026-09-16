@@ -23,6 +23,9 @@ public class KodiMetadataConfig {
     @Builder.Default
     private String animeMappingUrl = DEFAULT_ANIME_MAPPING_URL;
 
+    @Builder.Default
+    private OverwriteConfig overwrite = OverwriteConfig.builder().build();
+
     private String tvDbApiKey;
     private String tmDbApiToken;
 
@@ -32,6 +35,32 @@ public class KodiMetadataConfig {
         }
         if (!syncWatchedStateFromMylist) {
             syncWatchedStateFromMylist = null;
+        }
+        if (overwrite != null && overwrite.isDefault()) {
+            overwrite = null;
+        }
+    }
+
+    /**
+     * Which existing metadata files are replaced when they are already present. Everything defaults to false: existing files are kept.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Accessors(fluent = true)
+    public static class OverwriteConfig {
+        /** tvshow.nfo of a series folder */
+        private boolean series;
+        /** &lt;video-basename&gt;.nfo of an episode */
+        private boolean episodes;
+        /** &lt;video-basename&gt;.nfo of a movie */
+        private boolean movies;
+        /** thumbnails, fanart, poster, banner and actor images */
+        private boolean artwork;
+
+        public boolean isDefault() {
+            return !series && !episodes && !movies && !artwork;
         }
     }
 }

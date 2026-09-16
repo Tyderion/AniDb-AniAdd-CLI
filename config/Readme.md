@@ -137,6 +137,11 @@ kodi:
     generate: true
     syncWatchedStateFromMylist: true
     animeMappingUrl: https://raw.githubusercontent.com/Anime-Lists/anime-lists/master/anime-list.xml
+    overwrite:
+      series: false
+      episodes: false
+      movies: false
+      artwork: false
 ```
 
 - `kodi`: Kodi Configuration
@@ -147,6 +152,11 @@ kodi:
     - `generate`: Generate `.nfo` files and artwork next to processed files (default: false)
     - `syncWatchedStateFromMylist`: Write the MyList watched state into episode NFOs as `lastplayed` (default: false)
     - `animeMappingUrl`: Source URL of the Anime-Lists mapping list (default: the Anime-Lists GitHub master `anime-list.xml`). The downloaded list is cached in the sqlite db configured at `anidb.cache.db` (keyed by this URL, refreshed after `anidb.cache.ttlInDays`), not as a file next to the app; a pre-existing fresh `anime-list.xml` in the working directory is imported into the db once as a seed.
+    - `overwrite`: Which existing metadata files are replaced when they already exist. All default to false, so files from an earlier run are kept.
+      - `series`: `tvshow.nfo` of a series folder
+      - `episodes`: `<video-basename>.nfo` of an episode
+      - `movies`: `<video-basename>.nfo` of a movie
+      - `artwork`: episode/movie thumbnails, fanart, poster, banner and actor images
     - `tvDbApiKey` / `tmDbApiToken`: API credentials for TVDB (series) and TMDB (movies). Like the AniDB password they must not be placed in the config file — pass them via CLI (`--tvDbApiKey`, `--tmDbApiToken`) or env (`TVDB_APIKEY`, `TMDB_ACCESS_TOKEN`)
 
 #### Run

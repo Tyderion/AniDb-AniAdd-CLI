@@ -42,7 +42,7 @@ Entry point `startup.Main` → picocli `CliCommand` with subcommands: `anidb` (`
 
 Output, written next to the moved video file by `SeriesNfoWriter`/`MovieNfoWriter` (dom4j, XML with CDATA plots): `tvshow.nfo` per series folder, `<video-basename>.nfo` per episode or movie, plus downloaded artwork — `<basename>-thumb.jpg`, `fanart[N].*` (max 10), `poster.jpg`, `banner.jpg`, and actor images under `.actors/`. `AniDB anime type` decides the path: TV series → TVDB route (one cached `SeriesNfoWriter` per anime id), movie → TMDB route, anything else → series route without TVDB data.
 
-Overwrite behavior is controlled by the `EnumSet<OverwriteConfiguration>` (`OVERWRITE_SERIES/EPISODE/ARTWORK/MOVIES`) wired in `AnidbCommand`; watched state from MyList lands in the episode NFO as `lastplayed` when `kodi.metadata.syncWatchedStateFromMylist` is on. Config lives under the `kodi.metadata:` block (`config/blocks/KodiMetadataConfig.java`); API credentials can also come from CLI (`--tvDbApiKey`, `--tmDbApiToken`) or env via the usual `@MapConfig` precedence.
+Overwrite behavior comes from `kodi.metadata.overwrite` (`series`, `episodes`, `movies`, `artwork`, all default false, so existing files are kept), passed from `AnidbCommand` into the generator as `KodiMetadataConfig.OverwriteConfig`; watched state from MyList lands in the episode NFO as `lastplayed` when `kodi.metadata.syncWatchedStateFromMylist` is on. Config lives under the `kodi.metadata:` block (`config/blocks/KodiMetadataConfig.java`); API credentials can also come from CLI (`--tvDbApiKey`, `--tmDbApiToken`) or env via the usual `@MapConfig` precedence.
 
 ## Conventions & gotchas
 

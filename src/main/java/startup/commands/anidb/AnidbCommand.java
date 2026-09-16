@@ -12,7 +12,6 @@ import config.blocks.TagsConfig;
 import fileprocessor.DeleteEmptyChildDirectoriesRecursively;
 import fileprocessor.FileProcessor;
 import kodi.KodiMetadataGenerator;
-import kodi.OverwriteConfiguration;
 import kodi.tmdb.TmDbApi;
 import kodi.tvdb.TvDbApi;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +32,6 @@ import udpapi.reply.ReplyStatus;
 import utils.http.DownloadHelper;
 
 import java.nio.file.Path;
-import java.util.EnumSet;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -103,7 +101,7 @@ public class AnidbCommand extends ConfigRequiredCommand {
         val kodiMetadataGenerator = new KodiMetadataGenerator(
                 new DownloadHelper(executorService), tvDbApi, tmDbApi, animeXmlRepository, animeMappingRepository,
                 aniDbConfig.cache().ttlInDays(), kodiConfig.metadata().animeMappingUrl(),
-                EnumSet.allOf(OverwriteConfiguration.class));
+                kodiConfig.metadata().overwrite());
         val processing = new EpisodeProcessing(fileConfig, tagsConfig, aniDbConfig, kodiConfig, udpApi, kodiMetadataGenerator, fileSystem, fileHandler, fileRepository);
         val fileProcessor = new FileProcessor(processing, fileConfig, executorService);
 

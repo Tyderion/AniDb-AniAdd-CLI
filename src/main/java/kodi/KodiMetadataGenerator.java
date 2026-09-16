@@ -3,6 +3,7 @@ package kodi;
 import cache.IAnimeMappingRepository;
 import cache.IAnimeXmlRepository;
 import cache.entities.AnimeXml;
+import config.blocks.KodiMetadataConfig;
 import kodi.anime_details.AnimeDetailsLoader;
 import kodi.anime_details.model.Anime;
 import kodi.anime_mapping.AnimeMappingLoader;
@@ -28,7 +29,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -48,7 +48,7 @@ public class KodiMetadataGenerator {
     private final IAnimeMappingRepository animeMappingRepository;
     private final int cacheTtlInDays;
     private final String animeMappingUrl;
-    private final EnumSet<OverwriteConfiguration> overwriteConfiguration;
+    private final KodiMetadataConfig.OverwriteConfig overwrite;
 
     private Map<Long, AnimeMapping> initAnimeMapping() {
         return new AnimeMappingLoader(animeMappingUrl, animeMappingRepository, cacheTtlInDays).getAnimeMapping();
@@ -90,7 +90,7 @@ public class KodiMetadataGenerator {
         movieBuilder.filePath(fileInfo.getFinalFilePath());
         var movie = movieBuilder.build();
         val generator = MovieNfoWriter.forMovie(movie);
-        generator.writeNfoFile(overwriteConfiguration.contains(OverwriteConfiguration.OVERWRITE_MOVIES));
+        generator.writeNfoFile(overwrite.movies());
         exportImages(movie);
         onDone.onDone();
     }
@@ -127,8 +127,7 @@ public class KodiMetadataGenerator {
         }
 
         val episodeData = episode.build();
-        generator.writeNfoFiles(episodeData, overwriteConfiguration.contains(OverwriteConfiguration.OVERWRITE_SERIES),
-                overwriteConfiguration.contains(OverwriteConfiguration.OVERWRITE_EPISODE));
+        generator.writeNfoFiles(episodeData, overwrite.series(), overwrite.episodes());
         exportImages(generator.getSeries(), episodeData);
         onDone.onDone();
     }
@@ -174,7 +173,7 @@ public class KodiMetadataGenerator {
             log.debug(STR."No url for \{path}, not exporting image");
             return;
         }
-        if (Files.exists(path) && !overwriteConfiguration.contains(OverwriteConfiguration.OVERWRITE_ARTWORK)) {
+        if (Files.exists(path) && !overwrite.artwork()) {
             log.debug(STR."File \{path} already exists, not exporting image");
             return;
         }
