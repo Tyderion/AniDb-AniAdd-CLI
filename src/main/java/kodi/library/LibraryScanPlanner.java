@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Turns the files a batch touched into the list of Kodi directories to scan. Pure: no Kodi, no filesystem.
+ * Turns the files a scan run touched into the list of Kodi directories to scan. Pure: no Kodi, no filesystem.
  */
 @Slf4j
 public final class LibraryScanPlanner {

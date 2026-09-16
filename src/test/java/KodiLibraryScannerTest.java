@@ -98,21 +98,22 @@ public class KodiLibraryScannerTest {
             assertThat(kodi.started.await(10, TimeUnit.SECONDS), is(true));
             val scanner = new KodiLibraryScanner(() -> kodiConfig(kodi.getPort(), KodiLibraryScanConfig.Library.builder().name("Anime Series").localPath(shows).build()));
 
-            scanner.onFileFinished(changedFile(shows.resolve("Frieren").resolve("e01.mkv")));
-            scanner.onFileFinished(changedFile(shows.resolve("Frieren").resolve("e02.mkv")));
-            scanner.onFileFinished(changedFile(shows.resolve("JoJo").resolve("e01.mkv")));
-            val unchanged = fileInfo(shows.resolve("Akira").resolve("e01.mkv"));
-            scanner.onFileFinished(unchanged);
+            scanner.onScanRunFinished(List.of(
+                    changedFile(shows.resolve("Frieren").resolve("e01.mkv")),
+                    changedFile(shows.resolve("Frieren").resolve("e02.mkv")),
+                    changedFile(shows.resolve("JoJo").resolve("e01.mkv")),
+                    fileInfo(shows.resolve("Akira").resolve("e01.mkv"))));
 
-            scanner.onBatchDone().get(30, TimeUnit.SECONDS);
+            scanner.lastScan().get(30, TimeUnit.SECONDS);
 
             assertThat(kodi.scannedDirectories.stream().sorted().toList(), contains(
                     "/storage/media/anime/series/Frieren/", "/storage/media/anime/series/JoJo/"));
             // The second scan may only start once Kodi reported the first one finished.
             assertThat(kodi.log.get(1), is(kodi.log.get(0).replace("scan", "finished")));
 
-            // The batch was drained, so the next one has nothing to do.
-            scanner.onBatchDone().get(30, TimeUnit.SECONDS);
+            // The changes were handed off, so a later run that changed nothing does not scan again.
+            scanner.onScanRunFinished(List.of(fileInfo(shows.resolve("Akira").resolve("e01.mkv"))));
+            scanner.lastScan().get(30, TimeUnit.SECONDS);
             assertThat(kodi.scannedDirectories.size(), is(2));
         } finally {
             kodi.shutdown();
@@ -121,20 +122,22 @@ public class KodiLibraryScannerTest {
 
     @Test
     public void keepsTheChangesForTheNextBatchWhenKodiIsUnreachable() throws Exception {
-        // Nothing listens on port 1 at first: the batch must complete normally and hand its files to the next batch.
+        // Nothing listens on port 1 at first: the scan must complete normally and hand its files to the next run.
         val port = new AtomicInteger(1);
         val library = KodiLibraryScanConfig.Library.builder().path("/storage/media/anime/series").build();
         val scanner = new KodiLibraryScanner(() -> kodiConfig(port.get(), library));
-        scanner.onFileFinished(changedFile(shows.resolve("Frieren").resolve("e01.mkv")));
+        scanner.onScanRunFinished(List.of(changedFile(shows.resolve("Frieren").resolve("e01.mkv"))));
 
-        scanner.onBatchDone().get(30, TimeUnit.SECONDS);
+        scanner.lastScan().get(30, TimeUnit.SECONDS);
 
         val kodi = new FakeKodi();
         kodi.start();
         try {
             assertThat(kodi.started.await(10, TimeUnit.SECONDS), is(true));
             port.set(kodi.getPort());
-            scanner.onBatchDone().get(30, TimeUnit.SECONDS);
+            // The next run changed nothing itself, but still carries the failed run's files.
+            scanner.onScanRunFinished(List.of());
+            scanner.lastScan().get(30, TimeUnit.SECONDS);
             // No localPath, so the library is scanned whole, with the trailing slash kodi's source carries.
             assertThat(kodi.scannedDirectories, contains("/storage/media/anime/series/"));
         } finally {

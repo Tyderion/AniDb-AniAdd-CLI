@@ -124,8 +124,8 @@ public class AnidbCommand extends ConfigRequiredCommand {
         Supplier<CompletableFuture<Void>> afterBatch = () -> CompletableFuture.completedFuture(null);
         if (kodiConfig.libraryScan().enabled()) {
             val libraryScanner = new KodiLibraryScanner(() -> kodiConfig);
-            processing.addFileFinishedListener(libraryScanner::onFileFinished);
-            afterBatch = libraryScanner::onBatchDone;
+            processing.addScanRunFinishedListener(libraryScanner::onScanRunFinished);
+            afterBatch = libraryScanner::lastScan;
         }
 
         val aniAdd = new AniAdd(udpApi, terminateOnCompletion, fileProcessor, processing, _ -> {

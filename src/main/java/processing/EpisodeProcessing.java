@@ -39,7 +39,9 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     private final IAniDBFileRepository fileRepository;
     private final IFileHandler fileHandler;
     private final List<ICallBack<ProcessingEvent>> eventHandlers = new ArrayList<>();
-    private final List<ICallBack<FileInfo>> fileFinishedHandlers = new ArrayList<>();
+    private final List<ICallBack<List<FileInfo>>> scanRunFinishedHandlers = new ArrayList<>();
+    /** Files of each directory scan still in progress. Holds the FileInfos themselves, which survive the logout clearing {@link #files}. */
+    private final List<List<FileInfo>> openScanRuns = new ArrayList<>();
 
     private int lastFileId = 0;
     private boolean shouldShutdown;
@@ -90,11 +92,12 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     }
 
     /**
-     * Called once a file has no action left in progress, before {@link ProcessingEvent#Done} fires for its batch.
-     * May be called more than once for the same file.
+     * Called once per directory scan, when every file that scan added has finished, with those files. Files added
+     * individually (e.g. to mark them watched from kodi) belong to no scan and never reach this listener.
+     * Fires before {@link ProcessingEvent#Done}.
      */
-    public void addFileFinishedListener(ICallBack<FileInfo> handler) {
-        fileFinishedHandlers.add(handler);
+    public void addScanRunFinishedListener(ICallBack<List<FileInfo>> handler) {
+        scanRunFinishedHandlers.add(handler);
     }
 
     private void sendEvent(ProcessingEvent event) {
@@ -386,19 +389,43 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             return;
         }
         log.debug(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} done");
-        fileFinishedHandlers.forEach(handler -> handler.invoke(procFile));
+        procFile.setFinished(true);
+        completeFinishedScanRuns();
         if (files.values().stream().allMatch(FileInfo::allDone)) {
             sendEvent(ProcessingEvent.Done);
         }
     }
 
-    public void addFiles(Collection<File> newFiles) {
-        addFiles(newFiles, fileConfig);
+    private void completeFinishedScanRuns() {
+        final List<List<FileInfo>> finished = new ArrayList<>();
+        synchronized (openScanRuns) {
+            openScanRuns.removeIf(run -> run.stream().allMatch(FileInfo::isFinished) && finished.add(run));
+        }
+        finished.forEach(run -> scanRunFinishedHandlers.forEach(handler -> handler.invoke(run)));
     }
 
-    public void addFiles(Collection<File> newFiles, FileConfig configuration) {
-        Boolean watched = configuration.mylist().watched() ? true : null;
+    @Override
+    public void addScanRun(Collection<File> newFiles) {
+        val run = register(newFiles, fileConfig);
+        // Registered before any file starts, so even a file finishing instantly is counted against its run.
+        synchronized (openScanRuns) {
+            openScanRuns.add(run);
+        }
+        if (run.isEmpty()) {
+            // Everything found was already processed earlier: the run is over before it began.
+            completeFinishedScanRuns();
+        }
+        start(run);
+    }
 
+    @Override
+    public void addFiles(Collection<File> newFiles, FileConfig configuration) {
+        start(register(newFiles, configuration));
+    }
+
+    private List<FileInfo> register(Collection<File> newFiles, FileConfig configuration) {
+        Boolean watched = configuration.mylist().watched() ? true : null;
+        val added = new ArrayList<FileInfo>();
         for (File file : newFiles) {
             if (files.contains(KeyType.Path, file.getAbsolutePath())) {
                 log.info(STR."File \{file.getAbsolutePath()} already in processing/processed");
@@ -408,10 +435,17 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             FileInfo fileInfo = new FileInfo(file, lastFileId, watched, configuration);
             files.put(fileInfo);
             lastFileId++;
+            added.add(fileInfo);
+        }
+        log.debug(STR."File Count changed to \{files.size()}");
+        return added;
+    }
+
+    private void start(List<FileInfo> added) {
+        for (val fileInfo : added) {
             fileInfo.actionDone(FileAction.Init);
             nextStep(FileAction.Init, fileInfo);
         }
-        log.debug(STR."File Count changed to \{files.size()}");
     }
 
     public void Terminate() {

@@ -26,7 +26,7 @@ public class AniAdd implements IAniAdd {
     }
 
     /**
-     * @param afterBatch runs whenever processing reports a batch done; shutdown on termination waits for it to complete
+     * @param afterBatch asked whenever processing reports everything done; shutdown on termination waits for the future it returns
      */
     public AniAdd(@NotNull UdpApi api, boolean exitOnTermination, @NotNull FileProcessor fileProcessor, @NotNull EpisodeProcessing processing, @NotNull ICallBack<Void> onShutdown, @NotNull Supplier<CompletableFuture<Void>> afterBatch) {
         this.api = api;

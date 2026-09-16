@@ -28,9 +28,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 /**
- * Collects the files a batch put into the library and, once the batch is done, asks Kodi to scan the affected
- * directories. Scans run one after another on a single thread: each waits for Kodi's OnScanFinished before the next
- * starts, so overlapping batches queue up instead of colliding.
+ * Once a directory scan run has finished, asks Kodi to scan the library directories its files landed in. Scans run one after another on a single thread: each waits for Kodi's OnScanFinished before the next
+ * starts, so scans requested by overlapping runs queue up instead of colliding.
  */
 @Slf4j
 public class KodiLibraryScanner {
@@ -38,7 +37,9 @@ public class KodiLibraryScanner {
     private static final long CALL_TIMEOUT_SECONDS = 30;
 
     private final Supplier<KodiConfig> kodiConfig;
+    /** Changed files not yet handed to a scan: filled by a finished run, refilled when a scan fails */
     private final Set<Path> changedFiles = ConcurrentHashMap.newKeySet();
+    private CompletableFuture<Void> lastScan = CompletableFuture.completedFuture(null);
     private final ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
         val thread = new Thread(runnable, "kodi-library-scan");
         thread.setDaemon(true);
@@ -52,32 +53,32 @@ public class KodiLibraryScanner {
         this.kodiConfig = kodiConfig;
     }
 
-    public void onFileFinished(FileInfo fileInfo) {
-        if (fileInfo.isLibraryChanged()) {
-            changedFiles.add(fileInfo.getRenamedFile() != null ? fileInfo.getRenamedFile() : fileInfo.getFile().toPath());
+    public synchronized void onScanRunFinished(List<FileInfo> run) {
+        run.stream().filter(FileInfo::isLibraryChanged).map(FileInfo::getFinalFilePath).forEach(changedFiles::add);
+        if (changedFiles.isEmpty()) {
+            log.info(STR."Scan run with \{run.size()} file(s) changed nothing in the kodi library, not scanning");
+            return;
         }
-    }
-
-    /**
-     * Never completes exceptionally: a failed scan is logged, it must not stop file processing or shutdown.
-     */
-    public CompletableFuture<Void> onBatchDone() {
         val batch = new ArrayList<Path>();
         for (val file : changedFiles) {
             if (changedFiles.remove(file)) {
                 batch.add(file);
             }
         }
-        if (batch.isEmpty()) {
-            return CompletableFuture.completedFuture(null);
-        }
-        return CompletableFuture.runAsync(() -> scan(batch), executor)
+        lastScan = CompletableFuture.runAsync(() -> scan(batch), executor)
                 .exceptionally(e -> {
-                    // Put the files back so the next batch retries them; a watch run would otherwise lose them for good.
+                    // Put the files back so the next run retries them; a watch run would otherwise lose them for good.
                     changedFiles.addAll(batch);
-                    log.error(STR."Kodi library scan failed for \{batch.size()} changed file(s), retrying after the next batch", e);
+                    log.error(STR."Kodi library scan failed for \{batch.size()} changed file(s), retrying after the next scan run", e);
                     return null;
                 });
+    }
+
+    /**
+     * @return completes once the most recently requested kodi scan is over. Never completes exceptionally.
+     */
+    public synchronized CompletableFuture<Void> lastScan() {
+        return lastScan;
     }
 
     private void scan(List<Path> batch) {

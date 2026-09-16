@@ -35,6 +35,8 @@ public class FileInfo {
     @Getter @Setter private LocalDateTime watchedDate;
     /** The file landed somewhere new or got metadata Kodi has not seen yet, so a library scan would pick up something */
     @Getter @Setter private boolean libraryChanged;
+    /** Reached the end of the pipeline. Unlike {@link #allDone()} this is false before the first action starts. */
+    @Getter @Setter private boolean finished;
 
     @Accessors(fluent = true)
     @Getter

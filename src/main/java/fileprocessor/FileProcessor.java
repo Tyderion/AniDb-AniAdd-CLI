@@ -47,7 +47,7 @@ public class FileProcessor {
                 sendEvent(FileProcessor.EventType.NothingToProcess);
             } else {
                 sendEvent(FileProcessor.EventType.Processing);
-                processor.addFiles(files);
+                processor.addScanRun(files);
             }
         } catch (InterruptedException e) {
             log.error(STR."Find Files was interrupted \{e.getMessage()}");
@@ -68,7 +68,9 @@ public class FileProcessor {
     }
 
     public interface Processor {
-        void addFiles(Collection<File> newFiles);
+        /** Files found by one directory scan, finished together as one run */
+        void addScanRun(Collection<File> newFiles);
+
         void addFiles(Collection<File> newFiles, FileConfig configuration);
     }
 }
