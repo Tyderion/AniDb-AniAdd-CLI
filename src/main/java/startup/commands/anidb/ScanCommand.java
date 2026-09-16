@@ -8,6 +8,7 @@ import processing.DoOnFileSystem;
 import startup.commands.util.CommandHelper;
 import startup.validation.validators.config.MapConfig;
 import startup.validation.validators.nonblank.NonBlank;
+import startup.validation.validators.port.Port;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -21,6 +22,17 @@ public class ScanCommand implements Callable<Integer> {
     @NonBlank
     @CommandLine.Parameters(index = "0", description = "The directory to scan.")
     private Path directory;
+
+    // Only used by kodi.libraryScan; connect-to-kodi and watch declare the same two options themselves.
+    @Port
+    @MapConfig(configPath = "kodi.port", envVariableName = "KODI_PORT")
+    @CommandLine.Option(names = {"--kodi-port"}, description = "The kodi websocket port, used for the library scan")
+    private Integer kodiPort;
+
+    @NonBlank(allowNull = true)
+    @MapConfig(configPath = "kodi.host", envVariableName = "KODI_HOST")
+    @CommandLine.Option(names = {"--kodi-host"}, description = "The ip/hostname of the kodi server, used for the library scan")
+    private String kodiHost;
 
     @CommandLine.ParentCommand
     private AnidbCommand parent;

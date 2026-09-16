@@ -12,6 +12,7 @@ import config.blocks.TagsConfig;
 import fileprocessor.DeleteEmptyChildDirectoriesRecursively;
 import fileprocessor.FileProcessor;
 import kodi.KodiMetadataGenerator;
+import kodi.library.KodiLibraryScanner;
 import kodi.tmdb.TmDbApi;
 import kodi.tvdb.TvDbApi;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,8 @@ import utils.http.DownloadHelper;
 
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
@@ -91,6 +94,11 @@ public class AnidbCommand extends ConfigRequiredCommand {
 
     public Optional<IAniAdd> initializeAniAdd(boolean terminateOnCompletion, ScheduledExecutorService
             executorService, DoOnFileSystem fileSystem, Path inputDirectory, SessionFactory sessionFactory) {
+        val libraryScanProblems = kodiConfig.libraryScan().problems();
+        if (!libraryScanProblems.isEmpty()) {
+            libraryScanProblems.forEach(problem -> log.error(STR."Invalid configuration: \{problem}"));
+            return Optional.empty();
+        }
         val udpApi = getUdpApi(executorService);
         val fileHandler = new FileHandler();
         val fileRepository = new AniDBFileRepository(sessionFactory);
@@ -113,10 +121,17 @@ public class AnidbCommand extends ConfigRequiredCommand {
             });
         }
 
+        Supplier<CompletableFuture<Void>> afterBatch = () -> CompletableFuture.completedFuture(null);
+        if (kodiConfig.libraryScan().enabled()) {
+            val libraryScanner = new KodiLibraryScanner(() -> kodiConfig);
+            processing.addFileFinishedListener(libraryScanner::onFileFinished);
+            afterBatch = libraryScanner::onBatchDone;
+        }
+
         val aniAdd = new AniAdd(udpApi, terminateOnCompletion, fileProcessor, processing, _ -> {
             log.info("Shutdown complete");
             executorService.shutdownNow();
-        });
+        }, afterBatch);
         if (exitOnBan) {
             udpApi.registerCallback(ReplyStatus.BANNED, _ -> {
                 log.error("User is banned. Exiting.");

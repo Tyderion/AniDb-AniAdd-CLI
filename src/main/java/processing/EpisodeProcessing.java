@@ -19,6 +19,8 @@ import udpapi.query.Query;
 import udpapi.reply.ReplyStatus;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,6 +39,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     private final IAniDBFileRepository fileRepository;
     private final IFileHandler fileHandler;
     private final List<ICallBack<ProcessingEvent>> eventHandlers = new ArrayList<>();
+    private final List<ICallBack<FileInfo>> fileFinishedHandlers = new ArrayList<>();
 
     private int lastFileId = 0;
     private boolean shouldShutdown;
@@ -84,6 +87,14 @@ public class EpisodeProcessing implements FileProcessor.Processor {
 
     public void addListener(ICallBack<ProcessingEvent> handler) {
         eventHandlers.add(handler);
+    }
+
+    /**
+     * Called once a file has no action left in progress, before {@link ProcessingEvent#Done} fires for its batch.
+     * May be called more than once for the same file.
+     */
+    public void addFileFinishedListener(ICallBack<FileInfo> handler) {
+        fileFinishedHandlers.add(handler);
     }
 
     private void sendEvent(ProcessingEvent event) {
@@ -173,12 +184,25 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             return;
         }
         procFile.startAction(FileAction.GenerateKodiMetadata);
+        // Checked before writing: an NFO that already existed and is not overwritten gives Kodi nothing new to scan,
+        // which is the common case for files that are only re-processed to mark them watched.
+        val videoFile = procFile.getRenamedFile() != null ? procFile.getRenamedFile() : procFile.getFile().toPath();
+        val overwrite = kodiConfig.metadata().overwrite();
+        if (overwrite.episodes() || overwrite.movies() || !Files.exists(nfoFileFor(videoFile))) {
+            procFile.setLibraryChanged(true);
+        }
         kodiMetadataGenerator.generateMetadata(procFile, () -> {
             procFile.actionDone(FileAction.GenerateKodiMetadata);
             nextStep(FileAction.GenerateKodiMetadata, procFile);
         });
     }
 
+
+    private static Path nfoFileFor(Path videoFile) {
+        val name = videoFile.getFileName().toString();
+        val dot = name.lastIndexOf('.');
+        return videoFile.resolveSibling((dot > 0 ? name.substring(0, dot) : name) + ".nfo");
+    }
 
     private void loadFileInfo(FileInfo procFile) {
         if (procFile.isActionInProcess(FileAction.FileCmd) || procFile.isActionDone(FileAction.FileCmd)) {
@@ -344,6 +368,9 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         procFile.startAction(FileAction.Rename);
         fileSystem.run(() -> {
             if (fileRenamer.renameFile(procFile)) {
+                if (procFile.getRenamedFile() != null) {
+                    procFile.setLibraryChanged(true);
+                }
                 procFile.actionDone(FileAction.Rename);
             } else {
                 procFile.actionFailed(FileAction.Rename);
@@ -359,6 +386,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             return;
         }
         log.debug(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} done");
+        fileFinishedHandlers.forEach(handler -> handler.invoke(procFile));
         if (files.values().stream().allMatch(FileInfo::allDone)) {
             sendEvent(ProcessingEvent.Done);
         }

@@ -22,16 +22,22 @@ public class KodiConfig {
     @Builder.Default
     private KodiMetadataConfig metadata = KodiMetadataConfig.builder().build();
 
+    @Builder.Default
+    private KodiLibraryScanConfig libraryScan = KodiLibraryScanConfig.builder().build();
+
     public boolean isEmpty() {
         return host == null && port == null;
     }
 
     public void removeDefaults() {
         metadata.removeDefaults();
+        if (libraryScan != null && libraryScan.isDefault()) {
+            libraryScan = null;
+        }
         if (host.equals("localhost")) {
             host = null;
         }
-        if (port == 9000) {
+        if (port == 9090) {
             port = null;
         }
     }

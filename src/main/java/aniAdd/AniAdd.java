@@ -11,6 +11,8 @@ import processing.EpisodeProcessing;
 import udpapi.UdpApi;
 
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 @Slf4j
 public class AniAdd implements IAniAdd {
@@ -20,6 +22,13 @@ public class AniAdd implements IAniAdd {
     @NotNull private final ICallBack<Void> onShutdown;
 
     public AniAdd(@NotNull UdpApi api, boolean exitOnTermination, @NotNull FileProcessor fileProcessor, @NotNull EpisodeProcessing processing, @NotNull ICallBack<Void> onShutdown) {
+        this(api, exitOnTermination, fileProcessor, processing, onShutdown, () -> CompletableFuture.completedFuture(null));
+    }
+
+    /**
+     * @param afterBatch runs whenever processing reports a batch done; shutdown on termination waits for it to complete
+     */
+    public AniAdd(@NotNull UdpApi api, boolean exitOnTermination, @NotNull FileProcessor fileProcessor, @NotNull EpisodeProcessing processing, @NotNull ICallBack<Void> onShutdown, @NotNull Supplier<CompletableFuture<Void>> afterBatch) {
         this.api = api;
         this.onShutdown = onShutdown;
         this.fileProcessor = fileProcessor;
@@ -37,9 +46,12 @@ public class AniAdd implements IAniAdd {
         this.processing.addListener(event -> {
             if (event == EpisodeProcessing.ProcessingEvent.Done) {
                 log.info("File moving done");
+                val afterBatchDone = afterBatch.get();
                 if (exitOnTermination) {
-                    log.info("Shutting down");
-                    Stop();
+                    afterBatchDone.whenComplete((_, _) -> {
+                        log.info("Shutting down");
+                        Stop();
+                    });
                 }
             }
         });

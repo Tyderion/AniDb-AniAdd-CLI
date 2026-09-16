@@ -33,6 +33,8 @@ public class FileInfo {
     @Getter private final Boolean watched;
     @Getter @Setter private boolean hashed;
     @Getter @Setter private LocalDateTime watchedDate;
+    /** The file landed somewhere new or got metadata Kodi has not seen yet, so a library scan would pick up something */
+    @Getter @Setter private boolean libraryChanged;
 
     @Accessors(fluent = true)
     @Getter
