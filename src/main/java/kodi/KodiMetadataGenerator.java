@@ -170,11 +170,20 @@ public class KodiMetadataGenerator {
     }
 
     private void downloadToFile(String url, Path path) {
+        if (url == null || url.isBlank()) {
+            log.debug(STR."No url for \{path}, not exporting image");
+            return;
+        }
         if (Files.exists(path) && !overwriteConfiguration.contains(OverwriteConfiguration.OVERWRITE_ARTWORK)) {
             log.debug(STR."File \{path} already exists, not exporting image");
             return;
         }
-        downloadHelper.downloadToFile(url, path);
+        // A single failed image must not abort the export: an exception here would skip onDone and leave the file stuck in GenerateKodiMetadata
+        try {
+            downloadHelper.downloadToFile(url, path);
+        } catch (RuntimeException e) {
+            log.warn(STR."Failed to export image \{url} to \{path}: \{e.getMessage()}");
+        }
     }
 
     private InputStream getXmlInput(int aniDbAnimeId) {

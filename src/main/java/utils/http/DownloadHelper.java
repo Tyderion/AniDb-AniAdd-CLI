@@ -20,9 +20,8 @@ public class DownloadHelper {
 
     public String downloadToString(String url) {
         log.info(STR."Content at \{url} will be downloaded");
-        try {
-            val request = new okhttp3.Request.Builder().url(url).build();
-            val response = client.newCall(request).execute();
+        val request = new okhttp3.Request.Builder().url(url).build();
+        try (val response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
                 throw new RuntimeException(STR."Failed to download content: \{response}");
             }
@@ -35,17 +34,18 @@ public class DownloadHelper {
 
     public void downloadToFile(String url, Path path) {
         log.info(STR."File at \{url} will be saved to \{path}");
-        try {
-            val request = new okhttp3.Request.Builder().url(url).build();
-            val response = client.newCall(request).execute();
+        val request = new okhttp3.Request.Builder().url(url).build();
+        try (val response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
                 throw new RuntimeException(STR."Failed to download file: \{response}");
             }
             log.trace(STR."Downloading file from \{url} to \{path}");
+            // Read the body before touching the target, so a failed transfer leaves no empty or partial file behind
+            val bytes = response.body().bytes();
             Files.createDirectories(path.getParent());
-            FileOutputStream fos = new FileOutputStream(path.toFile());
-            fos.write(response.body().bytes());
-            fos.close();
+            try (FileOutputStream fos = new FileOutputStream(path.toFile())) {
+                fos.write(bytes);
+            }
             log.trace(STR."Downloaded file from \{url} to \{path}");
         } catch (IOException e) {
             throw new RuntimeException(e);
