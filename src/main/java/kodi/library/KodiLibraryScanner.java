@@ -1,12 +1,14 @@
 package kodi.library;
 
 import aniAdd.kodi.KodiRpcClient;
+import aniAdd.kodi.jsonrpc.CleanVideoLibrary;
 import aniAdd.kodi.jsonrpc.GetSources;
 import aniAdd.kodi.jsonrpc.ScanVideoLibrary;
 import com.google.gson.JsonObject;
 import config.blocks.KodiConfig;
 import config.blocks.KodiLibraryScanConfig;
 import kodi.library.LibraryScanPlanner.ResolvedLibrary;
+import kodi.library.LibraryScanPlanner.ScanTarget;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import processing.FileInfo;
@@ -28,7 +30,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 /**
- * Once a directory scan run has finished, asks Kodi to scan the library directories its files landed in. Scans run one after another on a single thread: each waits for Kodi's OnScanFinished before the next
+ * Once a directory scan run has finished, asks Kodi to scan the library directories its files landed in, and
+ * optionally to clean the libraries afterwards so entries whose files are gone disappear. Scans run one after another on a single thread: each waits for Kodi's OnScanFinished before the next
  * starts, so scans requested by overlapping runs queue up instead of colliding.
  */
 @Slf4j
@@ -91,13 +94,19 @@ public class KodiLibraryScanner {
         try {
             client.open().get(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             val libraries = resolveLibraries(client, scanConfig.libraries());
-            val directories = LibraryScanPlanner.plan(scanConfig.scope(), libraries, batch);
-            if (directories.isEmpty()) {
+            val targets = LibraryScanPlanner.plan(scanConfig.scope(), libraries, batch);
+            if (targets.isEmpty()) {
                 log.info("No changed file lies in a configured kodi library, nothing to scan");
                 return;
             }
-            for (val directory : directories) {
-                scanDirectory(client, directory, scanConfig);
+            for (val target : targets) {
+                scanDirectory(client, target.directory(), scanConfig);
+            }
+            if (scanConfig.clean()) {
+                // Cleaning a single show folder is a silent no-op in kodi, so each touched library is cleaned whole.
+                for (val library : targets.stream().map(ScanTarget::library).distinct().toList()) {
+                    cleanLibrary(client, library, scanConfig);
+                }
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -113,7 +122,7 @@ public class KodiLibraryScanner {
         val resolved = new ArrayList<ResolvedLibrary>();
         for (val library : configured) {
             if (library.path() != null && !library.path().isBlank()) {
-                resolved.add(new ResolvedLibrary(library.path(), library.localPath()));
+                resolved.add(new ResolvedLibrary(library.path(), library.localPath(), library.content()));
                 continue;
             }
             if (sourcesByLabel == null) {
@@ -125,7 +134,7 @@ public class KodiLibraryScanner {
                 continue;
             }
             log.debug(STR."Kodi source \{library.describe()} resolved to \{path}");
-            resolved.add(new ResolvedLibrary(path, library.localPath()));
+            resolved.add(new ResolvedLibrary(path, library.localPath(), library.content()));
         }
         return resolved;
     }
@@ -147,15 +156,29 @@ public class KodiLibraryScanner {
         return sources;
     }
 
+    private void cleanLibrary(KodiRpcClient client, ResolvedLibrary library, KodiLibraryScanConfig scanConfig) throws Exception {
+        val finished = client.nextNotification(CleanVideoLibrary.ON_CLEAN_FINISHED);
+        log.info(STR."Cleaning kodi library \{library.kodiPath()} (\{library.content().value()})");
+        client.call(new CleanVideoLibrary(library.kodiPath(), library.content().value(), scanConfig.showDialogs()))
+                .get(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        awaitOrWarn(finished, scanConfig, STR."the clean of \{library.kodiPath()}");
+        log.info(STR."Kodi finished cleaning \{library.kodiPath()}");
+    }
+
     private void scanDirectory(KodiRpcClient client, String directory, KodiLibraryScanConfig scanConfig) throws Exception {
         CompletableFuture<JsonObject> finished = client.nextNotification(ScanVideoLibrary.ON_SCAN_FINISHED);
         log.info(STR."Scanning kodi directory \{directory}");
         client.call(new ScanVideoLibrary(directory, scanConfig.showDialogs())).get(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        awaitOrWarn(finished, scanConfig, STR."the scan of \{directory}");
+        log.info(STR."Kodi finished scanning \{directory}");
+    }
+
+    /** Kodi reports the end of a scan or clean as a notification; without one we move on rather than block forever. */
+    private void awaitOrWarn(CompletableFuture<JsonObject> finished, KodiLibraryScanConfig scanConfig, String what) throws Exception {
         try {
             finished.get(scanConfig.timeoutInMinutes(), TimeUnit.MINUTES);
-            log.info(STR."Kodi finished scanning \{directory}");
         } catch (TimeoutException e) {
-            log.warn(STR."Kodi did not report the scan of \{directory} as finished within \{scanConfig.timeoutInMinutes()} minutes, moving on");
+            log.warn(STR."Kodi did not report \{what} as finished within \{scanConfig.timeoutInMinutes()} minutes, moving on");
         }
     }
 }

@@ -1,14 +1,15 @@
 package kodi.library;
 
+import config.blocks.KodiLibraryScanConfig.Content;
 import config.blocks.KodiLibraryScanConfig.Scope;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,12 +22,17 @@ public final class LibraryScanPlanner {
     /**
      * @param kodiPath  the library root as Kodi sees it
      * @param localPath the same root as this process sees it, or null when unknown
+     * @param content   what Kodi has this root set to (tvshows, movies, ...), needed to clean it; null when not configured
      */
-    public record ResolvedLibrary(String kodiPath, Path localPath) {
+    public record ResolvedLibrary(String kodiPath, Path localPath, Content content) {
         public ResolvedLibrary {
             kodiPath = withTrailingSeparator(kodiPath);
             localPath = localPath == null ? null : localPath.toAbsolutePath().normalize();
         }
+    }
+
+    /** One directory to scan, and the library it belongs to, which is what gets cleaned afterwards. */
+    public record ScanTarget(String directory, ResolvedLibrary library) {
     }
 
     private LibraryScanPlanner() {
@@ -38,24 +44,30 @@ public final class LibraryScanPlanner {
      * Libraries without a local path cannot be mapped and are scanned whole. Directories already covered by a root
      * scan are dropped.
      */
-    public static List<String> plan(Scope scope, List<ResolvedLibrary> libraries, Collection<Path> changedFiles) {
+    public static List<ScanTarget> plan(Scope scope, List<ResolvedLibrary> libraries, Collection<Path> changedFiles) {
         if (changedFiles.isEmpty()) {
             return List.of();
         }
-        val directories = new LinkedHashSet<String>();
+        val targets = new LinkedHashMap<String, ResolvedLibrary>();
         if (scope == Scope.LIBRARY) {
-            libraries.forEach(library -> directories.add(library.kodiPath()));
-            return List.copyOf(directories);
+            libraries.forEach(library -> targets.putIfAbsent(library.kodiPath(), library));
+            return asTargets(targets);
         }
 
-        libraries.stream().filter(library -> library.localPath() == null).forEach(library -> directories.add(library.kodiPath()));
+        libraries.stream().filter(library -> library.localPath() == null)
+                .forEach(library -> targets.putIfAbsent(library.kodiPath(), library));
         for (val changedFile : changedFiles) {
             val file = changedFile.toAbsolutePath().normalize();
             findLibrary(libraries, file).ifPresentOrElse(
-                    library -> directories.add(kodiDirectoryFor(library, file)),
+                    library -> targets.putIfAbsent(kodiDirectoryFor(library, file), library),
                     () -> log.debug(STR."\{file} lies in no configured kodi library, not scanning it"));
         }
-        return collapse(directories);
+        collapse(targets);
+        return asTargets(targets);
+    }
+
+    private static List<ScanTarget> asTargets(Map<String, ResolvedLibrary> targets) {
+        return targets.entrySet().stream().map(entry -> new ScanTarget(entry.getKey(), entry.getValue())).toList();
     }
 
     private static Optional<ResolvedLibrary> findLibrary(List<ResolvedLibrary> libraries, Path file) {
@@ -72,15 +84,12 @@ public final class LibraryScanPlanner {
         return withTrailingSeparator(library.kodiPath() + relative.getName(0));
     }
 
-    private static List<String> collapse(Collection<String> directories) {
-        val result = new ArrayList<String>();
-        for (val directory : directories) {
-            val covered = directories.stream().anyMatch(other -> !other.equals(directory) && directory.startsWith(other));
-            if (!covered) {
-                result.add(directory);
-            }
-        }
-        return result;
+    /** Drops every directory already covered by another one being scanned, e.g. a show folder below its library root. */
+    private static void collapse(Map<String, ResolvedLibrary> targets) {
+        val directories = List.copyOf(targets.keySet());
+        directories.stream()
+                .filter(directory -> directories.stream().anyMatch(other -> !other.equals(directory) && directory.startsWith(other)))
+                .forEach(targets::remove);
     }
 
     /** Kodi paths may be posix, smb:// or Windows paths, so the separator is taken from the path itself. */

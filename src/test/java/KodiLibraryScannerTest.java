@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 
 public class KodiLibraryScannerTest {
@@ -37,6 +38,7 @@ public class KodiLibraryScannerTest {
         final CountDownLatch started = new CountDownLatch(1);
         final List<String> log = new CopyOnWriteArrayList<>();
         final List<String> scannedDirectories = new CopyOnWriteArrayList<>();
+        final List<String> cleaned = new CopyOnWriteArrayList<>();
         private final java.util.concurrent.ScheduledExecutorService delay = Executors.newSingleThreadScheduledExecutor();
 
         FakeKodi() {
@@ -58,13 +60,25 @@ public class KodiLibraryScannerTest {
                     log.add(STR."scan \{directory}");
                     scannedDirectories.add(directory);
                     conn.send(STR."{\"id\":\{id},\"jsonrpc\":\"2.0\",\"result\":\"OK\"}");
-                    delay.schedule(() -> {
-                        log.add(STR."finished \{directory}");
-                        conn.send("{\"jsonrpc\":\"2.0\",\"method\":\"VideoLibrary.OnScanFinished\",\"params\":{\"data\":null,\"sender\":\"xbmc\"}}");
-                    }, 300, TimeUnit.MILLISECONDS);
+                    finishLater(conn, STR."scan \{directory}", "VideoLibrary.OnScanFinished");
+                }
+                case "VideoLibrary.Clean" -> {
+                    val params = request.getAsJsonObject("params");
+                    val directory = params.get("directory").getAsString();
+                    log.add(STR."clean \{directory}");
+                    cleaned.add(STR."\{directory} (\{params.get("content").getAsString()})");
+                    conn.send(STR."{\"id\":\{id},\"jsonrpc\":\"2.0\",\"result\":\"OK\"}");
+                    finishLater(conn, STR."clean \{directory}", "VideoLibrary.OnCleanFinished");
                 }
                 default -> conn.send(STR."{\"id\":\{id},\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32601,\"message\":\"Method not found.\"}}");
             }
+        }
+
+        private void finishLater(WebSocket conn, String what, String notification) {
+            delay.schedule(() -> {
+                log.add(STR."finished \{what}");
+                conn.send(STR."{\"jsonrpc\":\"2.0\",\"method\":\"\{notification}\",\"params\":{\"data\":null,\"sender\":\"xbmc\"}}");
+            }, 300, TimeUnit.MILLISECONDS);
         }
 
         @Override
@@ -109,7 +123,8 @@ public class KodiLibraryScannerTest {
             assertThat(kodi.scannedDirectories.stream().sorted().toList(), contains(
                     "/storage/media/anime/series/Frieren/", "/storage/media/anime/series/JoJo/"));
             // The second scan may only start once Kodi reported the first one finished.
-            assertThat(kodi.log.get(1), is(kodi.log.get(0).replace("scan", "finished")));
+            assertThat(kodi.log.get(1), is(STR."finished \{kodi.log.get(0)}"));
+            assertThat(kodi.cleaned, empty());
 
             // The changes were handed off, so a later run that changed nothing does not scan again.
             scanner.onScanRunFinished(List.of(fileInfo(shows.resolve("Akira").resolve("e01.mkv"))));
@@ -145,12 +160,40 @@ public class KodiLibraryScannerTest {
         }
     }
 
+    @Test
+    public void cleansEachScannedLibraryWholeOnceTheScansAreDone() throws Exception {
+        val kodi = new FakeKodi();
+        kodi.start();
+        try {
+            assertThat(kodi.started.await(10, TimeUnit.SECONDS), is(true));
+            val library = KodiLibraryScanConfig.Library.builder()
+                    .name("Anime Series").localPath(shows).content(KodiLibraryScanConfig.Content.TVSHOWS).build();
+            val scanner = new KodiLibraryScanner(() -> kodiConfig(kodi.getPort(), library, true));
+
+            scanner.onScanRunFinished(List.of(
+                    changedFile(shows.resolve("Frieren").resolve("e01.mkv")),
+                    changedFile(shows.resolve("JoJo").resolve("e01.mkv"))));
+            scanner.lastScan().get(30, TimeUnit.SECONDS);
+
+            // One clean of the library root, not one per show folder, and only after both scans finished.
+            assertThat(kodi.cleaned, contains("/storage/media/anime/series/ (tvshows)"));
+            assertThat(kodi.log.subList(4, 6), contains("clean /storage/media/anime/series/", "finished clean /storage/media/anime/series/"));
+        } finally {
+            kodi.shutdown();
+        }
+    }
+
     private static KodiConfig kodiConfig(int port, KodiLibraryScanConfig.Library library) {
+        return kodiConfig(port, library, false);
+    }
+
+    private static KodiConfig kodiConfig(int port, KodiLibraryScanConfig.Library library, boolean clean) {
         return KodiConfig.builder()
                 .host("127.0.0.1")
                 .port(port)
                 .libraryScan(KodiLibraryScanConfig.builder()
                         .enabled(true)
+                        .clean(clean)
                         .timeoutInMinutes(1)
                         .libraries(List.of(library))
                         .build())

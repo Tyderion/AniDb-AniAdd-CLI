@@ -70,6 +70,31 @@ public class KodiLibraryScanConfigTest {
         assertThat(problems, contains(containsString("libraries[0]"), containsString("libraries[1]")));
     }
 
+    @Test
+    public void cleaningNeedsAContentTypePerLibrary() {
+        val withoutContent = parse("""
+                kodi:
+                  libraryScan:
+                    enabled: true
+                    clean: true
+                    libraries:
+                      - name: anime series
+                """).kodi().libraryScan();
+        assertThat(withoutContent.problems(), contains(containsString("needs a 'content'")));
+
+        val withContent = parse("""
+                kodi:
+                  libraryScan:
+                    enabled: true
+                    clean: true
+                    libraries:
+                      - name: anime series
+                        content: tvshows
+                """).kodi().libraryScan();
+        assertThat(withContent.libraries().get(0).content(), is(KodiLibraryScanConfig.Content.TVSHOWS));
+        assertThat(withContent.problems(), empty());
+    }
+
     private RootConfiguration parse(String yaml) {
         val parsed = new ConfigFileParser<>(RootConfiguration.class).load(new ByteArrayInputStream(yaml.getBytes(StandardCharsets.UTF_8)));
         assertNotNull(parsed);

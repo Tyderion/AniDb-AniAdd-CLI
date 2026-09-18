@@ -36,8 +36,22 @@ public class KodiLibraryScanConfig {
     @Builder.Default
     private int timeoutInMinutes = DEFAULT_TIMEOUT_IN_MINUTES;
 
+    /** Clean the scanned libraries afterwards, dropping database entries whose files are gone */
+    @Builder.Default
+    private boolean clean = false;
+
     @Builder.Default
     private List<Library> libraries = new ArrayList<>();
+
+    /** What Kodi has a source set to. Cleaning only works when this matches the source's content type. */
+    public enum Content {
+        TVSHOWS, MOVIES, MUSICVIDEOS;
+
+        /** The spelling Kodi's JSON-RPC expects */
+        public String value() {
+            return name().toLowerCase(java.util.Locale.ROOT);
+        }
+    }
 
     public enum Scope {
         /** Scan only the top-level folders (a show, a movie) below a library that received changes. Needs {@link Library#localPath}. */
@@ -61,6 +75,8 @@ public class KodiLibraryScanConfig {
         private String path;
         /** The same folder as this process sees it. Lets changed files be mapped to Kodi paths. */
         private Path localPath;
+        /** What this source holds, as set in Kodi. Only needed for cleaning, which silently does nothing if it disagrees with Kodi. */
+        private Content content;
 
         public String describe() {
             return name != null ? STR."'\{name}'" : path;
@@ -89,12 +105,16 @@ public class KodiLibraryScanConfig {
             if (hasName == hasPath) {
                 problems.add(STR."kodi.libraryScan.libraries[\{i}] needs exactly one of 'name' or 'path'");
             }
+            if (clean && library.content() == null) {
+                // Kodi ignores a clean whose content does not match what the source is set to, without saying so.
+                problems.add(STR."kodi.libraryScan.libraries[\{i}] needs a 'content' (tvshows, movies or musicvideos) because cleaning is enabled");
+            }
         }
         return problems;
     }
 
     public boolean isDefault() {
-        return !enabled && scope == Scope.CHANGED && !showDialogs && timeoutInMinutes == DEFAULT_TIMEOUT_IN_MINUTES
+        return !enabled && !clean && scope == Scope.CHANGED && !showDialogs && timeoutInMinutes == DEFAULT_TIMEOUT_IN_MINUTES
                 && (libraries == null || libraries.isEmpty());
     }
 }
