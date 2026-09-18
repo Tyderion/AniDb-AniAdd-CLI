@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "ch.tyderion"
-version = "5.0.0.kodi.a.5"
+version = "5.0.0.kodi.a.6"
 
 java {
     targetCompatibility = JavaVersion.VERSION_21
