@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "ch.tyderion"
-version = "5.0.0.kodi.a.6"
+version = "5.0.0.kodi.a.7"
 
 java {
     targetCompatibility = JavaVersion.VERSION_21
@@ -149,6 +149,9 @@ tasks.register<Dockerfile>("createDockerfile") {
     copyFile("scan.sh", "/app/scan.sh")
     copyFile("watch-and-kodi.sh", "/app/watch-and-kodi.sh")
     copyFile("logging.properties", "/app/logging.properties")
+    // The scripts' executable bit is recorded in git, but a checkout that drops it (or a COPY from a
+    // context where it was lost) would otherwise produce an image whose entrypoints cannot be exec'd.
+    runCommand("chmod +x /app/*.sh")
     defaultCommand("/app/noop.sh")
 }
 
