@@ -4,6 +4,7 @@ import aniAdd.misc.ICallBack;
 import aniAdd.misc.MultiKeyDict;
 import cache.IAniDBFileRepository;
 import cache.IFileHashMappingRepository;
+import cache.ITranscodeJobRepository;
 import config.blocks.*;
 import fileprocessor.FileProcessor;
 import kodi.KodiMetadataGenerator;
@@ -30,7 +31,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 public class EpisodeProcessing implements FileProcessor.Processor {
@@ -45,6 +45,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     private final IAniDBFileRepository fileRepository;
     private final IFileHandler fileHandler;
     private final IFileHashMappingRepository hashMappingRepository;
+    private final ITranscodeJobRepository transcodeJobRepository;
+    private final TranscodeConfig transcodeConfig;
     private final Transcoder transcoder;
     private final MediaProber mediaProber;
     private final List<ICallBack<ProcessingEvent>> eventHandlers = new ArrayList<>();
@@ -74,6 +76,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             IFileHandler fileHandler,
             IAniDBFileRepository fileRepository,
             IFileHashMappingRepository hashMappingRepository,
+            ITranscodeJobRepository transcodeJobRepository,
+            TranscodeConfig transcodeConfig,
             Transcoder transcoder,
             MediaProber mediaProber) {
         this.fileConfig = fileConfig;
@@ -85,6 +89,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         this.kodiMetadataGenerator = kodiMetadataGenerator;
         this.fileRepository = fileRepository;
         this.hashMappingRepository = hashMappingRepository;
+        this.transcodeJobRepository = transcodeJobRepository;
+        this.transcodeConfig = transcodeConfig;
         this.transcoder = transcoder;
         this.mediaProber = mediaProber;
         this.fileSystem = fileSystem;
@@ -92,8 +98,10 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         api.registerCallback(LogoutCommand.class, cmd -> {
             // Remove files after we automatically log out
             if (cmd.getCommand().isAutomatic()) {
-                log.info("Logged out, clearing cached files");
-                files.clear();
+                // Only finished files: one still waiting on a step keeps its place, or the Done check would see
+                // an empty list and end the run early.
+                val removed = files.removeIf(FileInfo::allDone);
+                log.info(STR."Logged out, cleared \{removed} finished files");
             }
         });
 
@@ -151,15 +159,6 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                     finalize(fileInfo);
                     return;
                 }
-                // Convert only what AniDB knows: an unidentified file is left alone so it lands in the
-                // unknown folder in its original format, and no encode is spent on it.
-                if (startTranscode(fileInfo)) {
-                    return;
-                }
-                describeLocalMedia(fileInfo);
-                afterIdentification(fileInfo);
-            }
-            case Transcode -> {
                 describeLocalMedia(fileInfo);
                 afterIdentification(fileInfo);
             }
@@ -191,8 +190,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
     }
 
     /**
-     * Rename, move, and Kodi metadata: everything that happens once the file is identified and, where
-     * configured, converted.
+     * Rename, move, and Kodi metadata: everything that happens once the file is identified. Transcoding is
+     * not part of this; a finished file is queued for the separate transcoder instead (see finalize).
      */
     private void afterIdentification(FileInfo fileInfo) {
         val config = fileInfo.config();
@@ -206,51 +205,6 @@ public class EpisodeProcessing implements FileProcessor.Processor {
                 generateKodiMetadata(fileInfo);
             }
         }
-    }
-
-    /**
-     * @return true when an encode was queued and the pipeline should continue from the Transcode step.
-     */
-    private boolean startTranscode(FileInfo fileInfo) {
-        if (fileInfo.isActionInProcess(FileAction.Transcode) || fileInfo.isActionDone(FileAction.Transcode)
-                || fileInfo.hasActionFailed(FileAction.Transcode)) {
-            return false;
-        }
-        val source = fileInfo.getWorkingFile().toPath();
-        val sourceInfo = transcoder.matches(source);
-        if (sourceInfo.isEmpty()) {
-            return false;
-        }
-        fileInfo.startAction(FileAction.Transcode);
-        transcoder.transcode(source, sourceInfo.get(), result -> onTranscodeDone(fileInfo, result));
-        return true;
-    }
-
-    private void onTranscodeDone(FileInfo fileInfo, Optional<Transcoder.Result> result) {
-        if (result.isEmpty()) {
-            log.warn(STR."Keeping \{fileInfo.getWorkingFile().getName()} as it is, the transcode did not succeed");
-            fileInfo.actionFailed(FileAction.Transcode);
-            nextStep(FileAction.Transcode, fileInfo);
-            return;
-        }
-        val identityEd2k = fileInfo.getEd2k();
-        val identitySize = fileInfo.getIdentitySize();
-        val originalName = fileInfo.getWorkingFile().getName();
-        fileInfo.setTranscodedFile(result.get().file());
-        // Re-hash so the new file can be recognised on any later run, and record what it came from
-        // before anything else touches it.
-        fileSystem.run(new FileParser(fileInfo.getWorkingFile(), fileInfo.getId(), (_, ed2k, crc32) -> {
-            if (ed2k == null) {
-                log.error(STR."Could not hash the converted file \{fileInfo.getWorkingFile()}. It stays on disk but will not be recognised on the next run.");
-            } else {
-                fileInfo.setLocalEd2k(ed2k);
-                fileInfo.setLocalCrc32(crc32);
-                fileInfo.setMapped(true);
-                hashMappingRepository.save(ed2k, fileInfo.getWorkingFile().length(), identityEd2k, identitySize, originalName);
-            }
-            fileInfo.actionDone(FileAction.Transcode);
-            nextStep(FileAction.Transcode, fileInfo);
-        }, () -> shouldShutdown));
     }
 
     /**
@@ -286,7 +240,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         procFile.startAction(FileAction.GenerateKodiMetadata);
         // Checked before writing: an NFO that already existed and is not overwritten gives Kodi nothing new to scan,
         // which is the common case for files that are only re-processed to mark them watched.
-        val videoFile = procFile.getRenamedFile() != null ? procFile.getRenamedFile() : procFile.getFile().toPath();
+        val videoFile = procFile.getWorkingFile().toPath();
         val overwrite = kodiConfig.metadata().overwrite();
         if (overwrite.episodes() || overwrite.movies() || !Files.exists(nfoFileFor(videoFile))) {
             procFile.setLibraryChanged(true);
@@ -487,7 +441,7 @@ public class EpisodeProcessing implements FileProcessor.Processor {
         procFile.startAction(FileAction.Rename);
         fileSystem.run(() -> {
             if (fileRenamer.renameFile(procFile)) {
-                if (procFile.getRenamedFile() != null) {
+                if (procFile.wasMoved()) {
                     procFile.setLibraryChanged(true);
                 }
                 procFile.actionDone(FileAction.Rename);
@@ -504,7 +458,8 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             log.warn("Tried to finalize file that still has actions in progress");
             return;
         }
-        log.debug(STR."File \{procFile.getFile().getAbsolutePath()} with Id \{procFile.getId()} done");
+        log.debug(STR."File \{procFile.getWorkingFile().getAbsolutePath()} with Id \{procFile.getId()} done");
+        queueTranscode(procFile);
         procFile.setFinished(true);
         completeFinishedScanRuns();
         if (files.values().stream().allMatch(FileInfo::allDone)) {
@@ -518,6 +473,34 @@ public class EpisodeProcessing implements FileProcessor.Processor {
             openScanRuns.removeIf(run -> run.stream().allMatch(FileInfo::isFinished) && finished.add(run));
         }
         finished.forEach(run -> scanRunFinishedHandlers.forEach(handler -> handler.invoke(run)));
+    }
+
+    /**
+     * Hands a finished file to the transcoder by writing a job; the encode itself happens in a separate
+     * process. Only files that were identified and that reached their destination qualify, and a file that
+     * is itself a conversion is never queued again.
+     */
+    private void queueTranscode(FileInfo procFile) {
+        if (transcodeConfig.mode() != TranscodeConfig.Mode.QUEUE || procFile.isTranscodeQueued()
+                || !procFile.isActionDone(FileAction.FileCmd) || procFile.isMapped()) {
+            return;
+        }
+        // finalize also runs when an unrelated step (a MyList add) finishes, possibly before the rename has even
+        // started. Waiting for the rename to be done keeps a job from recording the path in the input folder.
+        val config = procFile.config();
+        val renames = config.rename().mode() != RenameConfig.Mode.NONE || config.move().mode() != MoveConfig.Mode.NONE;
+        if (renames && !procFile.isActionDone(FileAction.Rename)) {
+            return;
+        }
+        procFile.setTranscodeQueued(true);
+        val file = procFile.getWorkingFile().toPath();
+        if (!file.toFile().isFile()) {
+            return;
+        }
+        if (transcoder.matches(file).isEmpty()) {
+            return;
+        }
+        transcodeJobRepository.enqueue(procFile.getEd2k(), procFile.getIdentitySize(), file.toAbsolutePath(), transcodeConfig.existing());
     }
 
     @Override

@@ -49,6 +49,7 @@ public class MediaProber {
             return Optional.empty();
         }
         String videoCodec = null;
+        String videoProfile = null;
         val audioCodecs = new ArrayList<String>();
         int video = 0, audio = 0, subtitle = 0, attachment = 0;
         double streamDuration = 0;
@@ -61,6 +62,7 @@ public class MediaProber {
                 case "video" -> {
                     if (videoCodec == null) {
                         videoCodec = codec;
+                        videoProfile = stringOrNull(stream, "profile");
                     }
                     video++;
                 }
@@ -76,8 +78,11 @@ public class MediaProber {
         val format = root.getAsJsonObject("format");
         val duration = format == null || doubleOrZero(format, "duration") == 0 ? streamDuration : doubleOrZero(format, "duration");
         val size = format == null ? 0L : (long) doubleOrZero(format, "size");
+        val bitRate = format == null ? 0L : (long) doubleOrZero(format, "bit_rate");
         return Optional.of(MediaInfo.builder()
                 .videoCodec(videoCodec)
+                .videoProfile(videoProfile)
+                .bitRateKbps(bitRate / 1000)
                 .audioCodecs(List.copyOf(audioCodecs))
                 .durationSeconds(duration)
                 .sizeInBytes(size == 0 ? file.toFile().length() : size)

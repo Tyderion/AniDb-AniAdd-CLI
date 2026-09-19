@@ -51,7 +51,7 @@ public class RunConfig {
         }
         val configFile = runConfig.toAbsolutePath().normalize();
         val baseDir = ConfigFileParser.baseDirectoryOf(runConfig);
-        if (EnumSet.of(SCAN, WATCH, TRANSCODE).contains(task)) {
+        if (EnumSet.of(SCAN, WATCH).contains(task)) {
             if (!args.containsKey(PARAM_NAME) || args.get(PARAM_NAME).isBlank()) {
                 throw new InvalidConfigException("No folder specified for scan or watch task.");
             }
@@ -83,8 +83,11 @@ public class RunConfig {
                 arguments.add(parameter);
             }
             case TRANSCODE -> {
+                // Without a path this runs the transcoder on the queue; with one it queues that folder.
                 arguments.add(TranscodeCommand.getName());
-                arguments.add(parameter);
+                if (parameter != null && !parameter.isBlank()) {
+                    arguments.add(parameter);
+                }
             }
         }
         if (config == null) {

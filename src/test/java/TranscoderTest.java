@@ -10,10 +10,7 @@ import transcode.Transcoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
@@ -33,7 +30,7 @@ public class TranscoderTest {
         ffmpegAvailable = canRun("ffmpeg") && canRun("ffprobe");
     }
 
-    private static boolean canRun(String binary) {
+    static boolean canRun(String binary) {
         try {
             return new ProcessBuilder(binary, "-version").start().waitFor(1, TimeUnit.MINUTES);
         } catch (Exception e) {
@@ -41,64 +38,51 @@ public class TranscoderTest {
         }
     }
 
-    private Path generateSource(Path directory) throws Exception {
-        Path source = directory.resolve("source.mkv");
+    static Path generateSource(Path file) throws Exception {
         List<String> command = List.of("ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
                 "-f", "lavfi", "-i", "testsrc=duration=2:size=320x240:rate=24",
                 "-f", "lavfi", "-i", "sine=frequency=440:duration=2",
                 "-c:v", "libx264", "-profile:v", "high10", "-pix_fmt", "yuv420p10le",
-                "-c:a", "aac", source.toString());
+                "-c:a", "aac", file.toString());
         Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
         String output = new String(process.getInputStream().readAllBytes());
         assertThat("generating the test clip failed: " + output, process.waitFor(), is(0));
-        return source;
+        return file;
     }
 
-    private TranscodeConfig config(Path originalsFolder) {
+    static final String FAST_VIDEO_ARGS = "-c:v libx265 -crf 30 -preset ultrafast -pix_fmt yuv420p10le -x265-params log-level=none";
+
+    private TranscodeConfig.TranscodeConfigBuilder config(Path originalsFolder) {
         return TranscodeConfig.builder()
-                .enabled(true)
-                .videoCodecs(List.of("h264"))
-                .videoArgs("-c:v libx265 -crf 30 -preset ultrafast -pix_fmt yuv420p10le -x265-params log-level=none")
+                .mode(TranscodeConfig.Mode.QUEUE)
+                .videoArgs(FAST_VIDEO_ARGS)
                 .nice(0)
                 .original(MoveConfig.HandlingConfig.builder()
                         .mode(MoveConfig.HandlingConfig.Mode.MOVE)
                         .folder(originalsFolder)
-                        .build())
-                .build();
+                        .build());
     }
 
     @Test
-    public void convertsH264ToHevcKeepsAudioAndMovesTheOriginalAside(@TempDir Path tempDir) throws Exception {
+    public void encodesH264ToHevcKeepingAudioAndLeavesTheSourceAlone(@TempDir Path tempDir) throws Exception {
         assumeTrue(ffmpegAvailable, "ffmpeg and ffprobe are needed for this test");
-        Path source = generateSource(tempDir);
-        Path originals = Files.createDirectory(tempDir.resolve("originals"));
+        Path source = generateSource(tempDir.resolve("source.mkv"));
         MediaProber prober = new MediaProber("ffprobe");
-        TranscodeConfig config = config(originals);
+        Transcoder transcoder = new Transcoder(config(tempDir.resolve("originals")).build(), prober, new FileHandler());
 
-        try (Transcoder transcoder = new Transcoder(config, prober, new FileHandler())) {
-            var sourceInfo = transcoder.matches(source);
-            assertThat("h264 should match the configured input formats", sourceInfo.isPresent(), is(true));
-            assertThat(sourceInfo.get().videoCodec(), is("h264"));
+        var sourceInfo = transcoder.matches(source);
+        assertThat("h264 should match the configured input formats", sourceInfo.isPresent(), is(true));
+        assertThat(sourceInfo.get().videoProfile(), is("High 10"));
 
-            AtomicReference<Optional<Transcoder.Result>> result = new AtomicReference<>();
-            CountDownLatch done = new CountDownLatch(1);
-            transcoder.transcode(source, sourceInfo.get(), transcodeResult -> {
-                result.set(transcodeResult);
-                done.countDown();
-            });
-            assertThat("transcode did not finish in time", done.await(5, TimeUnit.MINUTES), is(true));
-            assertThat("transcode failed", result.get().isPresent(), is(true));
+        Path target = tempDir.resolve(".source.transcoding.mkv");
+        var converted = transcoder.encode(source, sourceInfo.get(), target);
 
-            Path converted = result.get().get().file();
-            assertThat("the converted file takes the source's place", converted, is(source));
-            assertThat(Files.exists(converted), is(true));
-            assertThat("the original is kept aside", Files.exists(originals.resolve("source.mkv")), is(true));
-
-            var convertedInfo = prober.probe(converted).orElseThrow();
-            assertThat(convertedInfo.videoCodec(), is("hevc"));
-            assertThat("audio is copied, not re-encoded", convertedInfo.audioCodecs(), is(List.of("aac")));
-            assertThat(convertedInfo.durationSeconds(), is(closeTo(sourceInfo.get().durationSeconds(), 1.0)));
-        }
+        assertThat("transcode failed", converted.isPresent(), is(true));
+        assertThat("encode never touches the source", Files.exists(source), is(true));
+        assertThat(converted.get().videoCodec(), is("hevc"));
+        assertThat("audio is copied, not re-encoded", converted.get().audioCodecs(), is(List.of("aac")));
+        assertThat(converted.get().durationSeconds(), is(closeTo(sourceInfo.get().durationSeconds(), 1.0)));
+        assertThat("ffmpeg's log file is cleaned up", Files.exists(tempDir.resolve(".source.transcoding.mkv.log")), is(false));
     }
 
     @Test
@@ -106,57 +90,52 @@ public class TranscoderTest {
         // The first version of the default carried "-x265-params profile=main10", which ffmpeg accepted
         // while x265 rejected it as an unknown option. Only running it catches that class of typo.
         assumeTrue(ffmpegAvailable, "ffmpeg and ffprobe are needed for this test");
-        Path source = generateSource(tempDir);
-        Path originals = Files.createDirectory(tempDir.resolve("originals"));
+        Path source = generateSource(tempDir.resolve("source.mkv"));
         MediaProber prober = new MediaProber("ffprobe");
-        TranscodeConfig config = TranscodeConfig.builder()
-                .enabled(true)
-                .nice(0)
-                .original(MoveConfig.HandlingConfig.builder()
-                        .mode(MoveConfig.HandlingConfig.Mode.MOVE)
-                        .folder(originals)
-                        .build())
-                .build();
+        TranscodeConfig config = TranscodeConfig.builder().mode(TranscodeConfig.Mode.QUEUE).nice(0).build();
+        Transcoder transcoder = new Transcoder(config, prober, new FileHandler());
 
-        try (Transcoder transcoder = new Transcoder(config, prober, new FileHandler())) {
-            var sourceInfo = transcoder.matches(source);
-            assertThat("h264 matches the shipped videoCodecs default", sourceInfo.isPresent(), is(true));
-
-            AtomicReference<Optional<Transcoder.Result>> result = new AtomicReference<>();
-            CountDownLatch done = new CountDownLatch(1);
-            transcoder.transcode(source, sourceInfo.get(), transcodeResult -> {
-                result.set(transcodeResult);
-                done.countDown();
-            });
-            assertThat("transcode did not finish in time", done.await(10, TimeUnit.MINUTES), is(true));
-            assertThat("the shipped default arguments failed to produce a valid encode",
-                    result.get().isPresent(), is(true));
-            assertThat(prober.probe(result.get().get().file()).orElseThrow().videoCodec(), is("hevc"));
-        }
+        var sourceInfo = transcoder.matches(source);
+        assertThat("h264 matches the shipped match default", sourceInfo.isPresent(), is(true));
+        var converted = transcoder.encode(source, sourceInfo.get(), tempDir.resolve("out.mkv"));
+        assertThat("the shipped default arguments failed to produce a valid encode", converted.isPresent(), is(true));
+        assertThat(converted.get().videoCodec(), is("hevc"));
     }
 
     @Test
-    public void leavesFilesAloneWhenTheirCodecIsNotConfigured(@TempDir Path tempDir) throws Exception {
+    public void matchesOnCodecProfileAndBitrate(@TempDir Path tempDir) throws Exception {
         assumeTrue(ffmpegAvailable, "ffmpeg and ffprobe are needed for this test");
-        Path source = generateSource(tempDir);
-        TranscodeConfig config = TranscodeConfig.builder()
-                .enabled(true)
-                .videoCodecs(List.of("hevc"))
-                .build();
+        Path source = generateSource(tempDir.resolve("source.mkv"));
+        MediaProber prober = new MediaProber("ffprobe");
 
-        try (Transcoder transcoder = new Transcoder(config, new MediaProber("ffprobe"), new FileHandler())) {
-            assertThat(transcoder.matches(source).isPresent(), is(false));
-        }
+        assertThat(matches(prober, source, TranscodeConfig.MatchConfig.builder().videoCodecs(List.of("hevc")).build()), is(false));
+        assertThat(matches(prober, source, TranscodeConfig.MatchConfig.builder().profiles(List.of("high 10")).build()), is(true));
+        assertThat(matches(prober, source, TranscodeConfig.MatchConfig.builder().profiles(List.of("High")).build()), is(false));
+        assertThat(matches(prober, source, TranscodeConfig.MatchConfig.builder().minBitrateKbps(1_000_000).build()), is(false));
+    }
+
+    private boolean matches(MediaProber prober, Path source, TranscodeConfig.MatchConfig match) {
+        TranscodeConfig config = TranscodeConfig.builder().match(match).build();
+        return new Transcoder(config, prober, new FileHandler()).matches(source).isPresent();
     }
 
     @Test
-    public void doesNothingWhenDisabled(@TempDir Path tempDir) throws Exception {
-        assumeTrue(ffmpegAvailable, "ffmpeg and ffprobe are needed for this test");
-        Path source = generateSource(tempDir);
-        TranscodeConfig config = TranscodeConfig.builder().enabled(false).build();
+    public void handlesTheOriginalPerConfig(@TempDir Path tempDir) throws Exception {
+        Path originals = tempDir.resolve("originals");
+        Path moved = Files.writeString(tempDir.resolve("moved.mkv"), "x");
+        Path deleted = Files.writeString(tempDir.resolve("deleted.mkv"), "x");
+        Path kept = Files.writeString(tempDir.resolve("kept.mkv"), "x");
+        MediaProber prober = new MediaProber("ffprobe");
 
-        try (Transcoder transcoder = new Transcoder(config, new MediaProber("ffprobe"), new FileHandler())) {
-            assertThat(transcoder.matches(source).isPresent(), is(false));
-        }
+        assertThat(new Transcoder(config(originals).build(), prober, new FileHandler()).handleOriginal(moved), is(true));
+        assertThat(Files.exists(originals.resolve("moved.mkv")), is(true));
+
+        var delete = config(originals).original(MoveConfig.HandlingConfig.builder().mode(MoveConfig.HandlingConfig.Mode.DELETE).build()).build();
+        assertThat(new Transcoder(delete, prober, new FileHandler()).handleOriginal(deleted), is(true));
+        assertThat(Files.exists(deleted), is(false));
+
+        var keep = config(originals).original(MoveConfig.HandlingConfig.builder().mode(MoveConfig.HandlingConfig.Mode.NONE).build()).build();
+        assertThat(new Transcoder(keep, prober, new FileHandler()).handleOriginal(kept), is(true));
+        assertThat(Files.exists(kept), is(true));
     }
 }

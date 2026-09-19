@@ -29,57 +29,47 @@ public class FileRenamer {
         val moveConfig = procFile.config().move();
         val renameConfig = procFile.config().rename();
         try {
-
-            val targetFolder = getTargetFolder(procFile);
-            val targetFileName = getTargetFileName(procFile, targetFolder.getRight());
-
-            if (targetFileName.isEmpty()) {
+            val target = targetPath(procFile, false);
+            if (target.isEmpty()) {
                 return false;
             }
+            val targetFilePath = target.get();
+            val currentPath = procFile.getWorkingFile().toPath().toAbsolutePath();
 
-            val fileExtension = procFile.getWorkingFile().getName().substring(procFile.getWorkingFile().getName().lastIndexOf("."));
-            var filename = targetFileName.get() + fileExtension;
-            filename = filename.replaceAll("[\\\\:\"/*|<>?]", "");
-
-            val targetFolderPath = targetFolder.getLeft();
-
-            if (targetFileName.get().length() + targetFolderPath.toString().length() > 240) {
-                filename = filename.substring(0, 240 - targetFolderPath.toString().length() - fileExtension.length()) + fileExtension;
+            // Checked before existence: a file that already carries its correct name exists at its own target,
+            // and must not be mistaken for a duplicate of itself.
+            if (targetFilePath.toAbsolutePath().equals(currentPath)) {
+                log.debug(STR."File \{currentPath} with Id \{procFile.getId()} does not need renaming.");
+                return true;
             }
-            val targetFilePath = targetFolderPath.resolve(filename);
 
             if (Files.exists(targetFilePath)) {
-                log.info(STR."Destination for File \{procFile.getWorkingFile().getAbsolutePath()} with Id \{procFile.getId()} already exists: \{targetFilePath.toString()}");
+                log.info(STR."Destination for File \{currentPath} with Id \{procFile.getId()} already exists: \{targetFilePath.toString()}");
                 if (moveConfig.mode() != MoveConfig.Mode.NONE) {
                     val duplicateConfig = moveConfig.duplicates();
                     // Only handle duplicates if moving is enabled, else we want to rename in place so duplicate means it's name is correct
                     if (duplicateConfig.mode() == MoveConfig.HandlingConfig.Mode.DELETE) {
-                        fileHandler.deleteFile(procFile.getWorkingFile().toPath());
+                        fileHandler.deleteFile(currentPath);
                     } else if (duplicateConfig.mode() == MoveConfig.HandlingConfig.Mode.MOVE) {
-                        val oldFilename = procFile.getWorkingFile().getName();
                         val subFolderWithFile = targetFilePath.subpath(targetFilePath.getNameCount() - 2, targetFilePath.getNameCount());
                         val targetPath = duplicateConfig.folder().resolve(subFolderWithFile);
-                        fileHandler.renameFile(procFile.getWorkingFile().toPath(), targetPath);
-                        if (renameConfig.related()) {
-                            renameRelatedFiles(procFile, oldFilename, targetPath.getFileName().toString(), targetPath.getParent());
+                        if (fileHandler.renameFile(currentPath, targetPath)) {
+                            procFile.setCurrentFile(targetPath);
+                            if (renameConfig.related()) {
+                                renameRelatedFiles(currentPath.getParent(), currentPath.getFileName().toString(), targetPath);
+                            }
                         }
                     }
                 }
                 return false;
             }
-            if (targetFilePath.equals(procFile.getWorkingFile().toPath().toAbsolutePath())) {
-                log.debug(STR."File \{procFile.getWorkingFile().getAbsolutePath()} with Id \{procFile.getId()} does not need renaming.");
-                return true;
-            }
 
-            val oldFilename = procFile.getWorkingFile().getName();
-            if (fileHandler.renameFile(procFile.getWorkingFile().toPath(), targetFilePath)) {
-                log.debug(STR."File \{procFile.getWorkingFile().getAbsolutePath()} with Id \{procFile.getId()} renamed to \{targetFilePath.toString()}");
+            if (fileHandler.renameFile(currentPath, targetFilePath)) {
+                log.debug(STR."File \{currentPath} with Id \{procFile.getId()} renamed to \{targetFilePath.toString()}");
+                procFile.setCurrentFile(targetFilePath);
                 if (renameConfig.related()) {
-                    renameRelatedFiles(procFile, oldFilename, targetFilePath.getFileName().toString(), targetFolderPath);
+                    renameRelatedFiles(currentPath.getParent(), currentPath.getFileName().toString(), targetFilePath);
                 }
-
-                procFile.setRenamedFile(targetFilePath);
                 return true;
             }
             return false;
@@ -90,26 +80,80 @@ public class FileRenamer {
         }
     }
 
-    private void renameRelatedFiles(FileInfo procFile, String oldFilename, String newFilename, Path folderPath) {
+    /**
+     * Where the rename and move config would put this file, with the extension of the file as it is now.
+     *
+     * @param keepFolder ignore the move config and stay in the file's current folder
+     * @return empty when the tag system or folder resolution failed
+     */
+    public Optional<Path> targetPath(FileInfo procFile, boolean keepFolder) throws Exception {
+        val targetFolder = keepFolder
+                ? Pair.<Path, TagSystemResult>of(procFile.getWorkingFile().getParentFile().toPath(), null)
+                : getTargetFolder(procFile);
+        if (targetFolder.getLeft() == null) {
+            return Optional.empty();
+        }
+        val targetFileName = getTargetFileName(procFile, targetFolder.getRight());
+        if (targetFileName.isEmpty()) {
+            return Optional.empty();
+        }
+        val currentName = procFile.getWorkingFile().getName();
+        val fileExtension = currentName.substring(currentName.lastIndexOf("."));
+        var filename = stripExtension(targetFileName.get(), fileExtension) + fileExtension;
+        filename = filename.replaceAll("[\\\\:\"/*|<>?]", "");
+
+        val targetFolderPath = targetFolder.getLeft();
+        if (filename.length() + targetFolderPath.toString().length() > 240) {
+            filename = filename.substring(0, 240 - targetFolderPath.toString().length() - fileExtension.length()) + fileExtension;
+        }
+        return Optional.of(targetFolderPath.resolve(filename));
+    }
+
+    /**
+     * rename.mode none yields the current file name including its extension; everything else yields a bare name.
+     */
+    private static String stripExtension(String name, String extension) {
+        return name.endsWith(extension) ? name.substring(0, name.length() - extension.length()) : name;
+    }
+
+    /**
+     * Moves the files that belong to a video along with it: everything in the old folder named like the old
+     * video followed by "." or "-", which covers Kodi's episode .nfo and -thumb.jpg as well as subtitle
+     * sidecars like .en.ass. Requiring the separator keeps a sibling whose name merely starts the same way,
+     * such as "Episode 1" next to "Episode 10" or the renamed video itself, from being dragged along.
+     */
+    public void renameRelatedFiles(Path srcFolder, String oldFilename, Path newFile) {
         try {
-            val srcFolder = procFile.getWorkingFile().getParentFile();
             val oldFilenameWithoutExtension = oldFilename.substring(0, oldFilename.lastIndexOf("."));
-            val srcFiles = srcFolder.listFiles((file) -> file.getName().startsWith(oldFilenameWithoutExtension) && !file.getName().equals(oldFilename));
+            val newFilename = newFile.getFileName().toString();
+            val newFilenameWithoutExtension = newFilename.substring(0, newFilename.lastIndexOf("."));
+            if (oldFilenameWithoutExtension.equals(newFilenameWithoutExtension) && srcFolder.equals(newFile.getParent())) {
+                return;
+            }
+            val srcFiles = srcFolder.toFile().listFiles((file) -> {
+                val name = file.getName();
+                if (!file.isFile() || name.equals(oldFilename) || name.equals(newFilename) || !name.startsWith(oldFilenameWithoutExtension)) {
+                    return false;
+                }
+                val suffix = name.substring(oldFilenameWithoutExtension.length());
+                return suffix.startsWith(".") || suffix.startsWith("-");
+            });
+            if (srcFiles == null) {
+                return;
+            }
 
             val relatedFileSuffixes = new HashSet<String>();
-
-            val newFilenameWithoutExtension = newFilename.substring(0, newFilename.lastIndexOf("."));
             for (File srcFile : srcFiles) {
                 val relatedSuffix = srcFile.getName().substring(oldFilenameWithoutExtension.length());
-                if (fileHandler.renameFile(srcFile.toPath(), folderPath.resolve(newFilenameWithoutExtension + relatedSuffix))) {
+                if (fileHandler.renameFile(srcFile.toPath(), newFile.getParent().resolve(newFilenameWithoutExtension + relatedSuffix))) {
                     relatedFileSuffixes.add(relatedSuffix);
                 }
             }
             if (!relatedFileSuffixes.isEmpty()) {
-                log.debug(STR."Renamed related files for \{procFile.getWorkingFile().getAbsolutePath()} with suffixes: \{String.join(", ", relatedFileSuffixes)}");
+                log.debug(STR."Renamed related files of \{oldFilename} to \{newFilenameWithoutExtension} with suffixes: \{String.join(", ", relatedFileSuffixes)}");
             }
         } catch (Exception e) {
-            log.error(STR."Failed to rename related files for \{procFile.getWorkingFile().getAbsolutePath()} with Id \{procFile.getId()}: \{e.getMessage()}");
+            log.error(STR."Failed to rename related files of \{srcFolder.resolve(oldFilename)}: \{e.getMessage()}");
         }
     }
 

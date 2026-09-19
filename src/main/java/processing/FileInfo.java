@@ -27,15 +27,11 @@ public class FileInfo {
     @Getter private final long fileSize;
     private final String originalFileName;
     private final String originalFolder;
-    @Getter private Path renamedFile;
-    private String renamedFileName;
-    private String renamedFolder;
     /**
-     * The file on disk, once it is no longer the one AniDB knows: a locally re-encoded copy. Identity
-     * (ed2k hash and size) keeps describing the original release, so AniDB and MyList stay correct,
-     * while every filesystem operation works on this.
+     * Where the file is right now. Starts as the scanned path and follows every rename or move, so all
+     * filesystem operations and anything written next to the file use the current location.
      */
-    @Getter private Path transcodedFile;
+    private Path currentFile;
     /** ed2k hash and CRC32 of the bytes actually on disk, which differ from identity after a transcode. */
     @Getter @Setter private String localEd2k;
     @Getter @Setter private String localCrc32;
@@ -44,6 +40,7 @@ public class FileInfo {
     private Long identitySize;
     @Getter private final Boolean watched;
     @Getter @Setter private boolean hashed;
+    @Getter @Setter private boolean transcodeQueued;
     @Getter @Setter private LocalDateTime watchedDate;
     /** The file landed somewhere new or got metadata Kodi has not seen yet, so a library scan would pick up something */
     @Getter @Setter private boolean libraryChanged;
@@ -61,19 +58,16 @@ public class FileInfo {
         this.fileSize = file.length();
         this.originalFileName = file.getName();
         this.originalFolder = file.getParentFile().getName();
+        this.currentFile = file.toPath();
         this.watched = watched;
         this.config = config;
     }
 
-    public void setTranscodedFile(Path transcodedFile) {
-        this.transcodedFile = transcodedFile;
-    }
-
     /**
-     * @return the file to read, move and rename. The original file unless a transcode replaced it.
+     * @return the file as it is on disk now, after any rename or move.
      */
     public File getWorkingFile() {
-        return transcodedFile != null ? transcodedFile.toFile() : file;
+        return currentFile.toFile();
     }
 
     /**
@@ -88,13 +82,18 @@ public class FileInfo {
         this.identitySize = size;
     }
 
-    public void setRenamedFile(Path renamedFile) {
-        this.renamedFile = renamedFile;
-        this.renamedFileName = renamedFile.getFileName().toString();
-        this.renamedFolder = renamedFile.getParent().getFileName().toString();
+    public void setCurrentFile(Path currentFile) {
+        this.currentFile = currentFile;
     }
 
-    public enum FileAction {Init, HashFile, FileCmd, Transcode, MyListAddCmd, VoteCmd, Rename, LoadWatchedState, GenerateKodiMetadata}
+    /**
+     * @return whether a rename or move put the file somewhere other than where it was scanned.
+     */
+    public boolean wasMoved() {
+        return !currentFile.equals(file.toPath());
+    }
+
+    public enum FileAction {Init, HashFile, FileCmd, MyListAddCmd, VoteCmd, Rename, LoadWatchedState, GenerateKodiMetadata}
 
     public void startAction(FileAction action) {
         actionsInProcess.add(action);
@@ -127,7 +126,7 @@ public class FileInfo {
     }
 
     public Path getFinalFilePath() {
-        return renamedFile != null ? renamedFile : getWorkingFile().toPath();
+        return currentFile;
     }
 
     public String getEd2k() {
@@ -150,14 +149,8 @@ public class FileInfo {
                 .tags(data);
 
         builder.size(getIdentitySize());
-        if (renamedFile != null) {
-            builder.fileName(renamedFileName);
-            builder.folderName(renamedFolder);
-        } else {
-            builder.fileName(getWorkingFile().getName());
-            builder.folderName(getWorkingFile().getParentFile().getName());
-
-        }
+        builder.fileName(currentFile.getFileName().toString());
+        builder.folderName(currentFile.getParent().getFileName().toString());
         return builder.build();
     }
 }

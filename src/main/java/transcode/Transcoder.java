@@ -2,147 +2,114 @@ package transcode;
 
 import config.blocks.MoveConfig;
 import config.blocks.TranscodeConfig;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import processing.IFileHandler;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 /**
  * Re-encodes video into a single configured output format, leaving audio, subtitles, attachments and
- * chapters as they are. Encodes run one at a time on their own thread, so a long encode never blocks
- * hashing or the AniDB session.
+ * chapters as they are. Everything here is synchronous: the caller (the transcode runner) owns the
+ * thread and the ordering, so it can persist each step before starting the next.
  * <p>
- * A converted file only replaces its source once it passes verification, and the source is then
- * handled per config. Anything that fails leaves the source untouched, which is the whole point: a
- * failed encode must never cost a file.
+ * Nothing in this class removes a source file on its own. {@link #encode} only ever writes the target,
+ * and {@link #handleOriginal} is a separate call the runner makes once the result is safely recorded.
  */
 @Slf4j
 @RequiredArgsConstructor
-public class Transcoder implements AutoCloseable {
-    private static final String IN_PROGRESS_SUFFIX = ".transcoding.mkv";
-    private static final String KEPT_ORIGINAL_SUFFIX = ".transcoded.mkv";
-
+public class Transcoder {
     private final TranscodeConfig config;
     private final MediaProber prober;
     private final IFileHandler fileHandler;
-    private final ExecutorService encoder = Executors.newSingleThreadExecutor(runnable -> {
-        val thread = new Thread(runnable, "transcoder");
-        thread.setDaemon(true);
-        return thread;
-    });
-
-    @Getter
-    @Accessors(fluent = true)
-    public static class Result {
-        private final Path file;
-        private final MediaInfo info;
-
-        public Result(Path file, MediaInfo info) {
-            this.file = file;
-            this.info = info;
-        }
-    }
 
     /**
-     * Probes the file and decides whether it matches the configured input formats.
+     * Probes the file and decides whether it matches the configured criteria.
      */
     public Optional<MediaInfo> matches(Path file) {
-        if (!config.enabled()) {
-            return Optional.empty();
-        }
-        val info = prober.probe(file);
-        if (info.isEmpty()) {
-            return Optional.empty();
-        }
-        val codec = info.get().videoCodec();
+        return prober.probe(file).filter(info -> matches(config.match(), info, file));
+    }
+
+    static boolean matches(TranscodeConfig.MatchConfig match, MediaInfo info, Path file) {
+        val codec = info.videoCodec();
         if (codec == null) {
             log.debug(STR."No video stream in \{file}, not transcoding");
-            return Optional.empty();
+            return false;
         }
-        val matched = config.videoCodecs().stream().anyMatch(candidate -> candidate.equalsIgnoreCase(codec));
-        if (!matched) {
-            log.debug(STR."\{file} is \{codec}, which is not in transcode.videoCodecs, leaving it alone");
-            return Optional.empty();
+        if (match.videoCodecs().stream().noneMatch(candidate -> candidate.equalsIgnoreCase(codec))) {
+            log.debug(STR."\{file} is \{codec}, which is not in transcode.match.videoCodecs, leaving it alone");
+            return false;
         }
-        return info;
+        val profiles = match.profiles();
+        if (profiles != null && !profiles.isEmpty() && profiles.stream().noneMatch(candidate -> candidate.equalsIgnoreCase(info.videoProfile()))) {
+            log.debug(STR."\{file} has profile \{info.videoProfile()}, which is not in transcode.match.profiles, leaving it alone");
+            return false;
+        }
+        if (match.minBitrateKbps() != null && info.bitRateKbps() < match.minBitrateKbps()) {
+            log.debug(STR."\{file} has \{info.bitRateKbps()} kbps, below transcode.match.minBitrateKbps \{match.minBitrateKbps()}, leaving it alone");
+            return false;
+        }
+        return true;
     }
 
     /**
-     * Queues an encode. The callback runs on the encoder thread, with an empty result when anything
-     * went wrong; in that case the source file is still exactly where it was.
+     * Encodes source into target and verifies the result. On anything short of a verified file the target
+     * is deleted and the result is empty; the source is never touched.
+     *
+     * @throws InterruptedException when the thread is interrupted, after killing ffmpeg and deleting the target
      */
-    public void transcode(Path source, MediaInfo sourceInfo, Consumer<Optional<Result>> onDone) {
-        encoder.execute(() -> {
-            try {
-                onDone.accept(run(source, sourceInfo));
-            } catch (Exception e) {
-                log.error(STR."Transcode of \{source} failed unexpectedly: \{e.getMessage()}");
-                onDone.accept(Optional.empty());
-            }
-        });
-    }
-
-    private Optional<Result> run(Path source, MediaInfo sourceInfo) {
-        val temp = source.resolveSibling(baseName(source) + IN_PROGRESS_SUFFIX);
-        val command = buildCommand(source, temp);
+    public Optional<MediaInfo> encode(Path source, MediaInfo sourceInfo, Path target) throws InterruptedException {
+        val command = buildCommand(source, target);
+        val ffmpegLog = target.resolveSibling(target.getFileName() + ".log");
         log.info(STR."Transcoding \{source} (\{sourceInfo.videoCodec()}, \{Math.round(sourceInfo.durationSeconds())}s)");
         log.debug(STR."ffmpeg command: \{String.join(" ", command)}");
+        Process process = null;
         try {
             val started = System.currentTimeMillis();
-            val process = new ProcessBuilder(command).redirectErrorStream(true).start();
-            String output;
-            try (val stdout = process.getInputStream()) {
-                output = new String(stdout.readAllBytes());
-            }
+            // Output goes to a file rather than a pipe, so waitFor stays interruptible for the whole encode.
+            process = new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(ffmpegLog.toFile()).start();
             if (!process.waitFor(config.timeoutMinutes(), TimeUnit.MINUTES)) {
                 process.destroyForcibly();
                 log.error(STR."ffmpeg exceeded transcode.timeoutMinutes (\{config.timeoutMinutes()}) for \{source}");
-                deleteQuietly(temp);
+                deleteQuietly(target);
                 return Optional.empty();
             }
+            val output = readQuietly(ffmpegLog.toFile());
             if (process.exitValue() != 0) {
-                log.error(STR."ffmpeg exited with \{process.exitValue()} for \{source}: \{output.trim()}");
-                deleteQuietly(temp);
+                log.error(STR."ffmpeg exited with \{process.exitValue()} for \{source}: \{output}");
+                deleteQuietly(target);
                 return Optional.empty();
             }
             if (!output.isBlank()) {
-                log.debug(STR."ffmpeg output for \{source}: \{output.trim()}");
+                log.debug(STR."ffmpeg output for \{source}: \{output}");
             }
             val minutes = (System.currentTimeMillis() - started) / 60000.0;
-            val newInfo = prober.probe(temp);
+            val newInfo = prober.probe(target);
             if (newInfo.isEmpty() || !verify(source, sourceInfo, newInfo.get())) {
-                deleteQuietly(temp);
-                return Optional.empty();
-            }
-            val target = handleOriginal(source);
-            if (target.isEmpty()) {
-                deleteQuietly(temp);
-                return Optional.empty();
-            }
-            if (!fileHandler.renameFile(temp, target.get())) {
-                log.error(STR."Could not move the converted file into place: \{temp} -> \{target.get()}");
+                deleteQuietly(target);
                 return Optional.empty();
             }
             val ratio = sourceInfo.sizeInBytes() == 0 ? 0 : 100.0 * newInfo.get().sizeInBytes() / sourceInfo.sizeInBytes();
             log.info(STR."Transcoded \{source.getFileName()} to \{newInfo.get().videoCodec()} in \{String.format("%.1f", minutes)} min, \{String.format("%.0f", ratio)}% of the original size");
-            return Optional.of(new Result(target.get(), newInfo.get()));
+            return newInfo;
+        } catch (InterruptedException e) {
+            process.destroyForcibly();
+            deleteQuietly(target);
+            throw e;
         } catch (Exception e) {
             log.error(STR."Transcode of \{source} failed: \{e.getMessage()}. Is '\{config.ffmpegPath()}' on the PATH?");
-            deleteQuietly(temp);
+            deleteQuietly(target);
             return Optional.empty();
+        } finally {
+            deleteQuietly(ffmpegLog);
         }
     }
 
@@ -154,7 +121,8 @@ public class Transcoder implements AutoCloseable {
         command.addAll(List.of(config.ffmpegPath(), "-nostdin", "-hide_banner", "-loglevel", "warning", "-y", "-i", source.toString()));
         command.addAll(split(config.streamArgs()));
         command.addAll(split(config.videoArgs()));
-        command.add(target.toString());
+        // The target may be a hidden temp name without a meaningful extension, so the container is explicit.
+        command.addAll(List.of("-f", "matroska", target.toString()));
         return command;
     }
 
@@ -186,34 +154,41 @@ public class Transcoder implements AutoCloseable {
     }
 
     /**
-     * Deals with the source file and answers where the converted file belongs. When the source stays
-     * put, the converted file gets its own name so nothing is overwritten.
+     * Moves the source aside, deletes it, or leaves it, per transcode.original.
+     *
+     * @return false when the source is still in place although the config says it should not be
      */
-    private Optional<Path> handleOriginal(Path source) {
+    public boolean handleOriginal(Path source) {
         val handling = config.original();
         switch (handling.mode()) {
             case DELETE -> {
                 fileHandler.deleteFile(source);
-                return Optional.of(source);
+                return !Files.exists(source);
             }
             case MOVE -> {
                 val target = handling.folder().resolve(source.getFileName());
                 if (!fileHandler.renameFile(source, target)) {
                     log.error(STR."Could not move the original out of the way: \{source} -> \{target}");
-                    return Optional.empty();
+                    return false;
                 }
-                return Optional.of(source);
+                return true;
             }
             default -> {
-                return Optional.of(source.resolveSibling(baseName(source) + KEPT_ORIGINAL_SUFFIX));
+                return true;
             }
         }
     }
 
-    private static String baseName(Path file) {
-        val name = file.getFileName().toString();
-        val dot = name.lastIndexOf('.');
-        return dot <= 0 ? name : name.substring(0, dot);
+    public boolean keepsOriginal() {
+        return config.original().mode() == MoveConfig.HandlingConfig.Mode.NONE;
+    }
+
+    private static String readQuietly(File file) {
+        try {
+            return Files.readString(file.toPath()).trim();
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private void deleteQuietly(Path path) {
@@ -222,10 +197,5 @@ public class Transcoder implements AutoCloseable {
         } catch (Exception e) {
             log.warn(STR."Could not delete \{path}: \{e.getMessage()}");
         }
-    }
-
-    @Override
-    public void close() {
-        encoder.shutdownNow();
     }
 }

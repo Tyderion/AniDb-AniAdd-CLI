@@ -44,20 +44,27 @@ Here is a sample override with the default log levels: [logging.override.propert
 
 # Transcoding
 
-Optional, off by default. Turn `transcode.enabled` on to re-encode matching video into a single output format while audio, subtitles, attachments and chapters are copied through untouched.
+Optional, off by default. Matching video is re-encoded into a single output format while audio, subtitles, attachments and chapters are copied through untouched.
 
-Files are identified on AniDB **before** they are converted, so an unidentified file is never encoded and still lands in the unknown folder in its original format. Once a converted file passes verification, its ed2k hash and size are mapped back to the original's in the sqlite cache (`FileHashMapping`). Everything downstream keeps using the original pair, so AniDB lookups, MyList and the cache behave exactly as they did before the file changed format, and a converted file is recognised again on any later run no matter what it is called.
+Transcoding is a **separate stage**, because an encode takes hours and everything else takes seconds. The scan/watch pipeline never encodes: with `transcode.mode: queue` it only writes a job for each file it identified and moved, once that file is completely done. A dedicated transcoder process works through those jobs. So new downloads leave the input folder right away, and an unidentified file is never queued and still lands in the unknown folder in its original format.
 
-Because a locally produced file is no longer the release AniDB describes, its `%FVCodec%` and `%FCrc%` tags come from the file on disk rather than from AniDB, so tag-system names stay honest. That override applies on every later run too, since the mapping is what marks a file as locally produced. Nothing else about identity changes: `%FCrc%` is a real CRC32 of the new file, computed in the same read as the ed2k hash.
+**The queue lives in the sqlite cache** (`TranscodeJob`, one row per release), and every job walks committed phases: `pending` → `encoding` → `encoded` → `swapped` → `done` (or `skipped`/`failed`). A restart of either process therefore neither loses a pending job nor redoes finished work: an interrupted encode starts over, a verified and hashed file is never encoded again, and a swapped file is only renamed. A runner holds its job with a lease it keeps renewing, so a job whose runner died is picked up again once the lease runs out. The database runs in WAL mode so both processes can use it at once.
 
-Verification before a source file is touched: ffmpeg exits 0, the duration still matches within `durationToleranceSeconds`, the output is at least `minSizeRatio` of the source, and video, audio, subtitle and attachment stream counts all match. Anything short of that deletes the temporary file and leaves the source exactly where it was.
+What the transcoder does per job, in this order:
 
-Encodes run one at a time on their own thread, so a long encode never blocks hashing or the AniDB session. `ffmpeg` and `ffprobe` come from the docker image; outside docker, set `transcode.ffmpegPath` and `transcode.ffprobePath` or have both on the PATH.
+1. Re-checks the actual file with ffprobe against `transcode.match`; a file that no longer matches is `skipped`.
+2. Encodes into a hidden temp file next to the source and verifies it: ffmpeg exits 0, the duration still matches within `durationToleranceSeconds`, the output is at least `minSizeRatio` of the source, and video, audio, subtitle and attachment stream counts all match. Anything short of that deletes the temp file and leaves the source exactly where it was.
+3. Hashes the converted file and maps its ed2k hash and size to the original's (`FileHashMapping`), **before** the original is touched. Everything downstream keeps using the original pair, so AniDB lookups, MyList and the cache behave as before, and a converted file is recognised on any later run no matter what it is called.
+4. Names the converted file with the rename config in its current folder, from the cached AniDB data, with `%FCrc%` and `%FVCodec%` taken from the converted file itself. Needs no AniDB session.
+5. Handles the original per `transcode.original` (move, delete, none), moves the converted file into place as `.mkv`, and renames the files that belong to it (episode `.nfo`, `-thumb.jpg`, subtitle sidecars). With `nfo: patch` the NFO's video codec is updated. The cached file data gets the new name, so the Kodi watcher still finds the file.
 
-Two ways to run it:
+A job that fails is retried until `maxAttempts`; the error stays in the job row (`lastError`). A release that was converted once is not queued again unless `existing: retranscode` is set.
 
-- **As part of the normal pipeline**: enable it in the config and run `scan` or `watch` as usual. New downloads are converted after they are identified.
-- **As a pass over an existing library**: `anidb transcode <folder>`, or `run` with `task: transcode`. Identical to `scan` except transcoding is on regardless of `transcode.enabled`, so pointing it at `series/` needs no config edit.
+Running it:
+
+- **Pipeline**: set `transcode.mode: queue` in the scan/watch config.
+- **Transcoder**: `anidb transcode` (or `run` with `task: transcode` and no path), in its own long-lived container on the same image, with the same `/cache` and the same library mount **at the same container path**, since jobs store absolute paths. It polls every `pollSeconds`. A `cpus:` limit on that container protects the NAS better than `nice`.
+- **Existing library**: `anidb transcode <folder>` identifies the folder like `scan` and queues matching files, whatever `transcode.mode` says. It encodes nothing itself.
 
 Config reference: the `transcode:` block in [docker.yaml](config/docker.yaml). The shipped `videoArgs` default is x265 CRF 24, preset slow, 10-bit, with the usual anime parameters. It was picked by measurement on a grainy 1080p Blu-ray opening: CRF 18 through 22 came out near-lossless and *larger* than the source, CRF 24 lands at 83% of the source size at VMAF 98.97 against it, and CRF 30 reaches 41% at VMAF 96.26. CAMBI found no banding differences across that whole range. Expect roughly 0.33x realtime at preset slow, so about an hour per 24-minute episode on a fast desktop and longer on a NAS.
 

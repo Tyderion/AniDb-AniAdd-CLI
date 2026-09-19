@@ -6,6 +6,7 @@ import cache.AniDBFileRepository;
 import cache.AnimeMappingRepository;
 import cache.AnimeXmlRepository;
 import cache.FileHashMappingRepository;
+import cache.TranscodeJobRepository;
 import config.blocks.AniDbConfig;
 import config.blocks.FileConfig;
 import config.blocks.KodiConfig;
@@ -24,6 +25,7 @@ import picocli.CommandLine;
 import processing.DoOnFileSystem;
 import processing.EpisodeProcessing;
 import processing.FileHandler;
+import processing.FileRenamer;
 import startup.commands.ConfigRequiredCommand;
 import startup.commands.anidb.debug.DebugCommand;
 import startup.commands.util.CommandHelper;
@@ -32,6 +34,7 @@ import startup.validation.validators.nonblank.NonBlank;
 import startup.validation.validators.port.Port;
 import udpapi.UdpApi;
 import transcode.MediaProber;
+import transcode.TranscodeRunner;
 import transcode.Transcoder;
 import udpapi.reply.ReplyStatus;
 import utils.http.DownloadHelper;
@@ -152,10 +155,6 @@ public class AnidbCommand extends ConfigRequiredCommand {
     @MapConfig(configPath = "kodi")
     KodiConfig kodiConfig;
 
-    @MapConfig(configPath = "transcode.enabled")
-    @CommandLine.Option(names = {"--transcode"}, negatable = true, description = "Re-encode matching files, overriding transcode.enabled", scope = CommandLine.ScopeType.INHERIT)
-    Boolean transcodeEnabled;
-
     @MapConfig(configPath = "transcode")
     TranscodeConfig transcodeConfig;
 
@@ -193,15 +192,16 @@ public class AnidbCommand extends ConfigRequiredCommand {
         }
         val mediaProber = new MediaProber(transcodeConfig.ffprobePath());
         val transcoder = new Transcoder(transcodeConfig, mediaProber, fileHandler);
-        if (transcodeConfig.enabled()) {
-            log.info(STR."Transcoding is on: \{String.join(", ", transcodeConfig.videoCodecs())} -> \{transcodeConfig.videoArgs()}");
+        if (transcodeConfig.mode() == TranscodeConfig.Mode.QUEUE) {
+            log.info(STR."Queueing identified files for transcoding when they match \{transcodeConfig.match()}");
         }
         val kodiMetadataGenerator = new KodiMetadataGenerator(
                 new DownloadHelper(executorService), tvDbApi, tmDbApi, animeXmlRepository, animeMappingRepository,
                 aniDbConfig.cache().ttlInDays(), kodiConfig.metadata().animeMappingUrl(),
                 kodiConfig.metadata().overwrite());
         val processing = new EpisodeProcessing(fileConfig, tagsConfig, aniDbConfig, kodiConfig, udpApi,
-                kodiMetadataGenerator, fileSystem, fileHandler, fileRepository, hashMappingRepository, transcoder, mediaProber);
+                kodiMetadataGenerator, fileSystem, fileHandler, fileRepository, hashMappingRepository,
+                new TranscodeJobRepository(sessionFactory), transcodeConfig, transcoder, mediaProber);
         val fileProcessor = new FileProcessor(processing, fileConfig, executorService);
 
         if (fileConfig.move().deleteEmptyDirs() && inputDirectory != null) {
@@ -235,6 +235,23 @@ public class AnidbCommand extends ConfigRequiredCommand {
         }
 
         return Optional.of(aniAdd);
+    }
+
+    /**
+     * The transcoder process: works through the queue the pipeline fills. Needs no AniDB session.
+     */
+    public Optional<TranscodeRunner> initializeTranscodeRunner(SessionFactory sessionFactory) {
+        val configError = transcodeConfig.runnerValidationError();
+        if (configError.isPresent()) {
+            log.error(STR."Refusing to start: \{configError.get()}");
+            return Optional.empty();
+        }
+        val fileHandler = new FileHandler();
+        val mediaProber = new MediaProber(transcodeConfig.ffprobePath());
+        return Optional.of(new TranscodeRunner(transcodeConfig, fileConfig, new TranscodeJobRepository(sessionFactory),
+                new FileHashMappingRepository(sessionFactory), new AniDBFileRepository(sessionFactory),
+                new Transcoder(transcodeConfig, mediaProber, fileHandler), mediaProber,
+                new FileRenamer(fileHandler, tagsConfig), fileHandler));
     }
 
     public static String getName() {

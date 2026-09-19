@@ -27,6 +27,21 @@ public class MultiKeyDict<C extends Enum<C>, K, V> {
         }
     }
 
+    /**
+     * Removes every value matching the predicate under all of its keys.
+     *
+     * @return how many values were removed
+     */
+    public int removeIf(java.util.function.Predicate<V> predicate) {
+        val matching = values().stream().filter(predicate).toList();
+        for (val value : matching) {
+            for (val entry : dict.entrySet()) {
+                entry.getValue().remove(keyMapper.getKey(entry.getKey(), value));
+            }
+        }
+        return matching.size();
+    }
+
     public V get(C cat, K key) {
         return dict.get(cat).get(key);
     }

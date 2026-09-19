@@ -2,31 +2,34 @@ package startup.commands.anidb;
 
 import cache.PersistenceConfiguration;
 import config.blocks.AniDbConfig;
+import config.blocks.TranscodeConfig;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import picocli.CommandLine;
 import processing.DoOnFileSystem;
 import startup.commands.util.CommandHelper;
 import startup.validation.validators.config.MapConfig;
-import startup.validation.validators.nonblank.NonBlank;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
- * A pass over an existing library: identify every file, convert the ones matching the configured
- * input formats, and leave everything else alone. Identical to `scan` except that transcoding is on
- * whether or not the config says so, which is what makes it safe to point at series/ or movies/
- * without editing the config first.
+ * Two jobs under one name, told apart by whether a directory is given.
+ * <ul>
+ *     <li>`anidb transcode`: the transcoder process. Works through the queue in the sqlite cache until stopped,
+ *     encoding one file at a time. Meant to run as its own long-lived container next to the pipeline.</li>
+ *     <li>`anidb transcode &lt;dir&gt;`: queues an existing library folder. Identical to `scan` except queueing
+ *     is on whatever transcode.mode says, so pointing it at series/ needs no config edit. Encodes nothing.</li>
+ * </ul>
  */
 @Slf4j
 @CommandLine.Command(name = "transcode", mixinStandardHelpOptions = true, version = "1.0",
-        description = "Re-encodes matching files in a directory into the configured output format")
+        description = "Without a directory: work through the transcode queue until stopped. With a directory: identify its files and queue the matching ones.")
 public class TranscodeCommand implements Callable<Integer> {
-    @NonBlank
-    @CommandLine.Parameters(index = "0", description = "The directory to walk.")
+    @CommandLine.Parameters(index = "0", arity = "0..1", description = "A directory to queue instead of running the transcoder.")
     private Path directory;
 
     @CommandLine.ParentCommand
@@ -37,13 +40,44 @@ public class TranscodeCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        parent.transcodeConfig.enabled(true);
-        val configError = parent.transcodeConfig.validationError();
-        if (configError.isPresent()) {
-            log.error(STR."Refusing to start: \{configError.get()}");
-            return 1;
+        return directory == null ? runQueue() : queueDirectory();
+    }
+
+    private int runQueue() throws Exception {
+        try (val sessionFactory = PersistenceConfiguration.getSessionFactory(aniDbConfig.cache().db())) {
+            val runner = parent.initializeTranscodeRunner(sessionFactory);
+            if (runner.isEmpty()) {
+                return 1;
+            }
+            // docker stop sends SIGTERM: interrupt the runner so ffmpeg is killed and the job is released for
+            // the next start, then wait for that before the JVM goes down.
+            val worker = Thread.currentThread();
+            val shutdownHook = new Thread(() -> {
+                worker.interrupt();
+                try {
+                    worker.join(Duration.ofSeconds(30));
+                } catch (InterruptedException ignored) {
+                }
+            }, "transcode-shutdown");
+            Runtime.getRuntime().addShutdownHook(shutdownHook);
+            try {
+                runner.get().run();
+            } catch (InterruptedException e) {
+                log.info("Transcoder stopped");
+            } finally {
+                // On a normal exit the hook must not wait for this thread, which is the one calling System.exit.
+                try {
+                    Runtime.getRuntime().removeShutdownHook(shutdownHook);
+                } catch (IllegalStateException alreadyShuttingDown) {
+                }
+            }
         }
-        log.info(STR."Transcoding \{directory}, converting \{String.join(", ", parent.transcodeConfig.videoCodecs())}");
+        return 0;
+    }
+
+    private int queueDirectory() throws Exception {
+        parent.transcodeConfig.mode(TranscodeConfig.Mode.QUEUE);
+        log.info(STR."Queueing matching files in \{directory} for transcoding");
         try (val executorService = Executors.newScheduledThreadPool(10);
              val sessionFactory = PersistenceConfiguration.getSessionFactory(aniDbConfig.cache().db());
              val filesystem = new DoOnFileSystem()) {

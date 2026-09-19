@@ -44,10 +44,24 @@ kodi:
 # The new file's ed2k hash and size are mapped back to the original's in the sqlite cache, which is
 # how identification, MyList and the tag system keep working as if the file had never changed format.
 transcode:
-  enabled: false
-  # Matched against the video codec as ffprobe names it.
-  videoCodecs:
-    - h264
+  # off (quoted, bare off is a yaml boolean): nothing is queued. queue: the pipeline queues identified, moved files for the separate
+  # `anidb transcode` process, which is the only thing that ever encodes.
+  mode: "off"
+  # Which files get converted, as ffprobe names things. All given criteria must hold; empty or missing
+  # does not restrict.
+  match:
+    videoCodecs:
+      - h264
+    profiles: []
+    # minBitrateKbps: 4000
+  # skip: a release converted once is never queued again. retranscode: reset and redo it.
+  existing: skip
+  # patch: the renamed episode/movie NFO gets the new video codec. keep: it is only renamed.
+  nfo: patch
+  # A job is retried until it failed this often; the error stays in the job row.
+  maxAttempts: 2
+  # How often the transcoder looks at an empty queue again.
+  pollSeconds: 60
   # Measured on a grainy 1080p BD anime opening: CRF 24 lands at 83% of the source size with VMAF
   # 98.97 against it, and was indistinguishable from CRF 18 on the target hardware. Lower CRF gets
   # bigger than the original, higher CRF starts smoothing grain. Costs ~0.33x realtime on a 5800X3D.
@@ -61,8 +75,8 @@ transcode:
   # is not suspiciously small, and no stream went missing.
   durationToleranceSeconds: 1.0
   minSizeRatio: 0.05
-  # What happens to the source once the converted file passed verification: move, delete or none.
-  # move needs a folder. With none, the converted file gets its own name so nothing is overwritten.
+  # What happens to the source once the converted file is verified, hashed and mapped: move, delete or
+  # none. move needs a folder. With none the related files (NFO, thumbnail) follow the converted file.
   original:
     mode: move
     folder: /originals
