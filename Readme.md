@@ -16,12 +16,6 @@ The following cli commands are available (check designated command help `--help`
 - `anidb connect-to-kodi`: Connect to Kodi and mark episodes as watched in your mylist after watching them.
 - `anidb watch-and-kodi`: Combine `watch` and `connect-to-kodi` commands.
 
-A tag system can live in its own file and be shared by several configs with `tags.tagSystemFile: <path>`, instead of being pasted into each one. An inline `tags.tagSystem` still wins if both are given.
-
-Paths inside a config file are resolved relative to that file, not to the working directory, so a config can be moved or linked without rewriting it. Absolute paths are used as-is.
-
-Developing on several branches at once? See [docs/WorktreeSetup.md](docs/WorktreeSetup.md) for the git-worktree layout, the shared credentials and AniDB cache, and the `./gradlew setupCheck` task that verifies it.
-
 This version is meant to be used on headless system (like your NAS) and still have the flexibility and useability of the official applet.
 
 I suggest using the watch command to monitor your download folder and automatically add new anime to your mylist and move them to your anime folder.
@@ -107,11 +101,51 @@ Enables you to run run config file stored in `$ANIDB_CONF`
 #### Env Vars
 - `$ANIDB_CONF` [required]: the run config file to run, e.g. run.yaml
 
-# Development
-I recommend to use IntelliJ (Community Edition is enough) to develop this project.
-Be sure to install the Lombok Plugin and enable annotation processing in the settings.
-It currently only works with Java 21, higher/lower does not work due to the usage of template strings
-If you want, install the git hooks by running `./hooks/install.ps1` (Windows) or `./hooks/install.sh` (Linux/MacOS)
+# Local Development
+
+I recommend IntelliJ (Community Edition is enough). Install the Lombok plugin and enable annotation processing. The project builds only on **Java 21** — higher and lower both fail, because of the template strings. If you want them, install the git hooks with `./hooks/install.ps1` (Windows) or `./hooks/install.sh` (Linux/macOS).
+
+## Credentials
+
+Put them in a `.env` in the project root, not in a config file. A password in a run block is rejected outright, and the tracked configs are shared, so a credential in one is a credential in everyone's checkout.
+
+```
+ANIDB_USERNAME=...
+ANIDB_PASSWORD=...
+TVDB_APIKEY=...
+TMDB_ACCESS_TOKEN=...
+```
+
+The run configurations read it through IntelliJ's env-file support. A second account can live in another file and be reached as `alt.env`; see [docs/WorktreeSetup.md](docs/WorktreeSetup.md).
+
+## The sandbox
+
+A local folder tree to run against, so you are never pointing a work-in-progress build at your real library:
+
+```bash
+./gradlew sandboxInit     # creates sandbox/ with input, output, unknown, duplicates and media
+# copy a few real anime files into sandbox/media/
+./gradlew sandboxReset    # fills input/ from media/ and clears the rest
+```
+
+Then run the **Sandbox scan** configuration. `sandboxReset` before each run, because a scan moves its input into `output/` and the second run would otherwise have nothing to do.
+
+Use real files. AniDB identifies a file by its ed2k hash, so invented ones cannot be identified, and a run full of failed lookups is the quickest way to get your account banned. For the same reason the sandbox shares the ordinary lookup cache rather than starting an empty one. `sandbox/` is ignored by git; the configs that describe it are not.
+
+## Config files
+
+Run configurations live in `.run/` and are tracked, so they arrive with a clone and show up in a diff when they change.
+
+A config splits into two layers. A **settings** file describes where things go: paths, the cache, the tag system, and the mylist and ban options. A **run** file carries only a `run:` block saying which task to start, and delegates the rest with `config: <settings file>`. `sandbox.yaml` and the `sandbox-*.yaml` files beside it are that pair.
+
+Two rules make those files portable:
+
+- **Paths are relative to the file they are written in**, never to the working directory, the same way compose files and tsconfig behave. Absolute paths are used as written. So a config means the same thing launched from the IDE, from a shell, or from a container, and symlinks are followed first.
+- **A tag system can live in its own file**, shared by every config that needs it, with `tags.tagSystemFile: <path>` instead of fifty pasted lines each. An inline `tags.tagSystem` still wins if both are given.
+
+## Several branches at once
+
+The project is usually developed as a bare repository with one worktree per branch, sharing a single `.env`, cache and sandbox. [docs/WorktreeSetup.md](docs/WorktreeSetup.md) has the layout and the setup tasks; `./gradlew setupCheck` verifies a checkout is wired up correctly.
 
 # DISCLAIMER
 This software is provided as is. I am not responsible for any damage caused by this software. Use at your own risk.
