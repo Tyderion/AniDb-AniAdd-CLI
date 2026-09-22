@@ -16,6 +16,8 @@ The following cli commands are available (check designated command help `--help`
 - `anidb connect-to-kodi`: Connect to Kodi and mark episodes as watched in your mylist after watching them.
 - `anidb watch-and-kodi`: Combine `watch` and `connect-to-kodi` commands.
 
+Developing on several branches at once? See [docs/WorktreeSetup.md](docs/WorktreeSetup.md) for the git-worktree layout, the shared credentials and AniDB cache, and the `./gradlew setupCheck` task that verifies it.
+
 This version is meant to be used on headless system (like your NAS) and still have the flexibility and useability of the official applet.
 
 I suggest using the watch command to monitor your download folder and automatically add new anime to your mylist and move them to your anime folder.

@@ -225,3 +225,4 @@ tasks {
         setDependsOn(emptySet<Task>())
     }
 }
+apply(from = "gradle/sandbox.gradle.kts")

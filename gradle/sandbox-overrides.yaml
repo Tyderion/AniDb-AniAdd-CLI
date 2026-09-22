@@ -1,0 +1,52 @@
+# Overrides merged on top of .run/scan-local.yaml to produce the generated sandbox config.
+# Keeping this a diff rather than a whole config means the tag system lives in exactly one place.
+# Tokens: @ROOT@ is the worktree container (the folder holding .bare), @SANDBOX@ is @ROOT@/sandbox.
+# Lists replace wholesale; maps merge key by key.
+run:
+  task: scan
+  args:
+    path: "@SANDBOX@/input/"
+
+anidb:
+  cache:
+    # The shared production cache on purpose: a separate sandbox DB would force a fresh AniDB lookup
+    # for every file copied in, which is exactly the traffic that earns a ban.
+    db: "@ROOT@/aniAdd.sqlite"
+    ttlInDays: 30
+  exitOnBan: true
+
+file:
+  move:
+    mode: tagsystem
+    deleteEmptyDirs: false
+    unknown:
+      folder: "@SANDBOX@/unknown/"
+      mode: move
+    duplicates:
+      folder: "@SANDBOX@/duplicates/"
+      mode: move
+  mylist:
+    # Hard gate. A sandbox run must never touch the real MyList.
+    add: false
+    overwrite: false
+    watched: false
+  rename:
+    mode: tagsystem
+    related: true
+
+kodi:
+  metadata:
+    generate: true
+  # Ignored on branches that predate the library-scan feature, which is the point: the parser skips
+  # keys it does not know, so one generated config works in every worktree.
+  libraryScan:
+    enabled: false
+
+tags:
+  paths:
+    movieFolders:
+      - path: "@SANDBOX@/output/movies/"
+        tagSystemName: BaseMoviePath
+    tvShowFolders:
+      - path: "@SANDBOX@/output/series/"
+        tagSystemName: BaseTVShowPath
