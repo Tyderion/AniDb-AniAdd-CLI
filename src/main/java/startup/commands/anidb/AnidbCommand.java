@@ -131,7 +131,7 @@ public class AnidbCommand extends ConfigRequiredCommand {
         val aniAdd = new AniAdd(udpApi, terminateOnCompletion, fileProcessor, processing, _ -> {
             log.info("Shutdown complete");
             executorService.shutdownNow();
-        }, afterBatch);
+        }, afterBatch, fileConfig, kodiConfig);
         if (exitOnBan) {
             udpApi.registerCallback(ReplyStatus.BANNED, _ -> {
                 log.error("User is banned. Exiting.");

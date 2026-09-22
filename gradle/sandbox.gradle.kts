@@ -327,8 +327,11 @@ tasks.register("setupCheck") {
         val config = loadYaml(File(projectDir, sandboxConfig))
         val mylistAdd = ((config["file"] as? Map<*, *>)?.get("mylist") as? Map<*, *>)?.get("add")
         val exitOnBan = (config["anidb"] as? Map<*, *>)?.get("exitOnBan")
+        val markWatched = (config["kodi"] as? Map<*, *>)?.get("markWatched")
         if (mylistAdd != false) findings += "$sandboxConfig has file.mylist.add=$mylistAdd, expected false"
         if (exitOnBan != true) findings += "$sandboxConfig has anidb.exitOnBan=$exitOnBan, expected true"
+        // Without this one a sandbox run against a real Kodi writes plays to the real MyList account.
+        if (markWatched != false) findings += "$sandboxConfig has kodi.markWatched=$markWatched, expected false"
 
         if (findings.isEmpty()) {
             logger.lifecycle("Setup looks complete: container $root, ${worktreePaths().size} worktree(s) linked.")

@@ -151,7 +151,7 @@ This is the same trick the Docker image uses, one level down: the container conf
 
 Run configurations live in `.run/` and are tracked, so they arrive with a clone and show up in a diff when they change.
 
-A config splits into two layers. A **settings** file describes where things go: paths, the cache, the tag system, and the mylist and ban options. A **run** file carries only a `run:` block saying which task to start, and delegates the rest with `config: <settings file>`. `sandbox.yaml` and the `sandbox-*.yaml` files beside it are that pair.
+A config splits into two layers. A **settings** file describes where things go: paths, the cache, the tag system, and the mylist, Kodi and ban options. A **run** file carries only a `run:` block saying which task to start, and delegates the rest with `config: <settings file>`. `sandbox.yaml` and the `sandbox-*.yaml` files beside it are that pair.
 
 Two rules make those files portable:
 

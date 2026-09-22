@@ -84,7 +84,7 @@ It refuses to clear anything that resolves outside the sandbox, and unlinks rath
 
 A config file splits in two. `.run/sandbox.yaml` holds the settings and no run block; each `.run/sandbox-<task>.yaml` holds only a run block and delegates with `config: sandbox.yaml`. The `docker-<task>.yaml` files are the same shape for the image, delegating to `config/docker.yaml` instead. That way there is exactly one entry point per task and one place that defines where things go. Adding a task means adding one more `sandbox-<task>.yaml` and a run configuration for it.
 
-All of them are tracked, so they arrive with a clone and show up in a diff when they change. `sandbox.yaml` carries `file.mylist.add: false` and `anidb.exitOnBan: true` as hard gates, and `setupCheck` re-reads it to confirm both are still set.
+All of them are tracked, so they arrive with a clone and show up in a diff when they change. `sandbox.yaml` carries three hard gates, and `setupCheck` re-reads the file to confirm all three are still set: `file.mylist.add: false` so a scan adds nothing, `kodi.markWatched: false` so a play reported by Kodi is observed rather than written back, and `anidb.exitOnBan: true` so a run stops instead of hammering the API.
 
 Its cache points at `../sandbox/aniAdd.sqlite`, which `sandboxInit` links to the shared cache in the container. That way the sandbox reuses lookups from real runs instead of starting empty and querying AniDB for every file.
 

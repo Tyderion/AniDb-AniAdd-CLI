@@ -38,6 +38,8 @@ file:
 kodi:
   pathFilter: anime
   port: 9090
+  # Hard gate: observe Kodi without writing anything back to the real MyList account.
+  markWatched: false
   metadata:
     generate: true
   # Ignored on branches that predate the library-scan feature: the parser skips keys it does not know.
