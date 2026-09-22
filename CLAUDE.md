@@ -9,9 +9,13 @@ Headless CLI fork of the old AniDB Java applet (GUI removed at v1.1.1). Scans or
 - Run the jar with `java --enable-preview -jar ...` — the flag is needed at runtime too (the `.run/*.sh` scripts all pass it).
 - Lombok everywhere (`@Slf4j`, `@Getter`, `val`) via the freefair plugin; slf4j-simple for logging, levels overridable via a properties file named by env `LOG_CONFIG_FILE`.
 
+## Worktrees
+
+Development usually happens in a `.bare` container with one worktree per branch, sharing one `.env` and one AniDB cache. `docs/WorktreeSetup.md` has the layout; `.claude/skills/worktree-setup/` has the procedure for adding one. A plain clone works too and needs none of it.
+
 ## Commands
 
-- Test: `./gradlew test` (JUnit 5 + vintage engine, Mockito, Hamcrest; only `ParseReplyTest` and `RunConfigTest` exist — coverage is thin, don't assume tests catch regressions)
+- Test: `./gradlew test` (JUnit 5 + params + vintage engine, Mockito, Hamcrest). Config loading, path resolution and the tracked `.run/` configs are covered; the processing pipeline and the AniDB client are not, so don't assume tests catch regressions there.
 - Fat jar: `./gradlew fatJar` → `build/libs/aniadd-cli-all-<version>.jar`, main class `startup.Main`
 ### Docker image (custom tasks, not the plugin defaults)
 
