@@ -93,6 +93,27 @@ public class SandboxConfigTest {
     }
 
     @ParameterizedTest
+    @CsvSource({
+            "docker-scan.yaml,       scan,            true",
+            "docker-watch.yaml,      watch,           true",
+            "docker-watch-kodi.yaml, watch,           true",
+            "docker-kodi.yaml,       connect-to-kodi, false",
+    })
+    public void everyDockerRunFileFindsItsSettingsFile(String file, String command, boolean usesInput) throws Exception {
+        // These delegate to config/docker.yaml. A reference that does not resolve is only discovered when
+        // someone mounts the file into a container and the run dies there.
+        val runFile = RUN.resolve(file);
+        val config = load(runFile);
+        val args = config.run().toCommandArgs(runFile);
+        assertThat(args, hasItem(command));
+        assertThat(args, hasItem(STR."--config=\{REPO.resolve("config/docker.yaml")}"));
+        assertThat(Files.exists(REPO.resolve("config/docker.yaml")), is(true));
+        if (usesInput) {
+            assertThat(args, hasItem("/from"));
+        }
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {"sandbox.yaml", "sandbox-scan.yaml", "sandbox-watch.yaml", "sandbox-watch-kodi.yaml", "sandbox-kodi.yaml"})
     public void noSandboxConfigNamesAnAbsoluteHomeDirectory(String file) throws IOException {
         // Absolute paths under a home directory are what made these files unshareable in the first place.

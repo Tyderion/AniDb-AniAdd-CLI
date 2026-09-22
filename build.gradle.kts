@@ -204,6 +204,15 @@ tasks {
     withType<Test> {
         useJUnitPlatform()
         jvmArgs("--enable-preview")
+        // SandboxConfigTest reads the tracked configs in .run/ and config/. Without declaring them, Gradle
+        // sees no change when one is edited and reports the test task up to date, so a broken config
+        // passes the build until something in src/ happens to change.
+        inputs.dir(layout.projectDirectory.dir(".run"))
+            .withPropertyName("runConfigs")
+            .withPathSensitivity(PathSensitivity.RELATIVE)
+        inputs.dir(layout.projectDirectory.dir("config"))
+            .withPropertyName("configFiles")
+            .withPathSensitivity(PathSensitivity.RELATIVE)
     }
     named("dockerBuildImage") {
         enabled = false
