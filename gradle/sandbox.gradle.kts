@@ -1,9 +1,5 @@
-import org.yaml.snakeyaml.DumperOptions
 import org.yaml.snakeyaml.Yaml
-import org.yaml.snakeyaml.nodes.Tag
-import org.yaml.snakeyaml.representer.Representer
 import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.Paths
 
 buildscript {
@@ -14,43 +10,38 @@ buildscript {
 // Local development setup for the .bare + worktrees layout described in docs/WorktreeSetup.md.
 // Everything shared between worktrees (credentials, the AniDB cache, the sandbox) lives in the
 // container directory that holds .bare, and each worktree reaches it through relative symlinks.
+//
+// The config files are tracked, in .run/. Nothing here generates one: these tasks only create
+// directories and the symlinks that make ../sandbox mean the same thing in every checkout.
 
 val sharedEnvName = ".env"
 val altEnvName = "alt.env"
-val sandboxConfigName = "sandbox.yaml"
+val sandboxLinkName = "sandbox"
+val cacheName = "aniAdd.sqlite"
 val additionalEnvKey = "ADDITIONAL_ENV"
+val sandboxConfig = ".run/sandbox.yaml"
 val sandboxDirs = listOf("media", "input", "unknown", "duplicates", "output/movies", "output/series")
 
-/** Thin "what to do" files, copied into the sandbox so their relative paths resolve against it. */
-val sandboxRunTemplates = "gradle/sandbox-runs"
-
-fun sandboxRunFiles(): List<String> =
-    File(projectDir, sandboxRunTemplates).listFiles { f: File -> f.name.endsWith(".yaml") }
-        ?.map { it.name }?.sorted() ?: emptyList()
-
-fun sharedFileNames(): List<String> = listOf(sandboxConfigName) + sandboxRunFiles()
-
 /**
- * The container is the parent of git's common directory: shared by every worktree, and reported by
- * git itself rather than guessed from `..`, so it is still correct if a worktree is nested deeper.
- * A plain clone has a normal .git and no container, and gets a clear refusal instead of symlinks
- * scattered into whatever directory happens to sit above the checkout.
+ * The container is the parent of git's common directory: shared by every worktree, and reported by git
+ * itself rather than guessed from `..`, so it is still correct if a worktree is nested deeper. A plain
+ * clone has a normal .git and no container, and gets null.
  */
-fun containerRoot(): File {
+fun containerRootOrNull(): File? {
     val commonDir = git("rev-parse", "--path-format=absolute", "--git-common-dir")
     val bare = git("--git-dir=$commonDir", "config", "--get", "core.bare", failOnError = false)
-    if (bare != "true") {
-        throw GradleException(
-            "This repository is a plain clone, not the worktree layout: git's common directory is\n" +
-                "  $commonDir\n" +
-                "which is not a bare repository. See docs/WorktreeSetup.md for how to convert, or skip\n" +
-                "these tasks and keep .env and the cache inside the checkout."
-        )
-    }
-    return File(commonDir).parentFile
+    return if (bare == "true") File(commonDir).parentFile else null
 }
 
-fun sandboxRoot(): File = File(containerRoot(), "sandbox")
+fun containerRoot(): File = containerRootOrNull() ?: throw GradleException(
+    "This repository is a plain clone, not the worktree layout, so there is nothing to share between\n" +
+        "checkouts. See docs/WorktreeSetup.md for how to convert. sandboxInit and sandboxReset still work\n" +
+        "here; they build the sandbox inside the checkout instead."
+)
+
+/** In the worktree layout the sandbox is shared; in a plain clone it simply lives in the checkout. */
+fun sandboxRoot(): File =
+    containerRootOrNull()?.let { File(it, sandboxLinkName) } ?: File(projectDir, sandboxLinkName)
 
 /**
  * Plain ProcessBuilder rather than providers.exec: these all run inside task actions, where a direct
@@ -100,70 +91,38 @@ fun readEnvValue(envFile: File, key: String): String? {
  */
 fun additionalEnvProblem(value: String): String? = when {
     value.contains('/') || value.contains('\\') -> "must be a bare filename, not a path: '$value'"
-    value == ".." || value.contains("..") -> "must not traverse directories: '$value'"
+    value.contains("..") -> "must not traverse directories: '$value'"
     !File(containerRoot(), value).isFile -> "names '$value', which does not exist in ${containerRoot()}"
     else -> null
 }
 
 /**
- * Replaces an existing symlink, but never a real file: that file could be the only copy of someone's
- * credentials, and silently deleting it to install a link is not a trade this task gets to make.
+ * Replaces an existing symlink, but never a real file or directory: it could be the only copy of someone's
+ * credentials or test media, and deleting it to install a link is not a trade this task gets to make.
  */
-fun link(worktree: File, linkName: String, target: String, log: (String) -> Unit) {
-    val linkPath = worktree.toPath().resolve(linkName)
+fun link(parent: File, linkName: String, target: String, log: (String) -> Unit) {
+    val linkPath = parent.toPath().resolve(linkName)
     if (Files.exists(linkPath, java.nio.file.LinkOption.NOFOLLOW_LINKS) && !Files.isSymbolicLink(linkPath)) {
         throw GradleException(
-            "$linkPath is a regular file, not a symlink. Move it to ${containerRoot()} and run this task " +
-                "again; refusing to delete it."
+            "$linkPath already exists and is not a symlink. Move its contents to ${containerRoot()} and run " +
+                "this task again; refusing to delete it."
         )
     }
     Files.deleteIfExists(linkPath)
     Files.createSymbolicLink(linkPath, Paths.get(target))
-    log("  linked ${worktree.name}/$linkName -> $target")
+    log("  linked ${parent.name}/$linkName -> $target")
 }
 
-fun unlinkIfSymlink(worktree: File, linkName: String, log: (String) -> Unit) {
-    val linkPath = worktree.toPath().resolve(linkName)
+fun unlinkIfSymlink(parent: File, linkName: String, log: (String) -> Unit) {
+    val linkPath = parent.toPath().resolve(linkName)
     if (Files.isSymbolicLink(linkPath)) {
         Files.delete(linkPath)
-        log("  removed stale ${worktree.name}/$linkName")
+        log("  removed stale ${parent.name}/$linkName")
     }
 }
 
 fun targetWorktrees(): List<File> =
     if (project.hasProperty("all")) worktreePaths() else listOf(projectDir)
-
-@Suppress("UNCHECKED_CAST")
-fun deepMerge(base: Map<String, Any?>, override: Map<String, Any?>): Map<String, Any?> {
-    val merged = LinkedHashMap<String, Any?>(base)
-    override.forEach { (key, value) ->
-        val existing = merged[key]
-        merged[key] = if (existing is Map<*, *> && value is Map<*, *>) {
-            deepMerge(existing as Map<String, Any?>, value as Map<String, Any?>)
-        } else {
-            value
-        }
-    }
-    return merged
-}
-
-/** Multi-line values are emitted as block literals so the generated config stays readable and editable. */
-fun dumpYaml(data: Map<String, Any?>): String {
-    val options = DumperOptions().apply {
-        defaultFlowStyle = DumperOptions.FlowStyle.BLOCK
-        isPrettyFlow = true
-        indent = 2
-    }
-    val representer = object : Representer(options) {
-        override fun representScalar(tag: Tag, value: String, style: DumperOptions.ScalarStyle?) =
-            super.representScalar(
-                tag,
-                value,
-                if (value.contains("\n")) DumperOptions.ScalarStyle.LITERAL else style
-            )
-    }
-    return Yaml(representer, options).dump(data)
-}
 
 @Suppress("UNCHECKED_CAST")
 fun loadYaml(file: File): Map<String, Any?> =
@@ -198,44 +157,21 @@ tasks.register("envLink") {
 
 tasks.register("sandboxInit") {
     group = "setup"
-    description = "Create the shared sandbox tree and generate its config, then link it into every worktree."
+    description = "Create the sandbox directories and, in the worktree layout, link the shared sandbox into every worktree."
     doLast {
-        val root = containerRoot()
         val sandbox = sandboxRoot()
         sandboxDirs.forEach { File(sandbox, it).mkdirs() }
         logger.lifecycle("sandbox tree ready at $sandbox")
 
-        val generated = File(sandbox, sandboxConfigName)
-        if (generated.isFile && !project.hasProperty("force")) {
-            logger.lifecycle("$generated already exists, leaving it alone. Use -Pforce to regenerate.")
+        val container = containerRootOrNull()
+        if (container == null) {
+            logger.lifecycle("Plain clone, so the sandbox lives in the checkout and needs no links.")
         } else {
-            val base = loadYaml(File(projectDir, ".run/scan-local.yaml"))
-            val overrides = loadYaml(File(projectDir, "gradle/sandbox-overrides.yaml"))
-            // No path rewriting: the application resolves relative paths against the config file itself,
-            // so the overrides say "input/" and mean the folder next to the generated file.
-            // Settings only. The run files beside it are the entry points, so there is exactly one way
-            // to start each task rather than a run block hiding in the settings too.
-            val merged = deepMerge(base, overrides).filterKeys { it != "run" }
-            generated.writeText(
-                "# Generated by ./gradlew sandboxInit. Edit freely; it is never regenerated without -Pforce,\n" +
-                    "# and it is not tracked by git.\n" + dumpYaml(merged)
-            )
-            logger.lifecycle("wrote $generated")
-        }
-
-        sandboxRunFiles().forEach { name ->
-            val target = File(sandbox, name)
-            if (target.isFile && !project.hasProperty("force")) {
-                logger.lifecycle("$target already exists, leaving it alone. Use -Pforce to refresh.")
-            } else {
-                File(projectDir, "$sandboxRunTemplates/$name").copyTo(target, overwrite = true)
-                logger.lifecycle("wrote $target")
-            }
-        }
-
-        worktreePaths().forEach { worktree ->
-            sharedFileNames().forEach { name ->
-                link(worktree, name, "../sandbox/$name", logger::lifecycle)
+            // The sandbox borrows the shared cache rather than starting an empty one, so a file identified
+            // in a real run is not looked up again here. One tracked path covers both layouts.
+            link(sandbox, cacheName, "../$cacheName", logger::lifecycle)
+            worktreePaths().forEach { worktree ->
+                link(worktree, sandboxLinkName, "../$sandboxLinkName", logger::lifecycle)
             }
         }
         logger.lifecycle("Put real media in ${File(sandbox, "media")}, then run ./gradlew sandboxReset.")
@@ -277,9 +213,7 @@ tasks.register("setupCheck") {
         val sharedEnv = File(root, sharedEnvName)
 
         if (!sharedEnv.isFile) findings += "missing $sharedEnv (the shared credentials file)"
-        if (!File(root, "aniAdd.sqlite").isFile) {
-            findings += "missing ${File(root, "aniAdd.sqlite")} (the shared AniDB cache)"
-        }
+        if (!File(root, cacheName).isFile) findings += "missing ${File(root, cacheName)} (the shared AniDB cache)"
 
         val additional = readEnvValue(sharedEnv, additionalEnvKey)
         if (additional == null) {
@@ -288,12 +222,10 @@ tasks.register("setupCheck") {
             additionalEnvProblem(additional)?.let { findings += "$additionalEnvKey $it" }
         }
 
+        val expected = mutableMapOf(sharedEnvName to "../$sharedEnvName")
+        if (additional != null) expected[altEnvName] = "../$additional"
+        if (sandboxRoot().isDirectory) expected[sandboxLinkName] = "../$sandboxLinkName"
         worktreePaths().forEach { worktree ->
-            val expected = mutableMapOf(sharedEnvName to "../$sharedEnvName")
-            if (additional != null) expected[altEnvName] = "../$additional"
-            sharedFileNames().filter { File(sandboxRoot(), it).isFile }.forEach { name ->
-                expected[name] = "../sandbox/$name"
-            }
             expected.forEach { (name, target) ->
                 val path = worktree.toPath().resolve(name)
                 when {
@@ -305,26 +237,24 @@ tasks.register("setupCheck") {
             }
         }
 
-        val generated = File(sandboxRoot(), sandboxConfigName)
-        if (generated.isFile) {
+        if (sandboxRoot().isDirectory) {
             sandboxDirs.forEach { name ->
                 if (!File(sandboxRoot(), name).isDirectory) findings += "missing sandbox directory $name"
             }
-            // The gates are re-read rather than trusted, because the generated file is meant to be hand-edited.
-            val config = loadYaml(generated)
-            val mylistAdd = ((config["file"] as? Map<*, *>)?.get("mylist") as? Map<*, *>)?.get("add")
-            val exitOnBan = (config["anidb"] as? Map<*, *>)?.get("exitOnBan")
-            val cacheDb = ((config["anidb"] as? Map<*, *>)?.get("cache") as? Map<*, *>)?.get("db")?.toString()
-            if (mylistAdd != false) findings += "$generated has file.mylist.add=$mylistAdd, expected false"
-            if (exitOnBan != true) findings += "$generated has anidb.exitOnBan=$exitOnBan, expected true"
-            // Resolved the way the application would, so either an absolute or a relative form passes.
-            val resolvedCache = cacheDb?.let { File(sandboxRoot(), it).canonicalFile }
-            if (resolvedCache != File(root, "aniAdd.sqlite").canonicalFile) {
-                findings += "$generated points at cache $cacheDb, expected the shared ${File(root, "aniAdd.sqlite")}"
+            if (!Files.isSymbolicLink(File(sandboxRoot(), cacheName).toPath())) {
+                findings += "${File(sandboxRoot(), cacheName)} does not link to the shared cache, " +
+                    "so the sandbox would start an empty one and look every file up again"
             }
         } else {
-            logger.lifecycle("No sandbox config yet. Run ./gradlew sandboxInit if you want one.")
+            logger.lifecycle("No sandbox yet. Run ./gradlew sandboxInit if you want one.")
         }
+
+        // Re-read rather than trusted: the file is tracked, but it is also meant to be edited.
+        val config = loadYaml(File(projectDir, sandboxConfig))
+        val mylistAdd = ((config["file"] as? Map<*, *>)?.get("mylist") as? Map<*, *>)?.get("add")
+        val exitOnBan = (config["anidb"] as? Map<*, *>)?.get("exitOnBan")
+        if (mylistAdd != false) findings += "$sandboxConfig has file.mylist.add=$mylistAdd, expected false"
+        if (exitOnBan != true) findings += "$sandboxConfig has anidb.exitOnBan=$exitOnBan, expected true"
 
         if (findings.isEmpty()) {
             logger.lifecycle("Setup looks complete: container $root, ${worktreePaths().size} worktree(s) linked.")

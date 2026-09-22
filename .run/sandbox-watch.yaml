@@ -2,6 +2,6 @@
 run:
   task: watch
   args:
-    path: input/
+    path: ../sandbox/input/
     interval: 10
   config: sandbox.yaml

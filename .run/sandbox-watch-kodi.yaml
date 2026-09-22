@@ -2,7 +2,7 @@
 run:
   task: watch
   args:
-    path: input/
+    path: ../sandbox/input/
     interval: 10
     kodi: true
   config: sandbox.yaml

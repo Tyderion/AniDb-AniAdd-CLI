@@ -5,7 +5,7 @@
     </option>
     <option name="MAIN_CLASS_NAME" value="startup.Main" />
     <module name="aniadd-cli.main" />
-    <option name="PROGRAM_PARAMETERS" value="run --config=sandbox-watch-kodi.yaml" />
+    <option name="PROGRAM_PARAMETERS" value="run --config=.run/sandbox-watch-kodi.yaml" />
     <option name="VM_PARAMETERS" value="--enable-preview" />
     <method v="2">
       <option name="Make" enabled="true" />

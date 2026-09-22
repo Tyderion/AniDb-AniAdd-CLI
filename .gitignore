@@ -16,5 +16,4 @@ test.*
 !config/*
 !.run/*
 !src/test/resources/*/*
-!gradle/sandbox-overrides.yaml
-!gradle/sandbox-runs/*.yaml
+/sandbox
