@@ -22,6 +22,15 @@ public class ConfigFileParser<T> {
     private final Yaml mYaml;
 
     public ConfigFileParser(Class<T> clazz) {
+        this(clazz, null);
+    }
+
+    /**
+     * @param baseDir directory that relative paths in the file are resolved against, the way compose files
+     *                and tsconfig behave. Pass the config file's own directory so a config means the same
+     *                thing wherever it is launched from. Null keeps paths exactly as written.
+     */
+    public ConfigFileParser(Class<T> clazz, Path baseDir) {
         this.clazz = clazz;
         var loaderoptions = new LoaderOptions();
         loaderoptions.setEnumCaseSensitive(false);
@@ -35,7 +44,7 @@ public class ConfigFileParser<T> {
         Representer representer = new PathRepresenter(options);
         representer.getPropertyUtils().setSkipMissingProperties(true);
 
-        mYaml = new Yaml(new PathConstructor<>(clazz, loaderoptions), representer, options);
+        mYaml = new Yaml(new PathConstructor<>(clazz, loaderoptions, baseDir), representer, options);
         mYaml.setBeanAccess(BeanAccess.FIELD);
     }
 
@@ -77,17 +86,42 @@ public class ConfigFileParser<T> {
     }
 
     private static class PathConstructor<T> extends Constructor {
-        public PathConstructor(Class<T> clazz, LoaderOptions loaderoptions) {
+        public PathConstructor(Class<T> clazz, LoaderOptions loaderoptions, Path baseDir) {
             super(clazz, loaderoptions);
             this.yamlClassConstructors.put(NodeId.scalar, new ConstructScalar() {
                 @Override
                 public Object construct(Node node) {
                     if (Path.class == node.getType()) {
-                        return Path.of(((ScalarNode) node).getValue());
+                        return resolve(Path.of(((ScalarNode) node).getValue()), baseDir);
                     }
                     return super.construct(node);
                 }
             });
+        }
+    }
+
+    /**
+     * Every path-typed value in a config file goes through here, so this is the single place that decides
+     * what a relative path means. Absolute paths and configs loaded without a base are left untouched.
+     */
+    static Path resolve(Path path, Path baseDir) {
+        if (baseDir == null || path.isAbsolute()) {
+            return path;
+        }
+        return baseDir.toAbsolutePath().resolve(path).normalize();
+    }
+
+    /**
+     * The directory a config file's relative paths resolve against: the real one, with symlinks followed.
+     * Shared setups link one config into several checkouts, and a link should behave like the file it points
+     * at rather than like wherever the link happens to sit. Falls back to the literal location if the path
+     * cannot be resolved, which mainly means it does not exist yet.
+     */
+    public static Path baseDirectoryOf(Path configFile) {
+        try {
+            return configFile.toRealPath().getParent();
+        } catch (java.io.IOException e) {
+            return configFile.toAbsolutePath().normalize().getParent();
         }
     }
 }

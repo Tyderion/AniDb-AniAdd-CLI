@@ -9,7 +9,7 @@ run:
 
 anidb:
   cache:
-    db: /home/archie/coding/AniDb-AniAdd-CLI/aniAdd.sqlite
+    db: ../../aniAdd.sqlite
     ttlInDays: 30
   exitOnBan: false
   localPort: 3333

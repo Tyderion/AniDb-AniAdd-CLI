@@ -1,17 +1,15 @@
 import config.RootConfiguration;
 import lombok.val;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.yaml.snakeyaml.Yaml;
-import utils.config.ConfigFileParser;
+import utils.config.ConfigFileHandler;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -21,9 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * gradle/sandbox-overrides.yaml is merged onto .run/scan-local.yaml by the sandboxInit task to produce
- * the local sandbox config. Nothing else checks that the result is something this application can
- * actually load, and the failure would otherwise surface halfway through a run. This repeats the
- * task's merge against the tracked files so a broken template fails the build instead.
+ * sandbox/sandbox.yaml. Nothing else checks that the result is something this application can load, and
+ * the failure would otherwise surface halfway through a run. This repeats the task's merge against the
+ * tracked files, writes it where the real one goes, and loads it the way the CLI would.
  */
 public class SandboxTemplateTest {
 
@@ -31,31 +29,47 @@ public class SandboxTemplateTest {
     private static final Path OVERRIDES = Path.of("gradle", "sandbox-overrides.yaml");
 
     @Test
-    public void theGeneratedSandboxConfigIsLoadableAndDrivesAScan() throws Exception {
-        val parsed = parse(render());
-        assertNotNull(parsed.run(), "no run block");
-        assertThat(parsed.run().toCommandArgs(BASE.toAbsolutePath()), hasItem("scan"));
+    public void theGeneratedSandboxConfigIsLoadableAndScansTheSandboxInput(@TempDir Path container) throws Exception {
+        val config = generateInto(container);
+        val runFile = container.resolve("sandbox/sandbox.yaml");
+        assertNotNull(config.run(), "no run block");
+        val args = config.run().toCommandArgs(runFile);
+        assertThat(args, hasItem("scan"));
+        assertThat(args, hasItem(container.resolve("sandbox/input").toString()));
     }
 
     @Test
-    public void theSafetyGatesSurviveTheMerge() throws Exception {
-        val parsed = parse(render());
-        assertThat(parsed.file().mylist().add(), is(false));
-        assertThat(parsed.anidb().exitOnBan(), is(true));
-        assertThat(parsed.anidb().cache().db().toString(), is("/tmp/container/aniAdd.sqlite"));
+    public void everySandboxPathLandsInsideTheContainer(@TempDir Path container) throws Exception {
+        val config = generateInto(container);
+        assertThat(config.anidb().cache().db(), is(container.resolve("aniAdd.sqlite")));
+        assertThat(config.file().move().unknown().folder(), is(container.resolve("sandbox/unknown")));
+        assertThat(config.file().move().duplicates().folder(), is(container.resolve("sandbox/duplicates")));
+        assertThat(config.tags().paths().movieFolders().get(0).path(), is(container.resolve("sandbox/output/movies")));
+        assertThat(config.tags().paths().tvShowFolders().get(0).path(), is(container.resolve("sandbox/output/series")));
     }
 
     @Test
-    public void theTagSystemComesFromTheBaseConfigRatherThanBeingDuplicated() throws Exception {
+    public void theSafetyGatesSurviveTheMerge(@TempDir Path container) throws Exception {
+        val config = generateInto(container);
+        assertThat(config.file().mylist().add(), is(false));
+        assertThat(config.anidb().exitOnBan(), is(true));
+    }
+
+    @Test
+    public void theTagSystemComesFromTheBaseConfigRatherThanBeingDuplicated(@TempDir Path container) throws Exception {
         val overrides = load(OVERRIDES);
         assertThat(((Map<?, ?>) overrides.get("tags")).containsKey("tagSystem"), is(false));
-        assertNotNull(parse(render()).tags().tagSystem(), "tag system lost in the merge");
+        assertNotNull(generateInto(container).tags().tagSystem(), "tag system lost in the merge");
     }
 
-    private String render() throws IOException {
-        val merged = deepMerge(load(BASE), load(OVERRIDES));
-        val yaml = new Yaml().dump(merged);
-        return yaml.replace("@ROOT@", "/tmp/container").replace("@SANDBOX@", "/tmp/container/sandbox");
+    /** Mirrors what the sandboxInit task does, so a broken template fails here rather than mid-run. */
+    private RootConfiguration generateInto(Path container) throws IOException {
+        val sandbox = Files.createDirectories(container.resolve("sandbox"));
+        val generated = sandbox.resolve("sandbox.yaml");
+        Files.writeString(generated, new Yaml().dump(deepMerge(load(BASE), load(OVERRIDES))));
+        val config = new ConfigFileHandler<>(RootConfiguration.class).getConfiguration(generated);
+        assertNotNull(config, "generated sandbox config did not load");
+        return config;
     }
 
     @SuppressWarnings("unchecked")
@@ -77,12 +91,5 @@ public class SandboxTemplateTest {
             }
         });
         return merged;
-    }
-
-    private RootConfiguration parse(String yaml) {
-        val parsed = new ConfigFileParser<>(RootConfiguration.class)
-                .load(new ByteArrayInputStream(yaml.getBytes(StandardCharsets.UTF_8)));
-        assertNotNull(parsed);
-        return parsed;
     }
 }

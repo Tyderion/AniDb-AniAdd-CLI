@@ -28,10 +28,17 @@ public class RunConfig {
         SCAN, WATCH, KODI
     }
 
+    /**
+     * @param runConfig the file this run block was read from. Relative paths inside the block resolve
+     *                  against its directory, never against the working directory, so a run config means
+     *                  the same thing whether it is launched from an IDE, a shell or a container.
+     */
     public List<String> toCommandArgs(Path runConfig) throws InvalidConfigException {
         if (task == null) {
             throw new InvalidConfigException("No tasks specified in the config file.");
         }
+        val configFile = runConfig.toAbsolutePath().normalize();
+        val baseDir = utils.config.ConfigFileParser.baseDirectoryOf(runConfig);
         if (EnumSet.of(SCAN, WATCH).contains(task)) {
             if (!args.containsKey(PARAM_NAME) || args.get(PARAM_NAME).isBlank()) {
                 throw new InvalidConfigException("No folder specified for scan or watch task.");
@@ -42,7 +49,8 @@ public class RunConfig {
         }
 
         val arguments = new ArrayList<>(List.of(AnidbCommand.getName()));
-        val parameter = args.remove(PARAM_NAME);
+        val rawParameter = args.remove(PARAM_NAME);
+        val parameter = rawParameter == null ? null : resolveAgainstConfig(rawParameter, baseDir);
 
         switch (task) {
             case KODI -> arguments.add(KodiWatcherCommand.getName());
@@ -56,17 +64,25 @@ public class RunConfig {
             }
         }
         if (config == null) {
-            log.info(STR."Run config does not contain a config file for the command. Using run config file ('\{runConfig}') as the config file for executing command.");
-            args.put("config", runConfig.toString());
+            log.info(STR."Run config does not contain a config file for the command. Using run config file ('\{configFile}') as the config file for executing command.");
+            args.put("config", configFile.toString());
         } else {
-            if (Path.of(config).isAbsolute() || !runConfig.isAbsolute() ) {
-                args.put("config", config);
-            } else {
-                args.put("config", runConfig.getParent().resolve(config).normalize().toString());
-            }
+            args.put("config", resolveAgainstConfig(config, baseDir));
         }
         args.forEach((name, value) -> arguments.add(STR."--\{name}=\{value}"));
         return arguments;
+    }
+
+    /**
+     * These two values are plain strings in the args map rather than Paths, so they never pass through the
+     * config parser's path handling and have to be resolved here to get the same rule.
+     */
+    private static String resolveAgainstConfig(String value, Path baseDir) {
+        val path = Path.of(value);
+        if (path.isAbsolute() || baseDir == null) {
+            return value;
+        }
+        return baseDir.resolve(path).normalize().toString();
     }
 
     public static class InvalidConfigException extends Exception {

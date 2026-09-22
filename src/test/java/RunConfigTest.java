@@ -18,7 +18,7 @@ public class RunConfigTest {
     @Test
     public void Should_CorrectlyParse_SimpleScanYaml() {
         assertConfig("scan_simple",
-                List.of("anidb", "scan", "/path/to/scan", "--config=config.yaml")
+                List.of("anidb", "scan", "/path/to/scan", configArg())
         );
     }
 
@@ -34,7 +34,7 @@ public class RunConfigTest {
     public void Should_CorrectlyParse_SimpleWatchYaml() {
         assertConfig(
                 "watch_simple",
-                List.of("anidb", "watch", "/path/to/watch", "--config=config.yaml")
+                List.of("anidb", "watch", "/path/to/watch", configArg())
         );
     }
 
@@ -42,7 +42,7 @@ public class RunConfigTest {
     public void Should_CorrectlyInferWatchAndKodi_IfWatchAndKodiIsActive() {
         assertConfig(
                 "watch_and_kodi",
-                List.of("anidb", "watch", "/path/to/files", "--kodi=true", "--config=config.yaml")
+                List.of("anidb", "watch", "/path/to/files", "--kodi=true", configArg())
         );
     }
 
@@ -50,8 +50,16 @@ public class RunConfigTest {
     public void Should_CorrectlyParse_OverriddenArguments() {
         assertConfig(
                 "watch_with_arguments",
-                List.of("anidb", "watch",  "/path/to/watch", "--interval=17", "--exit-on-ban=true", "--localport=4444",  "--config=config.yaml")
+                List.of("anidb", "watch",  "/path/to/watch", "--interval=17", "--exit-on-ban=true", "--localport=4444",  configArg())
         );
+    }
+
+    /**
+     * A run config's "config:" value is resolved against the run file, not the working directory, so the
+     * delegated path arrives absolute. The run files here are named relative to the project directory.
+     */
+    private static String configArg() {
+        return STR."--config=\{Path.of("config.yaml").toAbsolutePath().normalize()}";
     }
 
     private void assertConfig(String filename, List<String> expected) {

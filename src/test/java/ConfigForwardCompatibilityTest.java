@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -67,7 +68,7 @@ public class ConfigForwardCompatibilityTest {
         assertNotNull(parsed.run(), STR."no run block in \{path}");
         val args = parsed.run().toCommandArgs(path.toAbsolutePath());
         assertThat(args, hasItem("scan"));
-        assertThat(parsed.anidb().cache().db().toString(), is("/home/archie/coding/AniDb-AniAdd-CLI/aniAdd.sqlite"));
+        assertThat(parsed.anidb().cache().db().toString(), containsString("aniAdd.sqlite"));
     }
 
     private RootConfiguration parseFile(Path path) throws IOException {
