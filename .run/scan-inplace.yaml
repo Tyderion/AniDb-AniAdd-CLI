@@ -6,7 +6,7 @@
 run:
   task: scan
   args:
-    path: /home/archie/NAS/media/anime/bubu/input/
+    path: ../library/input/
 
 anidb:
   cache:
@@ -44,9 +44,9 @@ kodi:
 tags:
   paths:
     movieFolders:
-      - path: /home/archie/NAS/media/anime/bubu/output/movies/
+      - path: ../library/output/movies/
         tagSystemName: BaseMoviePath
     tvShowFolders:
-      - path: /home/archie/NAS/media/anime/bubu/output/series/
+      - path: ../library/output/series/
         tagSystemName: BaseTVShowPath
   tagSystemFile: ../config/tagging-system.kodi.txt

@@ -10,8 +10,9 @@ You do not have to use it. A plain clone works exactly as before, and the setup 
 AniDb-AniAdd-CLI/            the container: not a checkout, just a folder
 ├── .bare/                   the repository itself (bare)
 ├── .git                     a file containing "gitdir: ./.bare"
-├── .env                     shared credentials, the only copy
+├── .env                     shared credentials and the paths below, the only copy
 ├── alt.env targets          e.g. tyd.env, test.env: alternative accounts
+├── library                  a link to your real media, from LIBRARY_ROOT
 ├── aniAdd.sqlite            the shared AniDB lookup cache
 ├── sandbox/                 local test environment, created by sandboxInit
 └── kodi/  transcode/  ...   one directory per worktree
@@ -43,7 +44,7 @@ Four Gradle tasks, all in the `setup` group, all runnable from any worktree:
 
 | Task | What it does |
 |---|---|
-| `./gradlew envLink` | Symlinks `.env` into this worktree, and the file named by `ADDITIONAL_ENV` as `alt.env`. Add `-Pall` to do every worktree at once. |
+| `./gradlew envLink` | Symlinks everything the shared `.env` names into this worktree: `.env` itself, `alt.env` from `ADDITIONAL_ENV`, and `library` from `LIBRARY_ROOT`. Add `-Pall` to do every worktree at once. |
 | `./gradlew sandboxInit` | Creates `sandbox/`, generates its config, and links that config into every worktree. |
 | `./gradlew sandboxReset` | Refills `sandbox/input/` from `sandbox/media/` and empties the output folders, so a test run is repeatable. |
 | `./gradlew setupCheck` | Reports anything missing or unsafe and fails if it finds a problem. |

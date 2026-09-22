@@ -17,3 +17,4 @@ test.*
 !.run/*
 !src/test/resources/*/*
 /sandbox
+/library

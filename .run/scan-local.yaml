@@ -5,7 +5,7 @@
 run:
   task: scan
   args:
-    path: /home/archie/NAS/media/anime/bubu/input/
+    path: ../library/input/
 
 anidb:
   cache:
@@ -19,10 +19,10 @@ file:
     deleteEmptyDirs: true
     mode: tagsystem
     unknown:
-      folder: /home/archie/NAS/media/anime/bubu/unknown/
+      folder: ../library/unknown/
       mode: move
     duplicates:
-      folder: /home/archie/NAS/media/anime/bubu/duplicates/
+      folder: ../library/duplicates/
       mode: move
   mylist:
     add: false
@@ -42,9 +42,9 @@ kodi:
 tags:
   paths:
     movieFolders:
-      - path: /home/archie/NAS/media/anime/bubu/output/movies/
+      - path: ../library/output/movies/
         tagSystemName: BaseMoviePath
     tvShowFolders:
-      - path: /home/archie/NAS/media/anime/bubu/output/series/
+      - path: ../library/output/series/
         tagSystemName: BaseTVShowPath
   tagSystemFile: ../config/tagging-system.kodi.txt

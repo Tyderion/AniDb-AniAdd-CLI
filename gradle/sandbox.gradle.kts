@@ -17,8 +17,10 @@ buildscript {
 val sharedEnvName = ".env"
 val altEnvName = "alt.env"
 val sandboxLinkName = "sandbox"
+val libraryLinkName = "library"
 val cacheName = "aniAdd.sqlite"
 val additionalEnvKey = "ADDITIONAL_ENV"
+val libraryRootKey = "LIBRARY_ROOT"
 val sandboxConfig = ".run/sandbox.yaml"
 val sandboxDirs = listOf("media", "input", "unknown", "duplicates", "output/movies", "output/series")
 
@@ -130,7 +132,7 @@ fun loadYaml(file: File): Map<String, Any?> =
 
 tasks.register("envLink") {
     group = "setup"
-    description = "Symlink the shared .env (and the ADDITIONAL_ENV file as alt.env) into this worktree. -Pall does every worktree."
+    description = "Symlink everything named in the shared .env into this worktree: .env itself, alt.env, and the media library. -Pall does every worktree."
     doLast {
         val root = containerRoot()
         val sharedEnv = File(root, sharedEnvName)
@@ -141,6 +143,18 @@ tasks.register("envLink") {
         additional?.let { value ->
             additionalEnvProblem(value)?.let { throw GradleException("$additionalEnvKey $it") }
         }
+        // The library is the one link whose target is an absolute path outside the container, because it
+        // is wherever this machine keeps its media. Naming it here is what lets the tracked configs say
+        // ../library and stay free of anyone's home directory. It is the local equivalent of the bind
+        // mount the Docker deployment uses for the same purpose.
+        val libraryRoot = readEnvValue(sharedEnv, libraryRootKey)
+        if (libraryRoot != null) {
+            if (!File(libraryRoot).isDirectory) {
+                throw GradleException("$libraryRootKey points at $libraryRoot, which is not a directory.")
+            }
+            link(root, libraryLinkName, libraryRoot, logger::lifecycle)
+        }
+
         targetWorktrees().forEach { worktree ->
             link(worktree, sharedEnvName, "../$sharedEnvName", logger::lifecycle)
             if (additional == null) {
@@ -148,6 +162,14 @@ tasks.register("envLink") {
             } else {
                 link(worktree, altEnvName, "../$additional", logger::lifecycle)
             }
+            if (libraryRoot == null) {
+                unlinkIfSymlink(worktree, libraryLinkName, logger::lifecycle)
+            } else {
+                link(worktree, libraryLinkName, "../$libraryLinkName", logger::lifecycle)
+            }
+        }
+        if (libraryRoot == null) {
+            logger.lifecycle("$libraryRootKey is not set in $sharedEnv, so scan-local.yaml and scan-inplace.yaml have nothing to point at.")
         }
         if (additional == null) {
             logger.lifecycle("$additionalEnvKey is not set in $sharedEnv, so no $altEnvName was created.")
@@ -222,8 +244,16 @@ tasks.register("setupCheck") {
             additionalEnvProblem(additional)?.let { findings += "$additionalEnvKey $it" }
         }
 
+        val libraryRoot = readEnvValue(sharedEnv, libraryRootKey)
+        if (libraryRoot == null) {
+            logger.lifecycle("$libraryRootKey is not set, so the local scan configs are inert. That is fine if you only use the sandbox.")
+        } else if (!File(root, libraryLinkName).isDirectory) {
+            findings += "$libraryRootKey is set but ${File(root, libraryLinkName)} does not resolve to a directory"
+        }
+
         val expected = mutableMapOf(sharedEnvName to "../$sharedEnvName")
         if (additional != null) expected[altEnvName] = "../$additional"
+        if (libraryRoot != null) expected[libraryLinkName] = "../$libraryLinkName"
         if (sandboxRoot().isDirectory) expected[sandboxLinkName] = "../$sandboxLinkName"
         worktreePaths().forEach { worktree ->
             expected.forEach { (name, target) ->

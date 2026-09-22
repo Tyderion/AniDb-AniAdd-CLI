@@ -114,11 +114,22 @@ public class SandboxConfigTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"sandbox.yaml", "sandbox-scan.yaml", "sandbox-watch.yaml", "sandbox-watch-kodi.yaml", "sandbox-kodi.yaml"})
-    public void noSandboxConfigNamesAnAbsoluteHomeDirectory(String file) throws IOException {
-        // Absolute paths under a home directory are what made these files unshareable in the first place.
-        // scan-local and scan-inplace are excluded on purpose: they name real folders on one machine.
+    @ValueSource(strings = {"sandbox.yaml", "sandbox-scan.yaml", "sandbox-watch.yaml", "sandbox-watch-kodi.yaml",
+            "sandbox-kodi.yaml", "scan-local.yaml", "scan-inplace.yaml", "docker-scan.yaml", "docker-watch.yaml",
+            "docker-watch-kodi.yaml", "docker-kodi.yaml"})
+    public void noTrackedConfigNamesAHomeDirectory(String file) throws IOException {
+        // These files are shared, so a path under someone's home is both wrong for everyone else and a
+        // small disclosure of how one machine is laid out. The real location lives in an untracked link.
         assertThat(Files.readString(RUN.resolve(file)), not(containsString("/home/")));
+    }
+
+    @Test
+    public void theLocalScanConfigsReachTheLibraryThroughTheLink() {
+        for (String file : new String[]{"scan-local.yaml", "scan-inplace.yaml"}) {
+            val config = load(RUN.resolve(file));
+            assertThat(STR."\{file} movie output", config.tags().paths().movieFolders().get(0).path(),
+                    is(REPO.resolve("library/output/movies")));
+        }
     }
 
     @Test

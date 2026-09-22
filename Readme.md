@@ -66,6 +66,9 @@ entrypoint: `/app/watch.sh`
 Runs either `scan` or `watch` command.
 
 #### mounts
+
+The container never contains a host path: config files inside it use container paths like `/anime/sorting/anime`, and the mount supplies the real location. Local development mirrors this with a `library` symlink driven by `LIBRARY_ROOT`, so the same config shape works in both places and nothing tracked names a specific machine.
+
 - `/from`: Folder containing video files to parse and handle [required], configurable via env var `SCAN_FOLDER`
 - `/unknown`: Folder to move files into that anidb does not know [optional, defaults to /unknown], configurable in your settings file
 - `/duplicates`: Folder to move duplicate files to (alternatively those can be deleted, configurable in your settings file)
@@ -131,6 +134,18 @@ A local folder tree to run against, so you are never pointing a work-in-progress
 Then run the **Sandbox scan** configuration. It runs `sandboxReset` for you as a before-launch task, so every run starts from the same input; the watch configurations do the same. Note that this clears `output/`, so look at the results before starting the next run. **Sandbox Kodi** is left alone, since it has no input folder to refill.
 
 Use real files. AniDB identifies a file by its ed2k hash, so invented ones cannot be identified, and a run full of failed lookups is the quickest way to get your account banned. For the same reason the sandbox shares the ordinary lookup cache rather than starting an empty one. `sandbox/` is ignored by git; the configs that describe it are not.
+
+## Your own library
+
+`scan-local.yaml` and `scan-inplace.yaml` work on a real library rather than the sandbox. They say `../library/input/`, and `library` is a symlink to wherever yours actually lives. Set it once in the shared `.env`:
+
+```
+LIBRARY_ROOT=/path/to/your/anime
+```
+
+then `./gradlew envLink` creates the link. The tracked configs stay free of anyone's machine layout, and the only place your path appears is an untracked file.
+
+This is the same trick the Docker image uses, one level down: the container config says `/anime/sorting/...` and the host path is supplied by a bind mount. A symlink for local runs, a mount for the container, generic paths in both.
 
 ## Config files
 
