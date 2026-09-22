@@ -1,11 +1,11 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="kodi.yaml" type="Application" factoryName="Application" folderName="Samples">
+  <configuration default="false" name="Sandbox scan" type="Application" factoryName="Application" folderName="Sandbox">
     <option name="envFilePaths">
       <option value="$PROJECT_DIR$/.env" />
     </option>
     <option name="MAIN_CLASS_NAME" value="startup.Main" />
     <module name="aniadd-cli.main" />
-    <option name="PROGRAM_PARAMETERS" value="run --config=kodi.yaml" />
+    <option name="PROGRAM_PARAMETERS" value="run --config=sandbox-scan.yaml" />
     <option name="VM_PARAMETERS" value="--enable-preview" />
     <method v="2">
       <option name="Make" enabled="true" />

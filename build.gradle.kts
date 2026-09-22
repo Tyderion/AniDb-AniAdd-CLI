@@ -36,6 +36,7 @@ dependencies {
     implementation("org.java-websocket:Java-WebSocket:1.5.6")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.0-M2")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.11.0-M2")
     // Without the jupiter engine on the test runtime classpath the platform discovers no tests at all
     // and `gradlew test` still reports success. Every test in this repo is JUnit 5, and none of them
     // had ever actually run. Vintage stays for any JUnit 4 test that shows up.

@@ -2,10 +2,6 @@
 # Keeping this a diff rather than a whole config means the tag system lives in exactly one place.
 # Every path here is relative to the generated file, which sits in the sandbox directory, so nothing
 # needs to know where the container lives and the result is readable.
-run:
-  task: scan
-  args:
-    path: input/
 
 anidb:
   cache:

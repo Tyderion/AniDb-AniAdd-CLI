@@ -1,0 +1,5 @@
+# Connect to Kodi and mark watched episodes in MyList. No input folder: this one only talks to Kodi.
+# Note that sandbox.yaml sets mylist.add false, so this observes rather than writes.
+run:
+  task: kodi
+  config: sandbox.yaml

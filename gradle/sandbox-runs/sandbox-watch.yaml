@@ -1,0 +1,7 @@
+# Watch the sandbox input folder and process what appears. Runs until stopped.
+run:
+  task: watch
+  args:
+    path: input/
+    interval: 10
+  config: sandbox.yaml
