@@ -128,7 +128,7 @@ A local folder tree to run against, so you are never pointing a work-in-progress
 ./gradlew sandboxReset    # fills input/ from media/ and clears the rest
 ```
 
-Then run the **Sandbox scan** configuration. `sandboxReset` before each run, because a scan moves its input into `output/` and the second run would otherwise have nothing to do.
+Then run the **Sandbox scan** configuration. It runs `sandboxReset` for you as a before-launch task, so every run starts from the same input; the watch configurations do the same. Note that this clears `output/`, so look at the results before starting the next run. **Sandbox Kodi** is left alone, since it has no input folder to refill.
 
 Use real files. AniDB identifies a file by its ed2k hash, so invented ones cannot be identified, and a run full of failed lookups is the quickest way to get your account banned. For the same reason the sandbox shares the ordinary lookup cache rather than starting an empty one. `sandbox/` is ignored by git; the configs that describe it are not.
 
