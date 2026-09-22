@@ -1,0 +1,14 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="run.yaml" type="Application" factoryName="Application" folderName="Samples">
+    <option name="envFilePaths">
+      <option value="$PROJECT_DIR$/.env" />
+    </option>
+    <option name="MAIN_CLASS_NAME" value="startup.Main" />
+    <module name="aniadd-cli.main" />
+    <option name="PROGRAM_PARAMETERS" value="run --config=run.yaml" />
+    <option name="VM_PARAMETERS" value="--enable-preview" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
