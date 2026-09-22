@@ -80,6 +80,8 @@ Put real anime files in `media/`. The sandbox deliberately does not generate fak
 
 `sandboxReset` copies `media/` into `input/` and clears the rest. Run it before each test, because a scan moves its input into `output/`.
 
+It refuses to clear anything that resolves outside the sandbox, and unlinks rather than follows a symlink it finds inside one. That matters because the sandbox configurations run it automatically before launch, so pointing a sandbox folder at real media would otherwise mean a click of Run erased that folder.
+
 A config file splits in two. `.run/sandbox.yaml` holds the settings and no run block; each `.run/sandbox-<task>.yaml` holds only a run block and delegates with `config: sandbox.yaml`. The `docker-<task>.yaml` files are the same shape for the image, delegating to `config/docker.yaml` instead. That way there is exactly one entry point per task and one place that defines where things go. Adding a task means adding one more `sandbox-<task>.yaml` and a run configuration for it.
 
 All of them are tracked, so they arrive with a clone and show up in a diff when they change. `sandbox.yaml` carries `file.mylist.add: false` and `anidb.exitOnBan: true` as hard gates, and `setupCheck` re-reads it to confirm both are still set.

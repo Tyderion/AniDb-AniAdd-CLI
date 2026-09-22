@@ -1,6 +1,11 @@
 import org.yaml.snakeyaml.Yaml
+import java.io.IOException
+import java.nio.file.FileVisitResult
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
+import java.nio.file.SimpleFileVisitor
+import java.nio.file.attribute.BasicFileAttributes
 
 buildscript {
     repositories { mavenCentral() }
@@ -200,6 +205,47 @@ tasks.register("sandboxInit") {
     }
 }
 
+/**
+ * Empties a directory inside the sandbox without ever following a link out of it.
+ *
+ * Kotlin's File.deleteRecursively walks through a directory symlink and deletes the target's contents,
+ * so a sandbox folder linked at real media would be erased by a routine reset, silently and with no
+ * prompt. Two defences: the resolved path must still be inside the sandbox, which catches a link at any
+ * level rather than only on the leaf, and walkFileTree does not follow links, so a link found inside is
+ * unlinked instead of chased. The directory itself is kept rather than deleted and recreated, so nothing
+ * observes a moment where it is missing.
+ */
+fun clearInsideSandbox(sandbox: File, name: String, log: (String) -> Unit) {
+    val dir = File(sandbox, name)
+    if (!dir.exists()) {
+        dir.mkdirs()
+        return
+    }
+    val sandboxReal = sandbox.toPath().toRealPath()
+    val dirReal = dir.toPath().toRealPath()
+    if (!dirReal.startsWith(sandboxReal)) {
+        throw GradleException(
+            "Refusing to clear $dir: it resolves to $dirReal, outside the sandbox at $sandboxReal.\n" +
+                "Something in that path is a symlink pointing elsewhere. Clearing it would delete whatever " +
+                "it points at, which is how a reset would eat a real media folder."
+        )
+    }
+    val root = dir.toPath()
+    Files.walkFileTree(root, object : SimpleFileVisitor<Path>() {
+        override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
+            Files.delete(file)
+            return FileVisitResult.CONTINUE
+        }
+
+        override fun postVisitDirectory(current: Path, failure: IOException?): FileVisitResult {
+            failure?.let { throw it }
+            if (current != root) Files.delete(current)
+            return FileVisitResult.CONTINUE
+        }
+    })
+    log("  cleared $name")
+}
+
 tasks.register("sandboxReset") {
     group = "setup"
     description = "Refill the sandbox input from media/ and clear the output, unknown and duplicates folders."
@@ -210,9 +256,7 @@ tasks.register("sandboxReset") {
             throw GradleException("No $media. Run ./gradlew sandboxInit first.")
         }
         listOf("input", "unknown", "duplicates", "output/movies", "output/series").forEach { name ->
-            val dir = File(sandbox, name)
-            dir.deleteRecursively()
-            dir.mkdirs()
+            clearInsideSandbox(sandbox, name, logger::lifecycle)
         }
         val copied = media.walkTopDown().filter { it.isFile }.map { source ->
             val target = File(sandbox, "input").resolve(source.relativeTo(media).path)
