@@ -297,12 +297,153 @@ fun clearInsideSandbox(sandbox: File, name: String, log: (String) -> Unit) {
     log("  cleared $name")
 }
 
+/**
+ * Everything that would let a sandbox run touch real folders, as a list of reasons. Empty means a sandbox
+ * run cannot reach outside the sandbox. This is the invariant: a run configuration presented as a sandbox
+ * run only ever reads and writes inside the sandbox, whatever the chain of files between the click and the
+ * scan says.
+ *
+ * The chain has three links, and each is checked, because checking any subset leaves a door beside the
+ * gate. The IntelliJ configuration decides which entry point runs; the entry point decides the input folder
+ * and which settings apply; the settings decide where files are moved to and which gates are on.
+ *
+ * sandboxReset calls this before touching anything, and sandboxGuard exists to call it on its own, so a
+ * sandbox configuration's before-launch step refuses to start rather than relying on someone having run
+ * setupCheck recently.
+ */
+fun sandboxViolations(): List<String> {
+    val findings = mutableListOf<String>()
+    val sandbox = sandboxRoot().canonicalFile
+    val runDir = File(projectDir, ".run")
+    val settingsFile = File(projectDir, sandboxConfig).canonicalFile
+
+    fun inside(base: File, value: Any?): File? = value?.toString()?.let { File(base, it).canonicalFile }
+    fun isInsideSandbox(file: File?) = file != null && file.toPath().startsWith(sandbox.toPath())
+
+    // Link 1: every configuration presented as a sandbox run must start a sandbox entry point, and must
+    // keep a before-launch step that re-runs this check. Removing that step would remove the gate.
+    runDir.listFiles { f: File -> f.name.endsWith(".run.xml") }?.sortedBy { it.name }?.forEach { xml ->
+        val doc = javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(xml)
+        val configuration = doc.getElementsByTagName("configuration").item(0) as? org.w3c.dom.Element
+            ?: return@forEach
+        val presentedAsSandbox = configuration.getAttribute("folderName") == "Sandbox" ||
+            configuration.getAttribute("name").startsWith("Sandbox")
+        if (!presentedAsSandbox) return@forEach
+
+        val options = doc.getElementsByTagName("option")
+        fun option(name: String): org.w3c.dom.Element? = (0 until options.length)
+            .map { options.item(it) as org.w3c.dom.Element }
+            .firstOrNull { it.getAttribute("name") == name }
+
+        val parameters = option("PROGRAM_PARAMETERS")?.getAttribute("value").orEmpty()
+        val configArg = Regex("""(?:--config=|-c\s+)(\S+)""").find(parameters)?.groupValues?.get(1)
+        val workingDir = option("WORKING_DIRECTORY")?.getAttribute("value")
+            ?.replace("\$PROJECT_DIR\$", projectDir.absolutePath)?.let(::File) ?: projectDir
+        val target = configArg?.let { File(workingDir, it).canonicalFile }
+        val isEntryPoint = target != null && target.parentFile == runDir.canonicalFile &&
+            target.name.startsWith("sandbox-") && target.name.endsWith(".yaml")
+        if (!isEntryPoint) {
+            val where = when {
+                configArg == null -> "no --config"
+                target != null && target.path != File(projectDir, configArg).canonicalPath ->
+                    "$configArg, which resolves to $target"
+                else -> configArg
+            }
+            findings += "${xml.name} is a sandbox configuration but runs $where, not a .run/sandbox-*.yaml entry point"
+        }
+        val guarded = (0 until options.length)
+            .map { options.item(it) as org.w3c.dom.Element }
+            .filter { it.getAttribute("name") == "Gradle.BeforeRunTask" && it.getAttribute("enabled") == "true" }
+            .any { task -> task.getAttribute("tasks").split(" ").any { it == "sandboxReset" || it == "sandboxGuard" } }
+        if (!guarded) {
+            findings += "${xml.name} has no sandboxReset or sandboxGuard before launch, so nothing checks it on Run"
+        }
+    }
+
+    // Link 2: each entry point delegates to the sandbox settings, reads its input from the sandbox, and
+    // does not override a gate through an arg the CLI honours ahead of the settings file.
+    runDir.listFiles { f: File -> f.name.startsWith("sandbox-") && f.name.endsWith(".yaml") }
+        ?.sortedBy { it.name }?.forEach { runFile ->
+            val base = runFile.canonicalFile.parentFile
+            val run = loadYaml(runFile)["run"] as? Map<*, *>
+            if (run == null) {
+                findings += "${runFile.name} has no run block, so it is not an entry point"
+                return@forEach
+            }
+            if (inside(base, run["config"]) != settingsFile) {
+                findings += "${runFile.name} delegates to ${run["config"]}, expected $sandboxConfig; " +
+                    "its gates would not apply"
+            }
+            val runArgs = run["args"] as? Map<*, *> ?: emptyMap<Any, Any>()
+            forbiddenRunArgs.filter { runArgs.containsKey(it) }.forEach { arg ->
+                findings += "${runFile.name} sets '$arg' in args, which overrides the settings file"
+            }
+            runArgs["path"]?.let { path ->
+                if (!isInsideSandbox(inside(base, path))) {
+                    findings += "${runFile.name} reads input from $path, which is outside the sandbox at $sandbox"
+                }
+            }
+        }
+
+    // Link 3: the settings. The gates, and every folder a run writes to. The cache is deliberately shared
+    // and the tag system is only read, so both are allowed to sit outside the sandbox.
+    val config = loadYaml(settingsFile)
+    val base = settingsFile.parentFile
+    val file = config["file"] as? Map<*, *>
+    val move = file?.get("move") as? Map<*, *>
+    if ((file?.get("mylist") as? Map<*, *>)?.get("add") != false) {
+        findings += "$sandboxConfig does not set file.mylist.add false"
+    }
+    if ((config["anidb"] as? Map<*, *>)?.get("exitOnBan") != true) {
+        findings += "$sandboxConfig does not set anidb.exitOnBan true"
+    }
+    // Without this one a sandbox run against a real Kodi writes plays to the real MyList account.
+    if ((config["kodi"] as? Map<*, *>)?.get("markWatched") != false) {
+        findings += "$sandboxConfig does not set kodi.markWatched false"
+    }
+    val writeTargets = mutableListOf<Pair<String, Any?>>()
+    listOf("unknown", "duplicates").forEach { kind ->
+        writeTargets += "file.move.$kind.folder" to (move?.get(kind) as? Map<*, *>)?.get("folder")
+    }
+    val tagPaths = (config["tags"] as? Map<*, *>)?.get("paths") as? Map<*, *>
+    listOf("movieFolders", "tvShowFolders").forEach { kind ->
+        (tagPaths?.get(kind) as? List<*>)?.forEachIndexed { i, entry ->
+            writeTargets += "tags.paths.$kind[$i].path" to (entry as? Map<*, *>)?.get("path")
+        }
+    }
+    writeTargets.filter { it.second != null }.forEach { (key, value) ->
+        if (!isInsideSandbox(inside(base, value))) {
+            findings += "$sandboxConfig sends $key to $value, which is outside the sandbox at $sandbox"
+        }
+    }
+    return findings
+}
+
+tasks.register("sandboxGuard") {
+    group = "setup"
+    description = "Refuse if any sandbox run configuration could read or write outside the sandbox. Used as a before-launch step."
+    doLast {
+        val violations = sandboxViolations()
+        if (violations.isNotEmpty()) {
+            violations.forEach { logger.error("  - $it") }
+            throw GradleException("Refusing to start a sandbox run: ${violations.size} way(s) it could reach real folders.")
+        }
+        logger.lifecycle("Sandbox runs are confined to ${sandboxRoot().canonicalFile}.")
+    }
+}
+
 tasks.register("sandboxReset") {
     group = "setup"
     description = "Refill the sandbox input from media/ and clear the output, unknown and duplicates folders."
     doLast {
         val sandbox = sandboxRoot()
         sandboxRootProblem(sandbox)?.let { throw GradleException("Refusing to reset: $it") }
+        // Reset is the before-launch step of the sandbox configurations, so this is what makes the
+        // confinement hold on every click rather than only when someone remembers setupCheck.
+        sandboxViolations().takeIf { it.isNotEmpty() }?.let { violations ->
+            violations.forEach { logger.error("  - $it") }
+            throw GradleException("Refusing to reset: a sandbox run could reach real folders.")
+        }
         val media = File(sandbox, "media")
         if (!media.isDirectory) {
             throw GradleException("No $media. Run ./gradlew sandboxInit first.")
@@ -372,38 +513,7 @@ tasks.register("setupCheck") {
             logger.lifecycle("No sandbox yet. Run ./gradlew sandboxInit if you want one.")
         }
 
-        // Re-read rather than trusted: the file is tracked, but it is also meant to be edited.
-        val settingsFile = File(projectDir, sandboxConfig)
-        val config = loadYaml(settingsFile)
-        val mylistAdd = ((config["file"] as? Map<*, *>)?.get("mylist") as? Map<*, *>)?.get("add")
-        val exitOnBan = (config["anidb"] as? Map<*, *>)?.get("exitOnBan")
-        val markWatched = (config["kodi"] as? Map<*, *>)?.get("markWatched")
-        if (mylistAdd != false) findings += "$sandboxConfig has file.mylist.add=$mylistAdd, expected false"
-        if (exitOnBan != true) findings += "$sandboxConfig has anidb.exitOnBan=$exitOnBan, expected true"
-        // Without this one a sandbox run against a real Kodi writes plays to the real MyList account.
-        if (markWatched != false) findings += "$sandboxConfig has kodi.markWatched=$markWatched, expected false"
-
-        // Checking only the settings file would be a gate with a door beside it: an entry point can send
-        // the run somewhere else entirely, or override a gate through an arg that the CLI honours first.
-        File(projectDir, ".run").listFiles { f: File ->
-            f.name.startsWith("sandbox-") && f.name.endsWith(".yaml")
-        }?.sortedBy { it.name }?.forEach { runFile ->
-            val run = loadYaml(runFile)["run"] as? Map<*, *>
-            if (run == null) {
-                findings += "${runFile.name} has no run block, so it is not an entry point"
-                return@forEach
-            }
-            val delegate = run["config"]?.toString()
-            val resolved = delegate?.let { File(runFile.parentFile, it).canonicalFile }
-            if (resolved != settingsFile.canonicalFile) {
-                findings += "${runFile.name} delegates to $delegate, expected $sandboxConfig; " +
-                    "its gates would not apply"
-            }
-            val runArgs = run["args"] as? Map<*, *> ?: emptyMap<Any, Any>()
-            forbiddenRunArgs.filter { runArgs.containsKey(it) }.forEach { arg ->
-                findings += "${runFile.name} sets '$arg' in args, which overrides the settings file"
-            }
-        }
+        findings += sandboxViolations()
 
         if (findings.isEmpty()) {
             logger.lifecycle("Setup looks complete: container $root, ${worktreePaths().size} worktree(s) linked.")

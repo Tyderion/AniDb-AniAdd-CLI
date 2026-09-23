@@ -5,7 +5,7 @@ description: Add a git worktree to this repository and wire it into the shared d
 
 # Worktree setup
 
-This repository is normally developed as a `.bare` container with one worktree per branch. Everything that is not source lives once in the container and is reached from each worktree through relative symlinks: `.env`, the alternate-account env file, and the `sandbox` directory with the shared AniDB cache.
+This repository is normally developed as a `.bare` container with one worktree per branch. Everything that is not source lives once in the container and is reached from each worktree through relative symlinks: `.env`, the alternate-account env file, the shared AniDB cache, the media library, and the `sandbox` directory.
 
 `docs/WorktreeSetup.md` describes the layout, the account switch and the sandbox in full. Read it when the question is "how is this arranged"; this skill is for "make me another worktree".
 
@@ -30,13 +30,15 @@ Every one of these needs `JAVA_HOME` pointing at a JDK 21 (see `CLAUDE.md`). `sa
 
 | Task | Does |
 |---|---|
-| `envLink` | Symlinks `.env`, and `alt.env` for the account named by `ADDITIONAL_ENV`. `-Pall` does every worktree, which is how you switch accounts everywhere at once. |
-| `sandboxInit` | Creates the sandbox tree, links the shared cache into it, links `sandbox` into each worktree. Safe to re-run. |
+| `envLink` | Symlinks `.env`, the shared cache, `alt.env` for the account named by `ADDITIONAL_ENV`, and `library` from `LIBRARY_ROOT`. `-Pall` does every worktree, which is how you switch accounts everywhere at once. |
+| `sandboxInit` | Creates the sandbox tree and links `sandbox` into each worktree. Safe to re-run. |
 | `sandboxReset` | Refills `sandbox/input/` from `sandbox/media/` and empties the output folders. Run before a test, because a scan moves its own input. |
+| `sandboxGuard` | Refuses if any sandbox run configuration could read or write outside the sandbox. It is the before-launch step of `Sandbox Kodi`; the others get the same check through `sandboxReset`. |
 | `setupCheck` | Reports missing links, missing directories, and a sandbox config whose safety gates have been edited away. Exits non-zero. |
 
 ## Gotchas
 
+- **Sandbox runs are confined, and that is enforced, not documented.** Every configuration in the Sandbox folder must run a `.run/sandbox-*.yaml` entry point, every entry point must delegate to `.run/sandbox.yaml` and read from the sandbox, and every folder the settings write to must be inside the sandbox. The check runs before launch, so a sandbox configuration pointed at real folders refuses to start. Change what a sandbox run touches by editing the sandbox, never by pointing a Sandbox configuration elsewhere; for a real run use `Local Test` or `Local InPlace`.
 - **JDK 21, not the system default.** Gradle 8.8 fails on newer JDKs with a message that is only the version number, which reads like a corrupt build rather than a toolchain problem.
 - **Never create these symlinks by hand.** The tasks refuse to replace a regular file, so an existing real `.env` in a worktree is reported rather than deleted. Doing it manually loses that.
 - **Nothing is generated.** Every config is tracked in `.run/`; a new worktree gets them from git. Copying configs between worktrees means two copies that drift.

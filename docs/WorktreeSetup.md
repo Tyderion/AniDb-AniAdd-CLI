@@ -47,6 +47,7 @@ Four Gradle tasks, all in the `setup` group, all runnable from any worktree:
 | `./gradlew envLink` | Symlinks everything the shared `.env` names into this worktree: `.env` itself, `alt.env` from `ADDITIONAL_ENV`, and `library` from `LIBRARY_ROOT`. Add `-Pall` to do every worktree at once. |
 | `./gradlew sandboxInit` | Creates the `sandbox/` directories and, in the worktree layout, links the shared sandbox into every worktree. It generates nothing: the configs are tracked in `.run/`. |
 | `./gradlew sandboxReset` | Refills `sandbox/input/` from `sandbox/media/` and empties the output folders, so a test run is repeatable. |
+| `./gradlew sandboxGuard` | Refuses if any sandbox run configuration could read or write outside the sandbox. The before-launch step of `Sandbox Kodi`; the other sandbox configurations get the same check through `sandboxReset`. |
 | `./gradlew setupCheck` | Reports anything missing or unsafe and fails if it finds a problem. |
 
 They find the container by asking git for its common directory (`git rev-parse --git-common-dir`) and taking the parent, rather than assuming `..`. Link targets are computed the same way, so a worktree nested a level deeper gets `../../` and still resolves.
@@ -88,6 +89,16 @@ All of them are tracked, so they arrive with a clone and show up in a diff when 
 Every settings file points its cache at `../aniAdd.sqlite`, which `envLink` links to the shared one in the container. The sandbox therefore reuses lookups from real runs instead of starting empty and querying AniDB for every file, and in a plain clone the same path is an ordinary file in the checkout rather than something above it.
 
 None of the settings files carry a tag system of their own: all three reference `config/tagging-system.kodi.txt` through `tags.tagSystemFile`. One definition, no drift. The file is read once and cached, so in `watch` mode an edit takes effect on the next start rather than immediately.
+
+## Sandbox runs never touch real folders
+
+That is enforced rather than hoped for. A sandbox run is a chain of three tracked files, and every link is checked before launch:
+
+- **The IntelliJ configuration** in the Sandbox folder must start a `.run/sandbox-*.yaml` entry point, resolved against its real working directory, and must keep `sandboxReset` or `sandboxGuard` as a before-launch step. Removing that step would remove the check, so its absence is itself a finding.
+- **The entry point** must delegate to `.run/sandbox.yaml`, must read its input from inside the sandbox, and must not set `exit-on-ban` or `db` in its args, where the CLI would honour them over the settings.
+- **The settings** must keep the three gates, and every folder a run writes to (unknown, duplicates, movie and series output) must resolve inside the sandbox. The cache is deliberately shared and the tag system is only read, so those two may sit outside.
+
+A violation makes the before-launch step fail, so the run never starts. For a run against real folders use `Local Test` or `Local InPlace`, which are real runs and say so.
 
 ## Paths in config files
 
