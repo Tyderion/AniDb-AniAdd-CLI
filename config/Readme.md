@@ -142,6 +142,19 @@ kodi:
       episodes: false
       movies: false
       artwork: false
+  libraryScan:
+    enabled: true
+    scope: changed
+    clean: true
+    showDialogs: false
+    timeoutInMinutes: 30
+    libraries:
+      - name: anime series
+        localPath: /shows
+        content: tvshows
+      - path: /storage/media/anime/movies/
+        localPath: /movies
+        content: movies
 ```
 
 - `kodi`: Kodi Configuration
@@ -158,6 +171,17 @@ kodi:
       - `movies`: `<video-basename>.nfo` of a movie
       - `artwork`: episode/movie thumbnails, fanart, poster, banner and actor images
     - `tvDbApiKey` / `tmDbApiToken`: API credentials for TVDB (series) and TMDB (movies). Like the AniDB password they must not be placed in the config file — pass them via CLI (`--tvDbApiKey`, `--tmDbApiToken`) or env (`TVDB_APIKEY`, `TMDB_ACCESS_TOKEN`)
+  - `libraryScan`: Ask Kodi to scan its video library once, at the end of each directory scan run (every `scan`, every `watch` interval), if that run moved or renamed files or wrote NFOs Kodi has not seen yet. Files re-processed to mark them watched from Kodi never trigger a scan. Connects to `host`/`port` over the websocket (no Kodi web-server login needed). For `scan` and `watch` the host and port can also come from `--kodi-host`/`--kodi-port` or `KODI_HOST`/`KODI_PORT`. A Kodi that cannot be reached is logged as an error and the changed files are retried at the end of the next run.
+    - `enabled`: Turn the scan on (default: false). Startup fails if it is enabled without libraries or with an entry that has both or neither of `name` and `path`.
+    - `scope`: `changed` scans only the top-level folder (the show or movie folder) below a library that received files, or the library root for files placed directly in it; `library` scans every configured library whole whenever anything changed (default: `changed`)
+    - `showDialogs`: Show Kodi's scan progress bar on screen (default: false)
+    - `timeoutInMinutes`: Scans run one at a time, each waiting for Kodi's `VideoLibrary.OnScanFinished`; after this long the next one starts anyway (default: 30)
+    - `clean`: After the scans, clean every library that was scanned, so entries whose files are gone disappear from Kodi (default: false). This is what removes the old release when you replace an episode with a better version and delete the old file. Cleaning always runs against the whole library root, never a single show folder: Kodi accepts a clean of a subfolder and then silently does nothing ([kodi#21687](https://github.com/xbmc/xbmc/issues/21687)). Kodi drops entries whose files it cannot reach, so do not enable this where the library can be mounted-but-empty.
+    - `libraries`: The Kodi video sources to scan, each given by exactly one of:
+      - `name`: The source label as shown in Kodi, matched case-insensitively and resolved to its path through `Files.GetSources`. An unknown name is logged together with the labels Kodi does know.
+      - `path`: The source path as Kodi sees it, e.g. `/storage/media/anime/series/` or `smb://nas/anime/`
+      - `localPath`: The same folder as AniAdd sees it (inside Docker, the container path). Needed by `scope: changed` to map a moved file to its Kodi folder; a library without it is scanned whole whenever anything changed, and files outside every `localPath` trigger no scan.
+      - `content`: What this source holds in Kodi: `tvshows`, `movies` or `musicvideos`. Required when `clean` is on, and it has to match what the source is set to in Kodi, because a clean whose content disagrees is accepted and ignored. Startup fails if it is missing.
 
 #### Run
 If this block is present, you can run the configured task with `run -r <config-file-path>`.

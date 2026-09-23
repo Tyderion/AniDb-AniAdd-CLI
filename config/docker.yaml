@@ -7,7 +7,11 @@ run:
 
 anidb:
   cache:
-    db: aniAdd.sqlite
+    # Absolute on purpose. A relative path resolves against this file, so a mounted config would put the
+    # cache beside itself, often on a read-only mount. Mount a writable volume here and keep it across
+    # upgrades: starting from an empty cache means looking every file up again, which is what gets an
+    # account banned. LOCAL_CACHE_FILE overrides it for the entrypoint scripts.
+    db: /cache/aniAdd.sqlite
     ttlInDays: 30
   exitOnBan: false
   localPort: 3333

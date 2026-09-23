@@ -25,7 +25,9 @@ public class ConfigFileHandler<T> {
         }
         try {
             val input = new FileInputStream(path.toFile());
-            return getConfigParser().load(input);
+            // A fresh parser per load, because the base directory belongs to the file being read and the
+            // cached one is shared. Construction is cheap; a mutable base on a shared parser is not worth it.
+            return new ConfigFileParser<>(clazz, ConfigFileParser.baseDirectoryOf(path)).load(input);
         } catch (FileNotFoundException e) {
             log.error(STR."File not found at: \{path}");
             return null;

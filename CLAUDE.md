@@ -9,9 +9,15 @@ Headless CLI fork of the old AniDB Java applet (GUI removed at v1.1.1). Scans or
 - Run the jar with `java --enable-preview -jar ...` — the flag is needed at runtime too (the `.run/*.sh` scripts all pass it).
 - Lombok everywhere (`@Slf4j`, `@Getter`, `val`) via the freefair plugin; slf4j-simple for logging, levels overridable via a properties file named by env `LOG_CONFIG_FILE`.
 
+## Worktrees
+
+Development usually happens in a `.bare` container with one worktree per branch, sharing one `.env` and one AniDB cache. `docs/WorktreeSetup.md` has the layout; `.claude/skills/worktree-setup/` has the procedure for adding one. A plain clone works too and needs none of it.
+
 ## Commands
 
-- Test: `./gradlew test` (JUnit 5 + vintage engine, Mockito, Hamcrest; only `ParseReplyTest` and `RunConfigTest` exist — coverage is thin, don't assume tests catch regressions)
+- Test: `./gradlew test` (JUnit 5 + params + vintage engine, Mockito, Hamcrest). Config loading, path resolution and the tracked `.run/` configs are covered; the processing pipeline and the AniDB client are not, so don't assume tests catch regressions there.
+- Functional tests: `./gradlew functionalTest` (Gradle TestKit, `src/functionalTest/`, ~20s). Builds a real `.bare` container per case and runs the setup tasks in `gradle/sandbox.gradle.kts` against it, asserting on what survived. Deliberately not part of `test` or `check`; run it after touching that script or anything in `.run/`, since it is the only thing that tests the refusals (symlink escapes, the sandbox confinement guard) rather than trusting them.
+- `-Daniadd.test.tmpdir=<dir>` runs the unit tests with their temp root there. Point it at a symlink to reproduce macOS, where `/var` links to `/private/var` and unresolved temp paths break path assertions.
 - Fat jar: `./gradlew fatJar` → `build/libs/aniadd-cli-all-<version>.jar`, main class `startup.Main`
 ### Docker image (custom tasks, not the plugin defaults)
 
@@ -30,6 +36,7 @@ Entry point `startup.Main` → picocli `CliCommand` with subcommands: `anidb` (`
 - `udpapi/` — AniDB UDP protocol client (`UdpApi`): single command in flight, command queue + query map keyed by tag, session login/logout, reply parsing in `receive`/`reply`/`query`. AniDB rate-limits and **bans aggressive clients** (`exitOnBan` config) — never loop real API calls in testing; use the `debug` subcommands (fake files, canned responses) instead.
 - `processing/` — `EpisodeProcessing` orchestrates per-file state (`FileInfo`, `MultiKeyDict` keyed by id+path) through the `FileAction` steps: `HashFile` → `FileCmd` (AniDB lookup) → tag-system evaluation → `Rename` → `MyListAddCmd` → `LoadWatchedState` → `GenerateKodiMetadata`. `processing/tagsystem/TagSystem` is the renaming DSL (examples: `config/tagging-system*.txt`, docs in Readme).
 - `kodi/` (this branch, `feature/kodi-nfo`) — generates Kodi `.nfo` metadata files plus artwork for processed files; see the next section.
+- `kodi/library/` (`feature/kodi-library-scan`) — at the end of each directory scan run, `KodiLibraryScanner` asks Kodi to scan the folders that received files (`kodi.libraryScan`, default off). `EpisodeProcessing` marks a `FileInfo` `libraryChanged` when it was actually moved or got an NFO that did not exist before; `FileProcessor.Scan` hands its files over as one run (`addScanRun`), and `addScanRunFinishedListener` fires once when every file of that run has finished. Files added one at a time (`addFiles` with a config, e.g. Kodi watched marks) belong to no run and never trigger a scan. `AniAdd` waits for `lastScan()` before shutting down a `scan` command. `LibraryScanPlanner` (pure, unit-tested) maps local paths to Kodi paths per `localPath`; libraries given by `name` are resolved via `Files.GetSources`. With `kodi.libraryScan.clean`, each scanned library root is then cleaned via `VideoLibrary.Clean` with its configured `content` (per-show cleans are a silent no-op in Kodi, and a wrong `content` is too, hence the startup validation). Scans go through `aniAdd/kodi/KodiRpcClient` (id-matched replies, waits for `VideoLibrary.OnScanFinished` between scans) on a fresh websocket connection per run, separate from the watched-state subscriber.
 - `fileprocessor/` (directory scanning), `ed2kHasher/` (ed2k/MD4 hashing), `cache/` (Hibernate + SQLite cache of AniDB file data, `AniDBFileData`), `aniAdd/kodi/` (Kodi JSON-RPC over WebSocket, marks watched episodes).
 
 ## Kodi NFO generation (`feature/kodi-nfo` branch)

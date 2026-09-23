@@ -65,6 +65,11 @@ public abstract class KodiJsonRpc {
 		params.add(property, value);
 	}
 
+	public KodiJsonRpc setId(int id) {
+		jsonObject.addProperty(PROPERTY_ID, id);
+		return this;
+	}
+
 	public String getAsJsonString() {
 		return jsonObject.toString();
 	}

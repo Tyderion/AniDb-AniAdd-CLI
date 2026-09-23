@@ -9,8 +9,14 @@ plugins {
     id("io.freefair.lombok") version "8.6"
 }
 
+// Functional tests for gradle/sandbox.gradle.kts, run with ./gradlew functionalTest. Each case builds a real
+// .bare container with worktrees in a temp directory and runs the setup tasks against it through Gradle
+// TestKit, then inspects the filesystem. That is the only honest way to test code whose job is to refuse to
+// delete things. They start real builds and are slow, so they are kept out of ./gradlew test and check.
+val functionalTest: SourceSet by sourceSets.creating
+
 group = "ch.tyderion"
-version = "5.0.0.kodi.a.5"
+version = "5.0.0.kodi.a.7"
 
 java {
     targetCompatibility = JavaVersion.VERSION_21
@@ -36,6 +42,7 @@ dependencies {
     implementation("org.java-websocket:Java-WebSocket:1.5.6")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.0-M2")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.11.0-M2")
     // Without the jupiter engine on the test runtime classpath the platform discovers no tests at all
     // and `gradlew test` still reports success. Every test in this repo is JUnit 5, and none of them
     // had ever actually run. Vintage stays for any JUnit 4 test that shows up.
@@ -43,6 +50,13 @@ dependencies {
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.11.0-M2")
     testImplementation("org.mockito:mockito-core:5.12.0")
     testImplementation("org.hamcrest:hamcrest:3.0")
+
+    "functionalTestImplementation"(gradleTestKit())
+    "functionalTestImplementation"("org.junit.jupiter:junit-jupiter-api:5.11.0-M2")
+    "functionalTestImplementation"("org.junit.jupiter:junit-jupiter-params:5.11.0-M2")
+    "functionalTestImplementation"("org.hamcrest:hamcrest:3.0")
+    "functionalTestRuntimeOnly"("org.junit.jupiter:junit-jupiter-engine:5.11.0-M2")
+    "functionalTestRuntimeOnly"("org.junit.platform:junit-platform-launcher")
 
     implementation("org.hibernate.orm:hibernate-core:6.5.2.Final")
     implementation("org.hibernate.orm:hibernate-community-dialects:6.5.2.Final")
@@ -149,6 +163,9 @@ tasks.register<Dockerfile>("createDockerfile") {
     copyFile("scan.sh", "/app/scan.sh")
     copyFile("watch-and-kodi.sh", "/app/watch-and-kodi.sh")
     copyFile("logging.properties", "/app/logging.properties")
+    // The scripts' executable bit is recorded in git, but a checkout that drops it (or a COPY from a
+    // context where it was lost) would otherwise produce an image whose entrypoints cannot be exec'd.
+    runCommand("chmod +x /app/*.sh")
     defaultCommand("/app/noop.sh")
 }
 
@@ -200,6 +217,18 @@ tasks {
     withType<Test> {
         useJUnitPlatform()
         jvmArgs("--enable-preview")
+        // -Daniadd.test.tmpdir=<dir> runs the suite with its temp root there. Point it at a symlink to get
+        // macOS's /var -> /private/var on Linux: tests that compare unresolved temp paths fail under it.
+        System.getProperty("aniadd.test.tmpdir")?.let { systemProperty("java.io.tmpdir", it) }
+        // SandboxConfigTest reads the tracked configs in .run/ and config/. Without declaring them, Gradle
+        // sees no change when one is edited and reports the test task up to date, so a broken config
+        // passes the build until something in src/ happens to change.
+        inputs.dir(layout.projectDirectory.dir(".run"))
+            .withPropertyName("runConfigs")
+            .withPathSensitivity(PathSensitivity.RELATIVE)
+        inputs.dir(layout.projectDirectory.dir("config"))
+            .withPropertyName("configFiles")
+            .withPathSensitivity(PathSensitivity.RELATIVE)
     }
     named("dockerBuildImage") {
         enabled = false
@@ -221,4 +250,16 @@ tasks {
         enabled = false
         setDependsOn(emptySet<Task>())
     }
+}
+apply(from = "gradle/sandbox.gradle.kts")
+
+tasks.register<Test>("functionalTest") {
+    description = "Runs the setup tasks against real throwaway worktree containers. Slow; not part of test or check."
+    group = "verification"
+    testClassesDirs = functionalTest.output.classesDirs
+    classpath = functionalTest.runtimeClasspath
+    // The JUnit platform and the .run and config inputs come from withType<Test>, which covers this task
+    // too. The script is the one extra input: each case copies it into its fixture, so a change must rerun.
+    inputs.file(layout.projectDirectory.file("gradle/sandbox.gradle.kts")).withPathSensitivity(PathSensitivity.RELATIVE)
+    systemProperty("aniadd.repo", layout.projectDirectory.asFile.absolutePath)
 }
