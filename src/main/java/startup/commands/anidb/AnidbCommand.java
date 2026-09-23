@@ -62,7 +62,18 @@ public class AnidbCommand extends ConfigRequiredCommand {
     @CommandLine.Option(names = {"--exit-on-ban"}, description = "Exit the application if the user is banned", scope = CommandLine.ScopeType.INHERIT)
     Boolean exitOnBan;
 
-    @NonBlank
+    // Required, with no default, on purpose. A default silently picked a location: relative to wherever the
+    // command happened to start, so the same config could open a different cache from the IDE than from a
+    // shell or a container. Starting on an empty cache means looking every file up again, which is what gets
+    // an AniDB account banned, so a missing cache is refused rather than guessed at.
+    @NonBlank(message = """
+            anidb.cache.db is not set. Set it in the config file, or pass --db.
+            Earlier versions defaulted to aniAdd.sqlite in the directory the command was run from. If you relied \
+            on that, your cache is still there; keep using it by adding this to your config:
+              anidb:
+                cache:
+                  db: /path/to/that/directory/aniAdd.sqlite
+            Starting without it would mean looking every file up again.""")
     @MapConfig(configPath = "anidb.cache.db")
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", scope = CommandLine.ScopeType.INHERIT)
     Path dbPath;

@@ -153,6 +153,8 @@ Run configurations live in `.run/` and are tracked, so they arrive with a clone 
 
 A config splits into two layers. A **settings** file describes where things go: paths, the cache, the tag system, and the mylist, Kodi and ban options. A **run** file carries only a `run:` block saying which task to start, and delegates the rest with `config: <settings file>`. `sandbox.yaml` and the `sandbox-*.yaml` files beside it are that pair.
 
+`anidb.cache.db` is required. It used to default to `aniAdd.sqlite` in whatever directory the command ran from, so the same config could open a different cache from the IDE than from a shell; starting from an empty cache means looking every file up again, which risks a ban. If you relied on the old default, point `db` at the file it created. `config new` writes one for you.
+
 Two rules make those files portable:
 
 - **Paths are relative to the file they are written in**, never to the working directory, the same way compose files and tsconfig behave. Absolute paths are used as written. So a config means the same thing launched from the IDE, from a shell, or from a container, and symlinks are followed first.
