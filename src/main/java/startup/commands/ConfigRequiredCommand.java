@@ -29,6 +29,14 @@ public abstract class ConfigRequiredCommand {
         return getConfiguration() != null;
     }
 
+    /**
+     * A reason to refuse this config before it is used, or null. Runs at load time, before validation maps
+     * command line options into the config, so an override can still tell whether it was given explicitly.
+     */
+    protected String configProblem(String content) {
+        return null;
+    }
+
     private RootConfiguration loadConfiguration() {
         if (configPath == null) {
             val configFile = System.getenv("CONFIG_FILE");
@@ -43,6 +51,12 @@ public abstract class ConfigRequiredCommand {
             val content = Files.readString(configPath, StandardCharsets.UTF_8);
             if (content.contains("addToMylist")) {
                 error = "Old config detected. Please convert it with 'config convert' command.";
+                log.error(error);
+                return null;
+            }
+            val problem = configProblem(content);
+            if (problem != null) {
+                error = problem;
                 log.error(error);
                 return null;
             }

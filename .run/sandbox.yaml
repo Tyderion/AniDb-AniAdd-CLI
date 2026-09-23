@@ -18,6 +18,10 @@ anidb:
 
 file:
   move:
+    # Hard gate, enforced where files are moved: nothing outside the sandbox is moved, renamed or deleted,
+    # and a scan of a folder outside it is refused. The only gate that sees destinations a tag system
+    # computes at run time, which the checks on this file cannot.
+    confineTo: ../sandbox/
     mode: tagsystem
     deleteEmptyDirs: false
     unknown:

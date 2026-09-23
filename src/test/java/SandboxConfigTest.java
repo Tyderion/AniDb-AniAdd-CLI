@@ -45,6 +45,7 @@ public class SandboxConfigTest {
     @Test
     public void theSandboxSettingsKeepTheirSafetyGates() {
         val config = load(RUN.resolve("sandbox.yaml"));
+        assertThat("moves are confined to the sandbox", config.file().move().confineTo(), is(REPO.resolve("sandbox")));
         assertThat(config.file().mylist().add(), is(false));
         assertThat(config.anidb().exitOnBan(), is(true));
     }

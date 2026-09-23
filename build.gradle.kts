@@ -258,11 +258,8 @@ tasks.register<Test>("functionalTest") {
     group = "verification"
     testClassesDirs = functionalTest.output.classesDirs
     classpath = functionalTest.runtimeClasspath
-    useJUnitPlatform()
-    // The cases copy the real script and the real tracked configs into each fixture, so a change to either
-    // must rerun them. Declared for the same reason as on the unit tests: undeclared, Gradle calls the task
-    // up to date and a broken config passes.
+    // The JUnit platform and the .run and config inputs come from withType<Test>, which covers this task
+    // too. The script is the one extra input: each case copies it into its fixture, so a change must rerun.
     inputs.file(layout.projectDirectory.file("gradle/sandbox.gradle.kts")).withPathSensitivity(PathSensitivity.RELATIVE)
-    inputs.dir(layout.projectDirectory.dir(".run")).withPathSensitivity(PathSensitivity.RELATIVE)
     systemProperty("aniadd.repo", layout.projectDirectory.asFile.absolutePath)
 }

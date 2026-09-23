@@ -78,6 +78,56 @@ public class AnidbCommand extends ConfigRequiredCommand {
     @CommandLine.Option(names = {"--db"}, description = "The path to the sqlite db", scope = CommandLine.ScopeType.INHERIT)
     Path dbPath;
 
+    /**
+     * Refuses a config whose relative cache path has moved. Relative paths used to resolve against the working
+     * directory and now resolve next to the config file, so an existing config can silently switch to a new,
+     * empty cache and look every file up again, which is what gets an AniDB account banned. Only when the old
+     * location has a cache and the new one does not: a fresh setup, where neither exists, starts normally.
+     * dbPath still holds only what was typed on the command line here, so an explicit --db skips the check.
+     */
+    @Override
+    protected String configProblem(String content) {
+        if (dbPath != null) {
+            return null;
+        }
+        return cacheRelocationProblem(rawCachePath(content), configPath, Path.of("").toAbsolutePath());
+    }
+
+    /** The rule on its own, so it can be tested without depending on the working directory. */
+    public static String cacheRelocationProblem(String raw, Path configFile, Path workingDirectory) {
+        if (raw == null || raw.isBlank() || Path.of(raw).isAbsolute()) {
+            return null;
+        }
+        val now = utils.config.ConfigFileParser.resolve(Path.of(raw), utils.config.ConfigFileParser.baseDirectoryOf(configFile));
+        val before = workingDirectory.resolve(raw).normalize();
+        if (now.equals(before) || java.nio.file.Files.exists(now) || !java.nio.file.Files.exists(before)) {
+            return null;
+        }
+        return String.join("\n",
+                "anidb.cache.db is relative, and relative paths now resolve next to the config file, not the directory the command runs from.",
+                "It now means:     " + now + "   (does not exist)",
+                "It used to mean:  " + before + "   (exists)",
+                "Refusing to start on an empty cache, which would look every file up again. To keep using your cache, set:",
+                "  anidb:",
+                "    cache:",
+                "      db: " + before);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String rawCachePath(String content) {
+        try {
+            val root = new org.yaml.snakeyaml.Yaml().load(content);
+            if (!(root instanceof java.util.Map<?, ?> map)) return null;
+            val anidb = map.get("anidb");
+            val cache = anidb instanceof java.util.Map<?, ?> a ? a.get("cache") : null;
+            val db = cache instanceof java.util.Map<?, ?> c ? c.get("db") : null;
+            return db == null ? null : db.toString();
+        } catch (RuntimeException e) {
+            // The real parser reports malformed YAML properly; this check only ever declines.
+            return null;
+        }
+    }
+
     @MapConfig(configPath = "kodi.metadata.tmDbApiToken", envVariableName = "TMDB_ACCESS_TOKEN", required = true, configMustBeNull = true)
     @CommandLine.Option(names = {"--tmDbApiToken"}, description = "Token to access tmdb api", scope = CommandLine.ScopeType.INHERIT)
     @NonBlank String tmDbApiToken;
@@ -110,8 +160,15 @@ public class AnidbCommand extends ConfigRequiredCommand {
             libraryScanProblems.forEach(problem -> log.error(STR."Invalid configuration: \{problem}"));
             return Optional.empty();
         }
+        val confineTo = fileConfig.move().confineTo();
+        if (confineTo != null && inputDirectory != null && !processing.Confinement.contains(confineTo, inputDirectory)) {
+            log.error(STR."Refusing to process \{inputDirectory}: file.move.confineTo allows only \{confineTo}");
+            return Optional.empty();
+        }
         val udpApi = getUdpApi(executorService);
-        val fileHandler = new FileHandler();
+        processing.IFileHandler fileHandler = confineTo == null
+                ? new FileHandler()
+                : new processing.ConfinedFileHandler(new FileHandler(), confineTo);
         val fileRepository = new AniDBFileRepository(sessionFactory);
         val tvDbApi = new TvDbApi(kodiConfig.metadata().tvDbApiKey(), executorService);
         val tmDbApi = new TmDbApi(kodiConfig.metadata().tmDbApiToken(), executorService);

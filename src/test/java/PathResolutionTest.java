@@ -58,6 +58,24 @@ public class PathResolutionTest {
         assertThat(config.anidb().cache().db(), is(dir.resolve("aniAdd.sqlite")));
     }
 
+    /**
+     * Blank means unset to the code that reads these: a blank move folder renames in place, and a blank cache
+     * path is refused as missing. Resolving it would silently turn it into the config file's own directory.
+     */
+    @Test
+    public void aBlankPathStaysBlank() throws IOException {
+        val config = write(dir.resolve("settings.yaml"), """
+                anidb:
+                  cache:
+                    db: ""
+                file:
+                  move:
+                    folder: ''
+                """);
+        assertThat(config.anidb().cache().db().toString(), is(""));
+        assertThat(config.file().move().folder().toString(), is(""));
+    }
+
     @Test
     public void anAbsolutePathIsLeftAlone() throws IOException {
         val config = write(dir.resolve("settings.yaml"), """

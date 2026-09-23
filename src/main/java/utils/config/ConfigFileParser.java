@@ -104,8 +104,10 @@ public class ConfigFileParser<T> {
      * Every path-typed value in a config file goes through here, so this is the single place that decides
      * what a relative path means. Absolute paths and configs loaded without a base are left untouched.
      */
-    static Path resolve(Path path, Path baseDir) {
-        if (baseDir == null || path.isAbsolute()) {
+    public static Path resolve(Path path, Path baseDir) {
+        // A blank value means unset to the code reading it (a blank move folder renames in place, a blank
+        // cache path is refused as missing). Resolving it would turn it into the config's own directory.
+        if (baseDir == null || path.isAbsolute() || path.toString().isBlank()) {
             return path;
         }
         return baseDir.toAbsolutePath().resolve(path).normalize();

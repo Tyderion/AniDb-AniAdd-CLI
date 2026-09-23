@@ -84,7 +84,7 @@ It refuses to clear anything that resolves outside the sandbox, and unlinks rath
 
 A config file splits in two. `.run/sandbox.yaml` holds the settings and no run block; each `.run/sandbox-<task>.yaml` holds only a run block and delegates with `config: sandbox.yaml`. The `docker-<task>.yaml` files are the same shape for the image, delegating to `config/docker.yaml` instead. That way there is exactly one entry point per task and one place that defines where things go. Adding a task means adding one more `sandbox-<task>.yaml` and a run configuration for it.
 
-All of them are tracked, so they arrive with a clone and show up in a diff when they change. `setupCheck` reads the entry points as well as the settings, rejecting one that delegates somewhere else or sets `exit-on-ban` or `db` in its args, since either would step around a gate. `sandbox.yaml` carries three hard gates, and `setupCheck` re-reads the file to confirm all three are still set: `file.mylist.add: false` so a scan adds nothing, `kodi.markWatched: false` so a play reported by Kodi is observed rather than written back, and `anidb.exitOnBan: true` so a run stops instead of hammering the API.
+All of them are tracked, so they arrive with a clone and show up in a diff when they change. `setupCheck` reads the entry points as well as the settings, rejecting one that delegates somewhere else or sets `exit-on-ban` or `db` in its args, since either would step around a gate. `sandbox.yaml` carries five hard gates, and `setupCheck` re-reads the file to confirm all are still set: `file.mylist.add: false` so a scan adds nothing, `kodi.markWatched: false` so a play reported by Kodi is observed rather than written back, `kodi.libraryScan.enabled: false` so the real Kodi library is never scanned or cleaned, `anidb.exitOnBan: true` so a run stops instead of hammering the API, and `file.move.confineTo: ../sandbox/`, described below.
 
 Every settings file points its cache at `../aniAdd.sqlite`, which `envLink` links to the shared one in the container. The sandbox therefore reuses lookups from real runs instead of starting empty and querying AniDB for every file, and in a plain clone the same path is an ordinary file in the checkout rather than something above it.
 
@@ -92,11 +92,15 @@ None of the settings files carry a tag system of their own: all three reference 
 
 ## Sandbox runs never touch real folders
 
-That is enforced rather than hoped for, and tested: `./gradlew functionalTest` builds throwaway containers and attacks each of the checks below, asserting that what they protect survives. A sandbox run is a chain of three tracked files, and every link is checked before launch:
+That is enforced rather than hoped for, and tested: `./gradlew functionalTest` builds throwaway containers and attacks each of the checks below, asserting that what they protect survives. It is enforced in two places, because neither can do the job alone.
 
-- **The IntelliJ configuration** in the Sandbox folder must start a `.run/sandbox-*.yaml` entry point, resolved against its real working directory, and must keep `sandboxReset` or `sandboxGuard` as a before-launch step. Removing that step would remove the check, so its absence is itself a finding.
+**In the app.** `file.move.confineTo` makes the application refuse to move, rename or delete anything outside the sandbox, and refuse to scan a folder outside it. It is checked where files are actually moved, so it covers destinations nothing else can see: in `tagsystem` mode the tag system computes where a file goes at run time, and a tag system that writes an absolute path, or reassigns `BaseTVShowPath`, would otherwise send sandbox files into the real library. A refused move leaves the file where it was, and its metadata goes beside it.
+
+**Before launch.** A sandbox run is a chain of three tracked files, and every link is checked, so a configuration that would reach real folders refuses to start:
+
+- **The IntelliJ configuration** in the Sandbox folder must run exactly `run --config=<entry point>` on a `.run/sandbox-*.yaml` file, resolved against its real working directory, and must keep a plain `sandboxReset` or `sandboxGuard` before-launch step, with no extra Gradle arguments and pointing at this project. Removing or disabling that step would remove the check, so either is itself a finding. Configurations IntelliJ keeps outside `.run/`, such as a copy made with Copy Configuration in `.idea/workspace.xml`, are checked the same way.
 - **The entry point** must delegate to `.run/sandbox.yaml`, must read its input from inside the sandbox, and must not set `exit-on-ban` or `db` in its args, where the CLI would honour them over the settings.
-- **The settings** must keep the three gates, and every folder a run writes to (unknown, duplicates, movie and series output) must resolve inside the sandbox. The cache is deliberately shared and the tag system is only read, so those two may sit outside.
+- **The settings** must keep the five gates, and every folder named as a destination (the move folder, unknown, duplicates, movie and series output) must resolve inside the sandbox, judged the way the app resolves it. The cache is deliberately shared, so it may sit outside. The tag system can also decide destinations, which is why the app-side confinement above exists.
 
 A violation makes the before-launch step fail, so the run never starts. For a run against real folders use `Local Test` or `Local InPlace`, which are real runs and say so.
 

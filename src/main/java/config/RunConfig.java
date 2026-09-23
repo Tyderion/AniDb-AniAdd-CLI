@@ -8,6 +8,7 @@ import startup.commands.anidb.AnidbCommand;
 import startup.commands.anidb.KodiWatcherCommand;
 import startup.commands.anidb.ScanCommand;
 import startup.commands.anidb.WatchCommand;
+import utils.config.ConfigFileParser;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -47,7 +48,7 @@ public class RunConfig {
             throw new InvalidConfigException("No tasks specified in the config file.");
         }
         val configFile = runConfig.toAbsolutePath().normalize();
-        val baseDir = utils.config.ConfigFileParser.baseDirectoryOf(runConfig);
+        val baseDir = ConfigFileParser.baseDirectoryOf(runConfig);
         if (EnumSet.of(SCAN, WATCH).contains(task)) {
             if (!args.containsKey(PARAM_NAME) || args.get(PARAM_NAME).isBlank()) {
                 throw new InvalidConfigException("No folder specified for scan or watch task.");
@@ -57,9 +58,17 @@ public class RunConfig {
             throw new InvalidConfigException("Password must not be provided in the config file. Use the command line or env instead.");
         }
 
+        // Checked on the raw value, before it is resolved and handed on as an explicit --db, which the
+        // relocation check in AnidbCommand deliberately trusts.
+        val moved = AnidbCommand.cacheRelocationProblem(args.get("db"), runConfig, Path.of("").toAbsolutePath());
+        if (moved != null) {
+            throw new InvalidConfigException(moved);
+        }
+        java.util.function.UnaryOperator<String> resolve =
+                value -> ConfigFileParser.resolve(Path.of(value), baseDir).toString();
         val arguments = new ArrayList<>(List.of(AnidbCommand.getName()));
         val rawParameter = args.remove(PARAM_NAME);
-        val parameter = rawParameter == null ? null : resolveAgainstConfig(rawParameter, baseDir);
+        val parameter = rawParameter == null ? null : resolve.apply(rawParameter);
 
         switch (task) {
             case KODI -> arguments.add(KodiWatcherCommand.getName());
@@ -76,20 +85,11 @@ public class RunConfig {
             log.info(STR."Run config does not contain a config file for the command. Using run config file ('\{configFile}') as the config file for executing command.");
             args.put("config", configFile.toString());
         } else {
-            args.put("config", resolveAgainstConfig(config, baseDir));
+            args.put("config", resolve.apply(config));
         }
-        PATH_ARGS.forEach(name -> args.computeIfPresent(name, (_, value) -> resolveAgainstConfig(value, baseDir)));
+        PATH_ARGS.forEach(name -> args.computeIfPresent(name, (_, value) -> resolve.apply(value)));
         args.forEach((name, value) -> arguments.add(STR."--\{name}=\{value}"));
         return arguments;
-    }
-
-    /** Relative means relative to the config file, the same rule the parser applies to Path-typed settings. */
-    private static String resolveAgainstConfig(String value, Path baseDir) {
-        val path = Path.of(value);
-        if (path.isAbsolute() || baseDir == null) {
-            return value;
-        }
-        return baseDir.resolve(path).normalize().toString();
     }
 
     public static class InvalidConfigException extends Exception {

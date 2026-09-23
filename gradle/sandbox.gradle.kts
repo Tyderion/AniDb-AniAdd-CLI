@@ -145,6 +145,11 @@ fun containerRelative(worktree: File, name: String): String =
         .resolve(name)
         .toString()
 
+/** Links name to a container file, or removes a stale link when the .env leaves it unset. */
+fun syncLink(worktree: File, name: String, target: String?, log: (String) -> Unit) =
+    if (target == null) unlinkIfSymlink(worktree, name, log)
+    else link(worktree, name, containerRelative(worktree, target), log)
+
 fun targetWorktrees(): List<File> =
     if (project.hasProperty("all")) worktreePaths() else listOf(projectDir)
 
@@ -171,6 +176,11 @@ tasks.register("envLink") {
         // mount the Docker deployment uses for the same purpose.
         val libraryRoot = readEnvValue(sharedEnv, libraryRootKey)
         if (libraryRoot != null) {
+            // A relative value would be checked against the Gradle daemon's working directory but resolved
+            // against the container once it is a link, so the two would disagree.
+            if (!File(libraryRoot).isAbsolute) {
+                throw GradleException("$libraryRootKey must be an absolute path, got '$libraryRoot'.")
+            }
             if (!File(libraryRoot).isDirectory) {
                 throw GradleException("$libraryRootKey points at $libraryRoot, which is not a directory.")
             }
@@ -182,16 +192,8 @@ tasks.register("envLink") {
             // The shared cache reaches each worktree by the same name it has in a plain clone, so
             // ../aniAdd.sqlite in a tracked config is correct either way and never writes outside a checkout.
             link(worktree, cacheName, containerRelative(worktree, cacheName), logger::lifecycle)
-            if (additional == null) {
-                unlinkIfSymlink(worktree, altEnvName, logger::lifecycle)
-            } else {
-                link(worktree, altEnvName, containerRelative(worktree, additional), logger::lifecycle)
-            }
-            if (libraryRoot == null) {
-                unlinkIfSymlink(worktree, libraryLinkName, logger::lifecycle)
-            } else {
-                link(worktree, libraryLinkName, containerRelative(worktree, libraryLinkName), logger::lifecycle)
-            }
+            syncLink(worktree, altEnvName, additional, logger::lifecycle)
+            syncLink(worktree, libraryLinkName, libraryRoot?.let { libraryLinkName }, logger::lifecycle)
         }
         if (libraryRoot == null) {
             logger.lifecycle("$libraryRootKey is not set in $sharedEnv, so scan-local.yaml and scan-inplace.yaml have nothing to point at.")
@@ -209,7 +211,12 @@ tasks.register("sandboxInit") {
         val sandbox = sandboxRoot()
         // Creating folders through a link would build the sandbox's shape inside whatever it points at.
         sandboxRootProblem(sandbox)?.let { throw GradleException("Refusing to set up the sandbox: $it") }
-        sandboxDirs.forEach { File(sandbox, it).mkdirs() }
+        sandboxDirs.forEach { name ->
+            linkBetween(sandbox, name)?.let { link ->
+                throw GradleException("Refusing to set up the sandbox: $link is a symlink, so creating $name would write wherever it points.")
+            }
+            File(sandbox, name).mkdirs()
+        }
         logger.lifecycle("sandbox tree ready at $sandbox")
 
         val container = containerRootOrNull()
@@ -225,6 +232,20 @@ tasks.register("sandboxInit") {
 }
 
 /**
+ * The first symlink between the sandbox root and a folder inside it, or null. File.mkdirs retries through
+ * the canonical path when a parent is missing, so a linked sandbox/output would make it create
+ * output/movies wherever the link points, even when the link is dangling.
+ */
+fun linkBetween(sandbox: File, name: String): Path? {
+    var current = sandbox.toPath()
+    for (part in Paths.get(name)) {
+        current = current.resolve(part)
+        if (Files.isSymbolicLink(current)) return current
+    }
+    return null
+}
+
+/**
  * Why the sandbox root is not where it should be, or null if it is. The containment check in
  * clearInsideSandbox compares each folder with the sandbox's real path, so it cannot see a problem with the
  * root itself: link the whole sandbox at a real library and both sides resolve under the library, the check
@@ -237,12 +258,14 @@ tasks.register("sandboxInit") {
  * a network share or a different disk mounted there. A bind mount from the same filesystem is not caught.
  */
 fun sandboxRootProblem(sandbox: File): String? {
-    if (!sandbox.exists()) return null
     val path = sandbox.toPath()
+    // Before the exists check, which follows links: a link to a folder that does not exist yet would
+    // otherwise pass, and sandboxInit would then create the whole sandbox inside wherever it points.
     if (Files.isSymbolicLink(path)) {
         return "$sandbox is a symlink to ${Files.readSymbolicLink(path)}. The sandbox must be a real directory, " +
             "or a reset would empty whatever it points at."
     }
+    if (!sandbox.exists()) return null
     val parentReal = sandbox.absoluteFile.parentFile.toPath().toRealPath()
     val expected = parentReal.resolve(sandbox.name)
     val actual = path.toRealPath()
@@ -268,6 +291,9 @@ fun sandboxRootProblem(sandbox: File): String? {
  */
 fun clearInsideSandbox(sandbox: File, name: String, log: (String) -> Unit) {
     val dir = File(sandbox, name)
+    linkBetween(sandbox, name)?.takeIf { !dir.exists() }?.let { link ->
+        throw GradleException("Refusing to recreate $dir: $link is a symlink, so it would be created wherever that points.")
+    }
     if (!dir.exists()) {
         dir.mkdirs()
         return
@@ -312,51 +338,78 @@ fun clearInsideSandbox(sandbox: File, name: String, log: (String) -> Unit) {
  * setupCheck recently.
  */
 fun sandboxViolations(): List<String> {
+    // The root first, and alone. Every check below measures "inside" against the sandbox's real path, so a
+    // sandbox replaced by a link to the library would move that yardstick onto the library and pass the lot.
+    // Reporting the paths as well would only bury the one finding that explains them.
+    val root = sandboxRoot()
+    sandboxRootProblem(root)?.let { return listOf(it) }
     val findings = mutableListOf<String>()
-    val sandbox = sandboxRoot().canonicalFile
+    val sandbox = root.canonicalFile
     val runDir = File(projectDir, ".run")
     val settingsFile = File(projectDir, sandboxConfig).canonicalFile
 
-    fun inside(base: File, value: Any?): File? = value?.toString()?.let { File(base, it).canonicalFile }
+    // The app normalises ".." lexically before the filesystem sees the path, so a ".." after a link means
+    // something different to it than to canonicalFile. Resolving in the app's order judges the same path.
+    fun inside(base: File, value: Any?): File? =
+        value?.toString()?.let { base.toPath().resolve(it).normalize().toFile().canonicalFile }
     fun isInsideSandbox(file: File?) = file != null && file.toPath().startsWith(sandbox.toPath())
 
     // Link 1: every configuration presented as a sandbox run must start a sandbox entry point, and must
     // keep a before-launch step that re-runs this check. Removing that step would remove the gate.
-    runDir.listFiles { f: File -> f.name.endsWith(".run.xml") }?.sortedBy { it.name }?.forEach { xml ->
+    // Tracked .run files are not the only place IntelliJ keeps configurations: a copy made with "Copy
+    // Configuration" lives in .idea/workspace.xml, and older projects use .idea/runConfigurations. A copy
+    // pointed at real folders would keep the before-launch guard yet be invisible to it, so all three are read.
+    val stores = (runDir.listFiles { f: File -> f.name.endsWith(".run.xml") }.orEmpty().toList() +
+        listOfNotNull(File(projectDir, ".idea/workspace.xml").takeIf { it.isFile }) +
+        File(projectDir, ".idea/runConfigurations").listFiles { f: File -> f.name.endsWith(".xml") }.orEmpty())
+        .sortedBy { it.path }
+    stores.forEach { xml ->
         val doc = javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(xml)
-        val configuration = doc.getElementsByTagName("configuration").item(0) as? org.w3c.dom.Element
-            ?: return@forEach
-        val presentedAsSandbox = configuration.getAttribute("folderName") == "Sandbox" ||
-            configuration.getAttribute("name").startsWith("Sandbox")
-        if (!presentedAsSandbox) return@forEach
+        val configurations = doc.getElementsByTagName("configuration")
+            .let { list -> (0 until list.length).map { list.item(it) as org.w3c.dom.Element } }
+            // Templates describe defaults for new configurations; they never run themselves.
+            .filter { it.getAttribute("default") != "true" }
+        configurations.forEach { configuration ->
+            val presentedAsSandbox = configuration.getAttribute("folderName") == "Sandbox" ||
+                configuration.getAttribute("name").startsWith("Sandbox")
+            if (!presentedAsSandbox) return@forEach
+            val label = if (xml.name.endsWith(".run.xml")) xml.name else "${xml.name} (${configuration.getAttribute("name")})"
 
-        val options = doc.getElementsByTagName("option")
-        fun option(name: String): org.w3c.dom.Element? = (0 until options.length)
-            .map { options.item(it) as org.w3c.dom.Element }
-            .firstOrNull { it.getAttribute("name") == name }
+            // Scoped to this configuration: a store like workspace.xml holds many.
+            val options = configuration.getElementsByTagName("option")
+                .let { list -> (0 until list.length).map { list.item(it) as org.w3c.dom.Element } }
+            fun option(name: String) = options.firstOrNull { it.getAttribute("name") == name }
 
-        val parameters = option("PROGRAM_PARAMETERS")?.getAttribute("value").orEmpty()
-        val configArg = Regex("""(?:--config=|-c\s+)(\S+)""").find(parameters)?.groupValues?.get(1)
-        val workingDir = option("WORKING_DIRECTORY")?.getAttribute("value")
-            ?.replace("\$PROJECT_DIR\$", projectDir.absolutePath)?.let(::File) ?: projectDir
-        val target = configArg?.let { File(workingDir, it).canonicalFile }
-        val isEntryPoint = target != null && target.parentFile == runDir.canonicalFile &&
-            target.name.startsWith("sandbox-") && target.name.endsWith(".yaml")
-        if (!isEntryPoint) {
-            val where = when {
-                configArg == null -> "no --config"
-                target != null && target.path != File(projectDir, configArg).canonicalPath ->
-                    "$configArg, which resolves to $target"
-                else -> configArg
+            val parameters = option("PROGRAM_PARAMETERS")?.getAttribute("value").orEmpty()
+            // Exactly `run --config=<entry point>` or `run -c <entry point>`. Reading only the --config value let
+            // a configuration run `anidb scan --config=<sandbox file> <any folder>`: the entry point would be used
+            // as the settings file, sandbox.yaml and its gates would never apply, and the folder was never checked.
+            val tokens = parameters.trim().split(Regex("\\s+"))
+            val configArg = when {
+                tokens.size == 2 && tokens[0] == "run" && tokens[1].startsWith("--config=") -> tokens[1].removePrefix("--config=")
+                tokens.size == 3 && tokens[0] == "run" && tokens[1] == "-c" -> tokens[2]
+                else -> null
             }
-            findings += "${xml.name} is a sandbox configuration but runs $where, not a .run/sandbox-*.yaml entry point"
-        }
-        val guarded = (0 until options.length)
-            .map { options.item(it) as org.w3c.dom.Element }
-            .filter { it.getAttribute("name") == "Gradle.BeforeRunTask" && it.getAttribute("enabled") == "true" }
-            .any { task -> task.getAttribute("tasks").split(" ").any { it == "sandboxReset" || it == "sandboxGuard" } }
-        if (!guarded) {
-            findings += "${xml.name} has no sandboxReset or sandboxGuard before launch, so nothing checks it on Run"
+            val workingDir = option("WORKING_DIRECTORY")?.getAttribute("value")
+                ?.replace("\$PROJECT_DIR\$", projectDir.absolutePath)?.let(::File) ?: projectDir
+            val target = configArg?.let { File(workingDir, it).canonicalFile }
+            val isEntryPoint = target != null && target.parentFile == runDir.canonicalFile &&
+                target.name.startsWith("sandbox-") && target.name.endsWith(".yaml")
+            if (!isEntryPoint) {
+                val where = configArg?.let { "$it (resolves to $target)" }
+                    ?: "'$parameters', which is not the form 'run --config=<entry point>'"
+                findings += "$label is a sandbox configuration but runs $where, not a .run/sandbox-*.yaml entry point"
+            }
+            // The step only guards if it runs the guard here and as written: extra Gradle arguments such as
+            // "-x sandboxGuard" or "--dry-run" skip it, and another project path checks someone else's configs.
+            val guarded = options
+                .filter { it.getAttribute("name") == "Gradle.BeforeRunTask" && it.getAttribute("enabled") == "true" }
+                .filter { it.getAttribute("scriptParameters").isBlank() }
+                .filter { it.getAttribute("externalProjectPath") == "\$PROJECT_DIR\$" }
+                .any { task -> task.getAttribute("tasks").split(" ").any { it == "sandboxReset" || it == "sandboxGuard" } }
+            if (!guarded) {
+                findings += "$label has no plain sandboxReset or sandboxGuard before launch, so nothing checks it on Run"
+            }
         }
     }
 
@@ -401,7 +454,20 @@ fun sandboxViolations(): List<String> {
     if ((config["kodi"] as? Map<*, *>)?.get("markWatched") != false) {
         findings += "$sandboxConfig does not set kodi.markWatched false"
     }
+    // The static checks here cannot see a destination the tag system computes at run time; this makes the app
+    // itself refuse any move outside the sandbox, so it has to be present and has to mean the sandbox.
+    val confineTo = inside(base, move?.get("confineTo"))
+    if (confineTo != sandbox) {
+        findings += "$sandboxConfig sets file.move.confineTo to ${move?.get("confineTo")}, expected the sandbox ($sandbox)"
+    }
+    // A library scan triggers a scan and, if configured, a clean on the real Kodi library.
+    val libraryScan = ((config["kodi"] as? Map<*, *>)?.get("libraryScan") as? Map<*, *>)?.get("enabled")
+    if (libraryScan != false) {
+        findings += "$sandboxConfig does not set kodi.libraryScan.enabled false"
+    }
     val writeTargets = mutableListOf<Pair<String, Any?>>()
+    // FOLDER move mode sends every file here.
+    writeTargets += "file.move.folder" to move?.get("folder")
     listOf("unknown", "duplicates").forEach { kind ->
         writeTargets += "file.move.$kind.folder" to (move?.get(kind) as? Map<*, *>)?.get("folder")
     }
@@ -426,16 +492,10 @@ fun sandboxViolations(): List<String> {
  * configuration you never touched sends you looking in the wrong file.
  */
 fun sandboxBlocked(violations: List<String>): GradleException {
-    // By suffix, not by splitting on a space: the IntelliJ files are named like "Sandbox scan.run.xml".
-    val fileName = Regex("""^(.*?\.(?:run\.xml|yaml))\b""")
-    val files = violations.mapNotNull { fileName.find(it)?.groupValues?.get(1) }.distinct()
     return GradleException(buildString {
         append("All sandbox runs are blocked, including this one, until ")
         append(if (violations.size == 1) "this is fixed" else "these ${violations.size} problems are fixed")
-        append(". The check covers every sandbox configuration, so the problem may be in a file you did not run")
-        append(" (")
-        append(files.joinToString(", "))
-        append("):\n")
+        append(". The check covers every sandbox configuration, so the problem may be in a file you did not run:\n")
         violations.forEach { append("  - ").append(it).append('\n') }
         append("Run ./gradlew sandboxGuard to check again once fixed.")
     })
@@ -456,26 +516,24 @@ tasks.register("sandboxGuard") {
 tasks.register("sandboxReset") {
     group = "setup"
     description = "Refill the sandbox input from media/ and clear the output, unknown and duplicates folders."
+    // Reset is the before-launch step of the sandbox configurations, so running the guard first is what
+    // makes the confinement hold on every click rather than only when someone remembers setupCheck.
+    dependsOn("sandboxGuard")
     doLast {
         val sandbox = sandboxRoot()
+        // The guard has already checked this, but it can be skipped with -x sandboxGuard, and this is the one
+        // check that stands directly between the clear below and a real library.
         sandboxRootProblem(sandbox)?.let { throw GradleException("Refusing to reset: $it") }
-        // Reset is the before-launch step of the sandbox configurations, so this is what makes the
-        // confinement hold on every click rather than only when someone remembers setupCheck.
-        sandboxViolations().takeIf { it.isNotEmpty() }?.let { violations ->
-            throw sandboxBlocked(violations)
-        }
         val media = File(sandbox, "media")
         if (!media.isDirectory) {
             throw GradleException("No $media. Run ./gradlew sandboxInit first.")
         }
-        listOf("input", "unknown", "duplicates", "output/movies", "output/series").forEach { name ->
+        // Everything but media/, which holds the files being tested and is never touched.
+        (sandboxDirs - "media").forEach { name ->
             clearInsideSandbox(sandbox, name, logger::lifecycle)
         }
-        val copied = media.walkTopDown().filter { it.isFile }.map { source ->
-            val target = File(sandbox, "input").resolve(source.relativeTo(media).path)
-            target.parentFile.mkdirs()
-            source.copyTo(target, overwrite = true)
-        }.count()
+        media.copyRecursively(File(sandbox, "input"))
+        val copied = media.walkTopDown().count { it.isFile }
         logger.lifecycle("sandbox reset: $copied file(s) copied from media/ into input/")
         if (copied == 0) {
             logger.warn("media/ is empty, so a run would have nothing to process. Copy real files in first.")
@@ -488,6 +546,9 @@ tasks.register("setupCheck") {
     description = "Report anything missing or unsafe in the shared setup. Fails if it finds a problem."
     doLast {
         val root = containerRoot()
+        // Each of these asks git; computed once so the whole check reasons about one answer.
+        val sandbox = sandboxRoot()
+        val worktrees = worktreePaths()
         val findings = mutableListOf<String>()
         val sharedEnv = File(root, sharedEnvName)
 
@@ -516,8 +577,8 @@ tasks.register("setupCheck") {
         val linkNames = mutableMapOf(sharedEnvName to sharedEnvName, cacheName to cacheName)
         if (additional != null) linkNames[altEnvName] = additional
         if (libraryRoot != null) linkNames[libraryLinkName] = libraryLinkName
-        if (sandboxRoot().isDirectory) linkNames[sandboxLinkName] = sandboxLinkName
-        worktreePaths().forEach { worktree ->
+        if (sandbox.isDirectory) linkNames[sandboxLinkName] = sandboxLinkName
+        worktrees.forEach { worktree ->
             linkNames.mapValues { (_, target) -> containerRelative(worktree, target) }.forEach { (name, target) ->
                 val path = worktree.toPath().resolve(name)
                 when {
@@ -531,10 +592,10 @@ tasks.register("setupCheck") {
             }
         }
 
-        sandboxRootProblem(sandboxRoot())?.let { findings += it }
-        if (sandboxRoot().isDirectory) {
+        // A bad root is reported by sandboxViolations below, first and on its own.
+        if (sandbox.isDirectory) {
             sandboxDirs.forEach { name ->
-                if (!File(sandboxRoot(), name).isDirectory) findings += "missing sandbox directory $name"
+                if (!File(sandbox, name).isDirectory) findings += "missing sandbox directory $name"
             }
         } else {
             logger.lifecycle("No sandbox yet. Run ./gradlew sandboxInit if you want one.")
@@ -543,7 +604,7 @@ tasks.register("setupCheck") {
         findings += sandboxViolations()
 
         if (findings.isEmpty()) {
-            logger.lifecycle("Setup looks complete: container $root, ${worktreePaths().size} worktree(s) linked.")
+            logger.lifecycle("Setup looks complete: container $root, ${worktrees.size} worktree(s) linked.")
         } else {
             findings.forEach { logger.error("  - $it") }
             throw GradleException("${findings.size} setup problem(s) found. See docs/WorktreeSetup.md.")

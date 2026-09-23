@@ -165,12 +165,135 @@ public class SandboxTasksFunctionalTest {
         assertThat(Files.readString(sandbox.resolve("input/marker.mkv")), is("still here"));
     }
 
+    /**
+     * Sandbox Kodi runs only the guard, never the reset, so the guard has to pin the root itself. Once a
+     * worktree carries its sandbox link, every config path resolves through it, and a sandbox replaced by a
+     * link to the library makes all of them look inside: the guard measured "inside" against the link's
+     * target, which is the library.
+     */
+    @Test
+    public void theGuardAloneRefusesASandboxReplacedByALink() throws Exception {
+        run("sandboxInit");
+        Path library = libraryShapedFolder(root.resolve("library"));
+        deleteTree(sandbox);
+        Files.createSymbolicLink(sandbox, container.relativize(library));
+
+        assertThat(fail("sandboxGuard").getOutput(), containsString("is a symlink"));
+        assertThat(Files.readString(library.resolve("input/keep.mkv")), is("precious"));
+    }
+
+    /**
+     * Reading only the --config value let a configuration run a subcommand directly on any folder: the entry
+     * point became the settings file, so sandbox.yaml and its gates never applied.
+     */
+    @Test
+    public void aSandboxConfigurationRunningAnythingButTheRunFormIsRefused() throws Exception {
+        run("sandboxInit");
+        replace(worktree.resolve(".run/Sandbox scan.run.xml"), "run --config=.run/sandbox-scan.yaml",
+                "anidb scan --config=.run/sandbox-scan.yaml ../library/input");
+
+        assertThat(fail("sandboxGuard").getOutput(), containsString("not the form 'run --config=<entry point>'"));
+    }
+
+    @Test
+    public void aMoveFolderOutsideTheSandboxIsRefused() throws Exception {
+        run("sandboxInit");
+        replace(worktree.resolve(".run/sandbox.yaml"), "  move:\n", "  move:\n    folder: ../library/output/\n");
+
+        assertThat(fail("sandboxGuard").getOutput(), containsString("file.move.folder"));
+    }
+
+    @Test
+    public void aKodiLibraryScanIsRefused() throws Exception {
+        run("sandboxInit");
+        replace(worktree.resolve(".run/sandbox.yaml"), "  libraryScan:\n    enabled: false", "  libraryScan:\n    enabled: true");
+
+        assertThat(fail("sandboxGuard").getOutput(), containsString("kodi.libraryScan.enabled"));
+    }
+
+    /**
+     * The app removes "x/.." lexically before the filesystem sees the path, while following x first lands
+     * somewhere else. The guard has to judge the path the app will actually write to.
+     */
+    @Test
+    public void aDotDotAfterALinkIsJudgedTheWayTheAppResolvesIt() throws Exception {
+        run("sandboxInit");
+        Files.createSymbolicLink(worktree.resolve(".run/x"), Path.of("../../sandbox/input"));
+        replace(worktree.resolve(".run/sandbox.yaml"), "folder: ../sandbox/unknown/", "folder: x/../unknown/");
+
+        assertThat(fail("sandboxGuard").getOutput(), containsString("file.move.unknown.folder"));
+    }
+
+    @Test
+    public void aSandboxThatIsALinkToNothingYetIsRefusedAndNothingIsCreated() throws Exception {
+        Path missing = root.resolve("library/missing");
+        Files.createDirectories(missing.getParent());
+        Files.createSymbolicLink(sandbox, container.relativize(missing));
+
+        assertThat(fail("sandboxInit").getOutput(), containsString("is a symlink"));
+        assertThat("no sandbox tree was built inside the link's target", Files.exists(missing), is(false));
+    }
+
+    @Test
+    public void aBeforeLaunchStepThatSkipsTheGuardDoesNotCount() throws Exception {
+        run("sandboxInit");
+        replace(worktree.resolve(".run/Sandbox watch.run.xml"), "scriptParameters=\"\"", "scriptParameters=\"-x sandboxGuard\"");
+
+        assertThat(fail("sandboxGuard").getOutput(), containsString("Sandbox watch.run.xml has no plain sandboxReset or sandboxGuard"));
+    }
+
+    @Test
+    public void aBeforeLaunchStepRunningAnotherProjectDoesNotCount() throws Exception {
+        run("sandboxInit");
+        replace(worktree.resolve(".run/Sandbox watch.run.xml"), "externalProjectPath=\"$PROJECT_DIR$\"", "externalProjectPath=\"/elsewhere\"");
+
+        assertThat(fail("sandboxGuard").getOutput(), containsString("Sandbox watch.run.xml has no plain sandboxReset or sandboxGuard"));
+    }
+
+    /** IntelliJ's Copy Configuration puts the copy in workspace.xml, not in .run/. */
+    @Test
+    public void aCopiedConfigurationInTheWorkspaceIsCheckedToo() throws Exception {
+        run("sandboxInit");
+        String copy = Files.readString(worktree.resolve(".run/Sandbox scan.run.xml"))
+                .replace("name=\"Sandbox scan\"", "name=\"Sandbox scan (1)\"")
+                .replace("run --config=.run/sandbox-scan.yaml", "anidb scan -c .run/sandbox.yaml ../library/input")
+                .replace("ProjectRunConfigurationManager", "RunManager");
+        write(worktree.resolve(".idea/workspace.xml"), "<project version=\"4\">" + copy + "</project>");
+
+        assertThat(fail("sandboxGuard").getOutput(), containsString("workspace.xml (Sandbox scan (1))"));
+    }
+
+    @Test
+    public void settingsWithoutConfinementAreRefused() throws Exception {
+        run("sandboxInit");
+        replace(worktree.resolve(".run/sandbox.yaml"), "    confineTo: ../sandbox/\n", "");
+
+        assertThat(fail("sandboxGuard").getOutput(), containsString("file.move.confineTo"));
+    }
+
+    @Test
+    public void aSandboxFolderLinkedAwayIsNotCreatedThroughTheLink() throws Exception {
+        Files.createDirectories(sandbox);
+        Path share = root.resolve("share");
+        Files.createSymbolicLink(sandbox.resolve("output"), sandbox.relativize(share.resolve("output")));
+
+        assertThat(fail("sandboxInit").getOutput(), containsString("is a symlink, so creating"));
+        assertThat("nothing was created at the link's target", Files.exists(share), is(false));
+    }
+
+    @Test
+    public void aRelativeLibraryRootIsRejected() throws Exception {
+        Files.writeString(container.resolve(".env"), "ANIDB_USERNAME=someone\nLIBRARY_ROOT=media-lib\n");
+
+        assertThat(fail("envLink").getOutput(), containsString("LIBRARY_ROOT must be an absolute path"));
+    }
+
     @Test
     public void aRemovedBeforeLaunchStepIsItselfAFinding() throws Exception {
         run("sandboxInit");
         replace(worktree.resolve(".run/Sandbox watch.run.xml"), "tasks=\"sandboxReset\"", "tasks=\"build\"");
 
-        assertThat(fail("sandboxGuard").getOutput(), containsString("no sandboxReset or sandboxGuard before launch"));
+        assertThat(fail("sandboxGuard").getOutput(), containsString("no plain sandboxReset or sandboxGuard before launch"));
     }
 
     @Test

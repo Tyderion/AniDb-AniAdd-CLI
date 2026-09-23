@@ -19,6 +19,14 @@ public class MoveConfig {
     private Path folder;
     private boolean deleteEmptyDirs;
 
+    /**
+     * When set, nothing is moved, renamed or deleted outside this folder, and a scan of a folder outside it
+     * is refused. Enforced where files are actually moved, so it also covers destinations computed at run
+     * time, such as a tag system's PathName, which no check of the config file alone can see. Unset means no
+     * restriction, which is what a real run wants.
+     */
+    private Path confineTo;
+
     @Builder.Default
     private HandlingConfig duplicates = HandlingConfig.builder().build();
     @Builder.Default
