@@ -16,6 +16,8 @@ Development usually happens in a `.bare` container with one worktree per branch,
 ## Commands
 
 - Test: `./gradlew test` (JUnit 5 + params + vintage engine, Mockito, Hamcrest). Config loading, path resolution and the tracked `.run/` configs are covered; the processing pipeline and the AniDB client are not, so don't assume tests catch regressions there.
+- Functional tests: `./gradlew functionalTest` (Gradle TestKit, `src/functionalTest/`, ~20s). Builds a real `.bare` container per case and runs the setup tasks in `gradle/sandbox.gradle.kts` against it, asserting on what survived. Deliberately not part of `test` or `check`; run it after touching that script or anything in `.run/`, since it is the only thing that tests the refusals (symlink escapes, the sandbox confinement guard) rather than trusting them.
+- `-Daniadd.test.tmpdir=<dir>` runs the unit tests with their temp root there. Point it at a symlink to reproduce macOS, where `/var` links to `/private/var` and unresolved temp paths break path assertions.
 - Fat jar: `./gradlew fatJar` → `build/libs/aniadd-cli-all-<version>.jar`, main class `startup.Main`
 ### Docker image (custom tasks, not the plugin defaults)
 

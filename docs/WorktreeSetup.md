@@ -92,7 +92,7 @@ None of the settings files carry a tag system of their own: all three reference 
 
 ## Sandbox runs never touch real folders
 
-That is enforced rather than hoped for. A sandbox run is a chain of three tracked files, and every link is checked before launch:
+That is enforced rather than hoped for, and tested: `./gradlew functionalTest` builds throwaway containers and attacks each of the checks below, asserting that what they protect survives. A sandbox run is a chain of three tracked files, and every link is checked before launch:
 
 - **The IntelliJ configuration** in the Sandbox folder must start a `.run/sandbox-*.yaml` entry point, resolved against its real working directory, and must keep `sandboxReset` or `sandboxGuard` as a before-launch step. Removing that step would remove the check, so its absence is itself a finding.
 - **The entry point** must delegate to `.run/sandbox.yaml`, must read its input from inside the sandbox, and must not set `exit-on-ban` or `db` in its args, where the CLI would honour them over the settings.

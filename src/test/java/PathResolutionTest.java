@@ -1,5 +1,6 @@
 import config.RootConfiguration;
 import lombok.val;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import utils.config.ConfigFileHandler;
@@ -20,8 +21,24 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  */
 public class PathResolutionTest {
 
+    @TempDir
+    Path tempDir;
+
+    /**
+     * The temp directory resolved through any symlinks. The code under test resolves config directories
+     * with toRealPath, so expectations have to be built from the same real path. On macOS the temp root
+     * sits under /var, which is a link to /private/var, and comparing the two spellings of one directory
+     * failed every path assertion here. Reproduced on Linux by pointing java.io.tmpdir at a symlink.
+     */
+    Path dir;
+
+    @BeforeEach
+    void resolveTempDir() throws IOException {
+        dir = tempDir.toRealPath();
+    }
+
     @Test
-    public void aRelativeCachePathResolvesNextToTheConfigFile(@TempDir Path dir) throws IOException {
+    public void aRelativeCachePathResolvesNextToTheConfigFile() throws IOException {
         val config = write(dir.resolve("settings.yaml"), """
                 anidb:
                   cache:
@@ -31,7 +48,7 @@ public class PathResolutionTest {
     }
 
     @Test
-    public void aRelativePathCanClimbOutOfTheConfigDirectory(@TempDir Path dir) throws IOException {
+    public void aRelativePathCanClimbOutOfTheConfigDirectory() throws IOException {
         val nested = Files.createDirectories(dir.resolve("worktree"));
         val config = write(nested.resolve("settings.yaml"), """
                 anidb:
@@ -42,7 +59,7 @@ public class PathResolutionTest {
     }
 
     @Test
-    public void anAbsolutePathIsLeftAlone(@TempDir Path dir) throws IOException {
+    public void anAbsolutePathIsLeftAlone() throws IOException {
         val config = write(dir.resolve("settings.yaml"), """
                 anidb:
                   cache:
@@ -52,7 +69,7 @@ public class PathResolutionTest {
     }
 
     @Test
-    public void moveAndTagPathsFollowTheSameRule(@TempDir Path dir) throws IOException {
+    public void moveAndTagPathsFollowTheSameRule() throws IOException {
         val config = write(dir.resolve("settings.yaml"), """
                 file:
                   move:
@@ -69,7 +86,7 @@ public class PathResolutionTest {
     }
 
     @Test
-    public void theScanPathResolvesAgainstTheRunFile(@TempDir Path dir) throws Exception {
+    public void theScanPathResolvesAgainstTheRunFile() throws Exception {
         val runFile = dir.resolve("run.yaml");
         val config = write(runFile, """
                 run:
@@ -86,7 +103,7 @@ public class PathResolutionTest {
      * through untouched, so it resolved against the working directory instead of next to the run file.
      */
     @Test
-    public void theDelegatedConfigResolvesAgainstTheRunFileEvenWhenInvokedRelatively(@TempDir Path dir) throws Exception {
+    public void theDelegatedConfigResolvesAgainstTheRunFileEvenWhenInvokedRelatively() throws Exception {
         val runFile = dir.resolve("run.yaml");
         val config = write(runFile, """
                 run:
@@ -106,7 +123,7 @@ public class PathResolutionTest {
      * different cache from the IDE than from a shell.
      */
     @Test
-    public void aCachePathInArgsResolvesAgainstTheRunFile(@TempDir Path dir) throws Exception {
+    public void aCachePathInArgsResolvesAgainstTheRunFile() throws Exception {
         val runFile = dir.resolve("run.yaml");
         val config = write(runFile, """
                 run:
@@ -119,7 +136,7 @@ public class PathResolutionTest {
     }
 
     @Test
-    public void anAbsoluteDelegatedConfigIsLeftAlone(@TempDir Path dir) throws Exception {
+    public void anAbsoluteDelegatedConfigIsLeftAlone() throws Exception {
         val runFile = dir.resolve("run.yaml");
         val config = write(runFile, """
                 run:
@@ -136,7 +153,7 @@ public class PathResolutionTest {
      * at. Resolving against the link's own directory would send every path into the wrong checkout.
      */
     @Test
-    public void aSymlinkedConfigResolvesAgainstTheRealFile(@TempDir Path dir) throws Exception {
+    public void aSymlinkedConfigResolvesAgainstTheRealFile() throws Exception {
         val real = Files.createDirectories(dir.resolve("sandbox")).resolve("sandbox.yaml");
         write(real, """
                 run:
