@@ -9,7 +9,7 @@ run:
 
 anidb:
   cache:
-    db: ../../aniAdd.sqlite
+    db: ../aniAdd.sqlite
     ttlInDays: 30
   exitOnBan: false
   localPort: 3333

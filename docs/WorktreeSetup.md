@@ -13,7 +13,7 @@ AniDb-AniAdd-CLI/            the container: not a checkout, just a folder
 ├── .env                     shared credentials and the paths below, the only copy
 ├── alt.env targets          e.g. tyd.env, test.env: alternative accounts
 ├── library                  a link to your real media, from LIBRARY_ROOT
-├── aniAdd.sqlite            the shared AniDB lookup cache
+├── aniAdd.sqlite            the shared AniDB lookup cache, linked into each worktree
 ├── sandbox/                 local test environment, created by sandboxInit
 └── kodi/  transcode/  ...   one directory per worktree
 ```
@@ -45,11 +45,11 @@ Four Gradle tasks, all in the `setup` group, all runnable from any worktree:
 | Task | What it does |
 |---|---|
 | `./gradlew envLink` | Symlinks everything the shared `.env` names into this worktree: `.env` itself, `alt.env` from `ADDITIONAL_ENV`, and `library` from `LIBRARY_ROOT`. Add `-Pall` to do every worktree at once. |
-| `./gradlew sandboxInit` | Creates `sandbox/`, generates its config, and links that config into every worktree. |
+| `./gradlew sandboxInit` | Creates the `sandbox/` directories and, in the worktree layout, links the shared sandbox into every worktree. It generates nothing: the configs are tracked in `.run/`. |
 | `./gradlew sandboxReset` | Refills `sandbox/input/` from `sandbox/media/` and empties the output folders, so a test run is repeatable. |
 | `./gradlew setupCheck` | Reports anything missing or unsafe and fails if it finds a problem. |
 
-They find the container by asking git for its common directory (`git rev-parse --git-common-dir`) and taking the parent, rather than assuming `..`, so a worktree nested deeper still resolves correctly.
+They find the container by asking git for its common directory (`git rev-parse --git-common-dir`) and taking the parent, rather than assuming `..`. Link targets are computed the same way, so a worktree nested a level deeper gets `../../` and still resolves.
 
 ## The second account
 
@@ -70,8 +70,7 @@ sandbox/
 ├── media/                   real files you supply, left untouched
 ├── input/                   working copy, refilled by sandboxReset
 ├── unknown/  duplicates/
-├── output/movies/  output/series/
-└── aniAdd.sqlite            a link to the shared cache one level up
+└── output/movies/  output/series/
 ```
 
 The sandbox holds only data. Its configs are tracked in `.run/` and reach it through `../sandbox/`, which `sandboxInit` makes correct in both layouts: in a worktree setup each checkout gets a `sandbox` symlink to the shared one, and in a plain clone the sandbox simply lives in the checkout.
@@ -84,17 +83,17 @@ It refuses to clear anything that resolves outside the sandbox, and unlinks rath
 
 A config file splits in two. `.run/sandbox.yaml` holds the settings and no run block; each `.run/sandbox-<task>.yaml` holds only a run block and delegates with `config: sandbox.yaml`. The `docker-<task>.yaml` files are the same shape for the image, delegating to `config/docker.yaml` instead. That way there is exactly one entry point per task and one place that defines where things go. Adding a task means adding one more `sandbox-<task>.yaml` and a run configuration for it.
 
-All of them are tracked, so they arrive with a clone and show up in a diff when they change. `sandbox.yaml` carries three hard gates, and `setupCheck` re-reads the file to confirm all three are still set: `file.mylist.add: false` so a scan adds nothing, `kodi.markWatched: false` so a play reported by Kodi is observed rather than written back, and `anidb.exitOnBan: true` so a run stops instead of hammering the API.
+All of them are tracked, so they arrive with a clone and show up in a diff when they change. `setupCheck` reads the entry points as well as the settings, rejecting one that delegates somewhere else or sets `exit-on-ban` or `db` in its args, since either would step around a gate. `sandbox.yaml` carries three hard gates, and `setupCheck` re-reads the file to confirm all three are still set: `file.mylist.add: false` so a scan adds nothing, `kodi.markWatched: false` so a play reported by Kodi is observed rather than written back, and `anidb.exitOnBan: true` so a run stops instead of hammering the API.
 
-Its cache points at `../sandbox/aniAdd.sqlite`, which `sandboxInit` links to the shared cache in the container. That way the sandbox reuses lookups from real runs instead of starting empty and querying AniDB for every file.
+Every settings file points its cache at `../aniAdd.sqlite`, which `envLink` links to the shared one in the container. The sandbox therefore reuses lookups from real runs instead of starting empty and querying AniDB for every file, and in a plain clone the same path is an ordinary file in the checkout rather than something above it.
 
-None of the settings files carry a tag system of their own: all three reference `config/tagging-system.kodi.txt` through `tags.tagSystemFile`. One definition, no drift.
+None of the settings files carry a tag system of their own: all three reference `config/tagging-system.kodi.txt` through `tags.tagSystemFile`. One definition, no drift. The file is read once and cached, so in `watch` mode an edit takes effect on the next start rather than immediately.
 
 ## Paths in config files
 
 A relative path in a config file resolves against that file's own directory, the way compose files and tsconfig behave. It never depends on the working directory, so a config means the same thing launched from IntelliJ, from a shell in a subfolder, or from a container.
 
-This applies to every path-typed setting (`anidb.cache.db`, `file.move.unknown.folder`, `file.move.duplicates.folder`, `tags.paths.*.path`, `kodi.libraryScan.*.localPath`) and to the two string fields in a run block, `run.args.path` and `run.config`. Absolute paths are left exactly as written.
+This applies to every path-typed setting (`anidb.cache.db`, `file.move.unknown.folder`, `file.move.duplicates.folder`, `tags.paths.*.path`, `kodi.libraryScan.*.localPath`) and to the path-bearing fields of a run block, `run.args.path`, `run.args.db` and `run.config`. Absolute paths are left exactly as written.
 
 Symlinks are followed first, so a config linked into several worktrees behaves as if you had opened the original. That is what lets one `sandbox.yaml` serve every checkout while saying `input/`.
 

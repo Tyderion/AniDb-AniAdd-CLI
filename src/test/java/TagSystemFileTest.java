@@ -84,7 +84,6 @@ public class TagSystemFileTest {
         assertNotNull(config.tags().tagSystem(), "tag system should have been loaded and cached by now");
 
         val writer = new StringWriter();
-        new ConfigFileHandler<>(RootConfiguration.class).getConfiguration(dir.resolve("settings.yaml"));
         new utils.config.ConfigFileParser<>(TagsConfig.class).dump(config.tags(), writer);
         assertThat(writer.toString(), containsString("tagSystemFile"));
         assertThat(writer.toString(), not(containsString("loadedTagSystem")));

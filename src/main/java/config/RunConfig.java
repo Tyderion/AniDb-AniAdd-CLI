@@ -20,6 +20,15 @@ import static config.RunConfig.Task.WATCH;
 @AllArgsConstructor
 public class RunConfig {
     private static final String PARAM_NAME = "path";
+
+    /**
+     * Args whose target CLI option is Path-typed, so they get the same resolution as everything else in a
+     * config file. They live in a Map<String, String> here, so they never reach the parser's path handling
+     * and would otherwise resolve against the working directory: the same config would then use a different
+     * cache depending on whether it was launched from the IDE or from a shell in another folder.
+     * Keep in step with the Path-typed options on AnidbCommand.
+     */
+    private static final Set<String> PATH_ARGS = Set.of("db");
     private Task task;
     private Map<String, String> args = new TreeMap<>();
     String config;
@@ -69,14 +78,12 @@ public class RunConfig {
         } else {
             args.put("config", resolveAgainstConfig(config, baseDir));
         }
+        PATH_ARGS.forEach(name -> args.computeIfPresent(name, (_, value) -> resolveAgainstConfig(value, baseDir)));
         args.forEach((name, value) -> arguments.add(STR."--\{name}=\{value}"));
         return arguments;
     }
 
-    /**
-     * These two values are plain strings in the args map rather than Paths, so they never pass through the
-     * config parser's path handling and have to be resolved here to get the same rule.
-     */
+    /** Relative means relative to the config file, the same rule the parser applies to Path-typed settings. */
     private static String resolveAgainstConfig(String value, Path baseDir) {
         val path = Path.of(value);
         if (path.isAbsolute() || baseDir == null) {

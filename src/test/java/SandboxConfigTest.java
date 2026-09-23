@@ -33,8 +33,9 @@ public class SandboxConfigTest {
 
     @Test
     public void theSandboxSettingsResolveInsideTheSandbox() {
+        // The cache is deliberately not in sandbox/: it sits beside the checkout so the sandbox reuses
+        // lookups from real runs. everyConfigKeepsItsCacheInsideTheCheckout covers it.
         val config = load(RUN.resolve("sandbox.yaml"));
-        assertThat(config.anidb().cache().db(), is(REPO.resolve("sandbox/aniAdd.sqlite")));
         assertThat(config.file().move().unknown().folder(), is(REPO.resolve("sandbox/unknown")));
         assertThat(config.file().move().duplicates().folder(), is(REPO.resolve("sandbox/duplicates")));
         assertThat(config.tags().paths().movieFolders().get(0).path(), is(REPO.resolve("sandbox/output/movies")));
@@ -54,12 +55,20 @@ public class SandboxConfigTest {
         assertThat(load(RUN.resolve("sandbox.yaml")).run(), is(nullValue()));
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"sandbox.yaml", "scan-local.yaml", "scan-inplace.yaml"})
-    public void everySettingsFileSharesTheOneTagSystem(String file) throws IOException {
-        val tagSystem = load(RUN.resolve(file)).tags().tagSystem();
-        assertNotNull(tagSystem, STR."\{file} resolved no tag system");
-        assertThat(tagSystem, is(Files.readString(Path.of("config/tagging-system.kodi.txt"))));
+    @Test
+    public void theSettingsFilesShareOneTagSystem() {
+        val resolved = java.util.stream.Stream.of("sandbox.yaml", "scan-local.yaml", "scan-inplace.yaml")
+                .map(file -> {
+                    val tagSystem = load(RUN.resolve(file)).tags().tagSystem();
+                    assertNotNull(tagSystem, STR."\{file} resolved no tag system");
+                    return tagSystem;
+                })
+                .distinct()
+                .toList();
+        assertThat("the three settings files disagree about the tag system", resolved.size(), is(1));
+        // Comparing them only with the file they name would pass on an empty or truncated one.
+        assertThat(resolved.get(0), containsString("FileName:="));
+        assertThat(resolved.get(0).lines().count() > 20, is(true));
     }
 
     @ParameterizedTest
@@ -132,11 +141,15 @@ public class SandboxConfigTest {
         }
     }
 
+    /**
+     * Inside the checkout, not above it. A path climbing out of the project put a database in the clone's
+     * parent directory, which is nobody's idea of where a cache goes.
+     */
     @Test
-    public void theLocalScanConfigsStillPointAtTheSharedCache() {
-        for (String file : new String[]{"scan-local.yaml", "scan-inplace.yaml"}) {
+    public void everyConfigKeepsItsCacheInsideTheCheckout() {
+        for (String file : new String[]{"sandbox.yaml", "scan-local.yaml", "scan-inplace.yaml"}) {
             val db = load(RUN.resolve(file)).anidb().cache().db();
-            assertThat(STR."\{file} cache", db, is(REPO.getParent().resolve("aniAdd.sqlite")));
+            assertThat(STR."\{file} cache", db, is(REPO.resolve("aniAdd.sqlite")));
         }
     }
 

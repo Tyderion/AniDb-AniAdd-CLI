@@ -10,7 +10,7 @@
 anidb:
   cache:
     # Shared with every other worktree, because AniDB bans accounts that look the same file up twice.
-    db: ../sandbox/aniAdd.sqlite
+    db: ../aniAdd.sqlite
     ttlInDays: 30
   # Hard gate: stop rather than keep hammering the API if a run earns a ban.
   exitOnBan: true

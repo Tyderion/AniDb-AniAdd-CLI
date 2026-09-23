@@ -1,6 +1,6 @@
 # Connect to Kodi and mark watched episodes in MyList, for the Docker image.
-# Settings come from config/docker.yaml. Paths are relative to this file, so mount it and the
-# settings file together, or pass an absolute path in "config:".
+# Settings come from config/docker.yaml. "config:" is relative to this file, so mounting this one at
+# /run/<name>.yaml and the settings at /config/docker.yaml resolves; anywhere else, give an absolute path.
 run:
   task: kodi
   config: ../config/docker.yaml

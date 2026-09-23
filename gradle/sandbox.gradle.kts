@@ -27,6 +27,13 @@ val cacheName = "aniAdd.sqlite"
 val additionalEnvKey = "ADDITIONAL_ENV"
 val libraryRootKey = "LIBRARY_ROOT"
 val sandboxConfig = ".run/sandbox.yaml"
+
+/**
+ * Args that would step around a gate in the settings file. exitOnBan is also a CLI option and the CLI
+ * wins over config, so a run file could set it false and still pass a check that only reads sandbox.yaml;
+ * db would point the sandbox at a different cache. Neither belongs in a run block.
+ */
+val forbiddenRunArgs = listOf("exit-on-ban", "exitOnBan", "db")
 val sandboxDirs = listOf("media", "input", "unknown", "duplicates", "output/movies", "output/series")
 
 /**
@@ -72,7 +79,7 @@ fun git(vararg args: String, failOnError: Boolean = true): String {
 fun worktreePaths(): List<File> {
     val blocks = git("worktree", "list", "--porcelain").split("\n\n")
     return blocks.mapNotNull { block ->
-        if (block.lines().any { it.trim() == "bare" }) null
+        if (block.lines().any { it.trim() == "bare" || it.trim() == "prunable" }) null
         else block.lines().firstOrNull { it.startsWith("worktree ") }?.removePrefix("worktree ")?.let(::File)
     }
 }
@@ -128,6 +135,16 @@ fun unlinkIfSymlink(parent: File, linkName: String, log: (String) -> Unit) {
     }
 }
 
+/**
+ * How a worktree reaches a file in the container. Computed rather than assumed to be "..", so a worktree
+ * nested a level deeper still gets a link that resolves, which is what the documentation already claimed.
+ */
+fun containerRelative(worktree: File, name: String): String =
+    worktree.toPath().toAbsolutePath().normalize()
+        .relativize(containerRoot().toPath().toAbsolutePath().normalize())
+        .resolve(name)
+        .toString()
+
 fun targetWorktrees(): List<File> =
     if (project.hasProperty("all")) worktreePaths() else listOf(projectDir)
 
@@ -161,16 +178,19 @@ tasks.register("envLink") {
         }
 
         targetWorktrees().forEach { worktree ->
-            link(worktree, sharedEnvName, "../$sharedEnvName", logger::lifecycle)
+            link(worktree, sharedEnvName, containerRelative(worktree, sharedEnvName), logger::lifecycle)
+            // The shared cache reaches each worktree by the same name it has in a plain clone, so
+            // ../aniAdd.sqlite in a tracked config is correct either way and never writes outside a checkout.
+            link(worktree, cacheName, containerRelative(worktree, cacheName), logger::lifecycle)
             if (additional == null) {
                 unlinkIfSymlink(worktree, altEnvName, logger::lifecycle)
             } else {
-                link(worktree, altEnvName, "../$additional", logger::lifecycle)
+                link(worktree, altEnvName, containerRelative(worktree, additional), logger::lifecycle)
             }
             if (libraryRoot == null) {
                 unlinkIfSymlink(worktree, libraryLinkName, logger::lifecycle)
             } else {
-                link(worktree, libraryLinkName, "../$libraryLinkName", logger::lifecycle)
+                link(worktree, libraryLinkName, containerRelative(worktree, libraryLinkName), logger::lifecycle)
             }
         }
         if (libraryRoot == null) {
@@ -194,11 +214,8 @@ tasks.register("sandboxInit") {
         if (container == null) {
             logger.lifecycle("Plain clone, so the sandbox lives in the checkout and needs no links.")
         } else {
-            // The sandbox borrows the shared cache rather than starting an empty one, so a file identified
-            // in a real run is not looked up again here. One tracked path covers both layouts.
-            link(sandbox, cacheName, "../$cacheName", logger::lifecycle)
             worktreePaths().forEach { worktree ->
-                link(worktree, sandboxLinkName, "../$sandboxLinkName", logger::lifecycle)
+                link(worktree, sandboxLinkName, containerRelative(worktree, sandboxLinkName), logger::lifecycle)
             }
         }
         logger.lifecycle("Put real media in ${File(sandbox, "media")}, then run ./gradlew sandboxReset.")
@@ -295,12 +312,12 @@ tasks.register("setupCheck") {
             findings += "$libraryRootKey is set but ${File(root, libraryLinkName)} does not resolve to a directory"
         }
 
-        val expected = mutableMapOf(sharedEnvName to "../$sharedEnvName")
-        if (additional != null) expected[altEnvName] = "../$additional"
-        if (libraryRoot != null) expected[libraryLinkName] = "../$libraryLinkName"
-        if (sandboxRoot().isDirectory) expected[sandboxLinkName] = "../$sandboxLinkName"
+        val linkNames = mutableMapOf(sharedEnvName to sharedEnvName, cacheName to cacheName)
+        if (additional != null) linkNames[altEnvName] = additional
+        if (libraryRoot != null) linkNames[libraryLinkName] = libraryLinkName
+        if (sandboxRoot().isDirectory) linkNames[sandboxLinkName] = sandboxLinkName
         worktreePaths().forEach { worktree ->
-            expected.forEach { (name, target) ->
+            linkNames.mapValues { (_, target) -> containerRelative(worktree, target) }.forEach { (name, target) ->
                 val path = worktree.toPath().resolve(name)
                 when {
                     !Files.isSymbolicLink(path) -> findings += "${worktree.name}/$name is not a symlink"
@@ -315,16 +332,13 @@ tasks.register("setupCheck") {
             sandboxDirs.forEach { name ->
                 if (!File(sandboxRoot(), name).isDirectory) findings += "missing sandbox directory $name"
             }
-            if (!Files.isSymbolicLink(File(sandboxRoot(), cacheName).toPath())) {
-                findings += "${File(sandboxRoot(), cacheName)} does not link to the shared cache, " +
-                    "so the sandbox would start an empty one and look every file up again"
-            }
         } else {
             logger.lifecycle("No sandbox yet. Run ./gradlew sandboxInit if you want one.")
         }
 
         // Re-read rather than trusted: the file is tracked, but it is also meant to be edited.
-        val config = loadYaml(File(projectDir, sandboxConfig))
+        val settingsFile = File(projectDir, sandboxConfig)
+        val config = loadYaml(settingsFile)
         val mylistAdd = ((config["file"] as? Map<*, *>)?.get("mylist") as? Map<*, *>)?.get("add")
         val exitOnBan = (config["anidb"] as? Map<*, *>)?.get("exitOnBan")
         val markWatched = (config["kodi"] as? Map<*, *>)?.get("markWatched")
@@ -332,6 +346,28 @@ tasks.register("setupCheck") {
         if (exitOnBan != true) findings += "$sandboxConfig has anidb.exitOnBan=$exitOnBan, expected true"
         // Without this one a sandbox run against a real Kodi writes plays to the real MyList account.
         if (markWatched != false) findings += "$sandboxConfig has kodi.markWatched=$markWatched, expected false"
+
+        // Checking only the settings file would be a gate with a door beside it: an entry point can send
+        // the run somewhere else entirely, or override a gate through an arg that the CLI honours first.
+        File(projectDir, ".run").listFiles { f: File ->
+            f.name.startsWith("sandbox-") && f.name.endsWith(".yaml")
+        }?.sortedBy { it.name }?.forEach { runFile ->
+            val run = loadYaml(runFile)["run"] as? Map<*, *>
+            if (run == null) {
+                findings += "${runFile.name} has no run block, so it is not an entry point"
+                return@forEach
+            }
+            val delegate = run["config"]?.toString()
+            val resolved = delegate?.let { File(runFile.parentFile, it).canonicalFile }
+            if (resolved != settingsFile.canonicalFile) {
+                findings += "${runFile.name} delegates to $delegate, expected $sandboxConfig; " +
+                    "its gates would not apply"
+            }
+            val runArgs = run["args"] as? Map<*, *> ?: emptyMap<Any, Any>()
+            forbiddenRunArgs.filter { runArgs.containsKey(it) }.forEach { arg ->
+                findings += "${runFile.name} sets '$arg' in args, which overrides the settings file"
+            }
+        }
 
         if (findings.isEmpty()) {
             logger.lifecycle("Setup looks complete: container $root, ${worktreePaths().size} worktree(s) linked.")
