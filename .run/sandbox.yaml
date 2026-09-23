@@ -39,6 +39,9 @@ kodi:
   pathFilter: anime
   port: 9090
   # Hard gate: observe Kodi without writing anything back to the real MyList account.
+  # Inert on branches that predate kodi.markWatched: the parser skips keys it does not know, so there
+  # this line reads as a gate while a Kodi play still writes to MyList. Do not run Sandbox Kodi from such
+  # a branch.
   markWatched: false
   metadata:
     generate: true

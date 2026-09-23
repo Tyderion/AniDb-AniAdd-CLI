@@ -492,7 +492,12 @@ tasks.register("setupCheck") {
         val sharedEnv = File(root, sharedEnvName)
 
         if (!sharedEnv.isFile) findings += "missing $sharedEnv (the shared credentials file)"
-        if (!File(root, cacheName).isFile) findings += "missing ${File(root, cacheName)} (the shared AniDB cache)"
+        // A fresh container has no cache yet: the first run creates it through the worktree link. That is a
+        // normal state, not a fault, so it is reported rather than failing the check.
+        val cacheExists = File(root, cacheName).isFile
+        if (!cacheExists) {
+            logger.lifecycle("No shared AniDB cache yet at ${File(root, cacheName)}; the first run will create it.")
+        }
 
         val additional = readEnvValue(sharedEnv, additionalEnvKey)
         if (additional == null) {
@@ -519,7 +524,9 @@ tasks.register("setupCheck") {
                     !Files.isSymbolicLink(path) -> findings += "${worktree.name}/$name is not a symlink"
                     Files.readSymbolicLink(path).toString() != target ->
                         findings += "${worktree.name}/$name points at ${Files.readSymbolicLink(path)}, expected $target"
-                    !Files.exists(path) -> findings += "${worktree.name}/$name is a broken link"
+                    // Dangling on purpose until the first run, see above.
+                    !Files.exists(path) && !(name == cacheName && !cacheExists) ->
+                        findings += "${worktree.name}/$name is a broken link"
                 }
             }
         }
