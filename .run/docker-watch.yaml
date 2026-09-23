@@ -1,0 +1,8 @@
+# Watch the mounted input folder, for the Docker image. Runs until stopped.
+# Settings come from config/docker.yaml. "config:" is relative to this file, so mounting this one at
+# /run/<name>.yaml and the settings at /config/docker.yaml resolves; anywhere else, give an absolute path.
+run:
+  task: watch
+  args:
+    path: /from
+  config: ../config/docker.yaml

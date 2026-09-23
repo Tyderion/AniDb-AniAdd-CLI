@@ -40,8 +40,7 @@ public class AniDbConfig {
     public static class CacheConfig {
         @Builder.Default
         private int ttlInDays = 30;
-        @Builder.Default
-        private Path db = Path.of("aniAdd.sqlite");
+        private Path db;
     }
 
     public void removeDefaults() {

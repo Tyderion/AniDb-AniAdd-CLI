@@ -1,0 +1,64 @@
+# Settings for the local sandbox. No run block: the sandbox-*.yaml files beside this one are the entry
+# points and delegate here with "config: sandbox.yaml".
+#
+# Paths are relative to this file. ../sandbox is the sandbox directory, which ./gradlew sandboxInit
+# creates and, in the worktree layout, links to the shared one next to .bare.
+#
+# Required env (from .env): ANIDB_USERNAME, ANIDB_PASSWORD, TVDB_APIKEY, TMDB_ACCESS_TOKEN.
+# Credentials are rejected if put in this file.
+
+anidb:
+  cache:
+    # Shared with every other worktree, because AniDB bans accounts that look the same file up twice.
+    db: ../aniAdd.sqlite
+    ttlInDays: 30
+  # Hard gate: stop rather than keep hammering the API if a run earns a ban.
+  exitOnBan: true
+  localPort: 3333
+
+file:
+  move:
+    # Hard gate, enforced where files are moved: nothing outside the sandbox is moved, renamed or deleted,
+    # and a scan of a folder outside it is refused. The only gate that sees destinations a tag system
+    # computes at run time, which the checks on this file cannot.
+    confineTo: ../sandbox/
+    mode: tagsystem
+    deleteEmptyDirs: false
+    unknown:
+      folder: ../sandbox/unknown/
+      mode: move
+    duplicates:
+      folder: ../sandbox/duplicates/
+      mode: move
+  mylist:
+    # Hard gate: a sandbox run must never touch the real MyList.
+    add: false
+    overwrite: false
+    watched: false
+  rename:
+    mode: tagsystem
+    related: true
+
+kodi:
+  pathFilter: anime
+  port: 9090
+  # Hard gate: observe Kodi without writing anything back to the real MyList account.
+  # Inert on branches that predate kodi.markWatched: the parser skips keys it does not know, so there
+  # this line reads as a gate while a Kodi play still writes to MyList. Do not run Sandbox Kodi from such
+  # a branch.
+  markWatched: false
+  metadata:
+    generate: true
+  # Ignored on branches that predate the library-scan feature: the parser skips keys it does not know.
+  libraryScan:
+    enabled: false
+
+tags:
+  paths:
+    movieFolders:
+      - path: ../sandbox/output/movies/
+        tagSystemName: BaseMoviePath
+    tvShowFolders:
+      - path: ../sandbox/output/series/
+        tagSystemName: BaseTVShowPath
+  tagSystemFile: ../config/tagging-system.kodi.txt

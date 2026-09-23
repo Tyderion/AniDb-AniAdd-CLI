@@ -1,0 +1,9 @@
+# Watch the mounted input folder and keep Kodi in step, for the Docker image.
+# Settings come from config/docker.yaml. "config:" is relative to this file, so mounting this one at
+# /run/<name>.yaml and the settings at /config/docker.yaml resolves; anywhere else, give an absolute path.
+run:
+  task: watch
+  args:
+    path: /from
+    kodi: true
+  config: ../config/docker.yaml

@@ -9,9 +9,15 @@ Headless CLI fork of the old AniDB Java applet (GUI removed at v1.1.1). Scans or
 - Run the jar with `java --enable-preview -jar ...` — the flag is needed at runtime too (the `.run/*.sh` scripts all pass it).
 - Lombok everywhere (`@Slf4j`, `@Getter`, `val`) via the freefair plugin; slf4j-simple for logging, levels overridable via a properties file named by env `LOG_CONFIG_FILE`.
 
+## Worktrees
+
+Development usually happens in a `.bare` container with one worktree per branch, sharing one `.env` and one AniDB cache. `docs/WorktreeSetup.md` has the layout; `.claude/skills/worktree-setup/` has the procedure for adding one. A plain clone works too and needs none of it.
+
 ## Commands
 
-- Test: `./gradlew test` (JUnit 5 + vintage engine, Mockito, Hamcrest; only `ParseReplyTest` and `RunConfigTest` exist — coverage is thin, don't assume tests catch regressions)
+- Test: `./gradlew test` (JUnit 5 + params + vintage engine, Mockito, Hamcrest). Config loading, path resolution and the tracked `.run/` configs are covered; the processing pipeline and the AniDB client are not, so don't assume tests catch regressions there.
+- Functional tests: `./gradlew functionalTest` (Gradle TestKit, `src/functionalTest/`, ~20s). Builds a real `.bare` container per case and runs the setup tasks in `gradle/sandbox.gradle.kts` against it, asserting on what survived. Deliberately not part of `test` or `check`; run it after touching that script or anything in `.run/`, since it is the only thing that tests the refusals (symlink escapes, the sandbox confinement guard) rather than trusting them.
+- `-Daniadd.test.tmpdir=<dir>` runs the unit tests with their temp root there. Point it at a symlink to reproduce macOS, where `/var` links to `/private/var` and unresolved temp paths break path assertions.
 - Fat jar: `./gradlew fatJar` → `build/libs/aniadd-cli-all-<version>.jar`, main class `startup.Main`
 ### Docker image (custom tasks, not the plugin defaults)
 

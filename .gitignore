@@ -16,3 +16,5 @@ test.*
 !config/*
 !.run/*
 !src/test/resources/*/*
+/sandbox
+/library

@@ -1,0 +1,7 @@
+# One-shot scan of the sandbox input folder. Settings come from sandbox.yaml next to this file.
+# Paths are relative to this file; ../sandbox is created (and linked) by ./gradlew sandboxInit.
+run:
+  task: scan
+  args:
+    path: ../sandbox/input/
+  config: sandbox.yaml

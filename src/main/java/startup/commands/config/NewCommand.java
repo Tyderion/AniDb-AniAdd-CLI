@@ -28,6 +28,9 @@ public class NewCommand implements Callable<Integer> {
         if (overwrite || !Files.exists(path)) {
             val handler = new ConfigFileHandler<>(RootConfiguration.class);
             val config = RootConfiguration.builder().build();
+            // The cache has no default any more, so a generated config has to name one or it would fail on its
+            // first run. Relative, so it sits beside the config file it is written into.
+            config.anidb().cache().db(java.nio.file.Path.of("aniAdd.sqlite"));
             config.removeDefaults();
             handler.saveTo(path, config, overwrite);
             log.info(STR."Configuration saved to \{path}");

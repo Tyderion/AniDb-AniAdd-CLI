@@ -1,0 +1,8 @@
+# Watch the sandbox input folder and keep Kodi in step. Needs a reachable Kodi host in sandbox.yaml.
+run:
+  task: watch
+  args:
+    path: ../sandbox/input/
+    interval: 10
+    kodi: true
+  config: sandbox.yaml

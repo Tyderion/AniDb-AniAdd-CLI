@@ -66,6 +66,9 @@ entrypoint: `/app/watch.sh`
 Runs either `scan` or `watch` command.
 
 #### mounts
+
+The container never contains a host path: config files inside it use container paths like `/from/anidb` and `/cache/aniAdd.sqlite`, and the mounts supply the real locations. Local development mirrors this with a `library` symlink driven by `LIBRARY_ROOT`, so the same config shape works in both places and nothing tracked names a specific machine.
+
 - `/from`: Folder containing video files to parse and handle [required], configurable via env var `SCAN_FOLDER`
 - `/unknown`: Folder to move files into that anidb does not know [optional, defaults to /unknown], configurable in your settings file
 - `/duplicates`: Folder to move duplicate files to (alternatively those can be deleted, configurable in your settings file)
@@ -101,11 +104,67 @@ Enables you to run run config file stored in `$ANIDB_CONF`
 #### Env Vars
 - `$ANIDB_CONF` [required]: the run config file to run, e.g. run.yaml
 
-# Development
-I recommend to use IntelliJ (Community Edition is enough) to develop this project.
-Be sure to install the Lombok Plugin and enable annotation processing in the settings.
-It currently only works with Java 21, higher/lower does not work due to the usage of template strings
-If you want, install the git hooks by running `./hooks/install.ps1` (Windows) or `./hooks/install.sh` (Linux/MacOS)
+# Local Development
+
+I recommend IntelliJ (Community Edition is enough). Install the Lombok plugin and enable annotation processing. The project builds only on **Java 21** — higher and lower both fail, because of the template strings. If you want them, install the git hooks with `./hooks/install.ps1` (Windows) or `./hooks/install.sh` (Linux/macOS).
+
+## Credentials
+
+Put them in a `.env` in the project root, not in a config file. A password in a run block is rejected outright, and the tracked configs are shared, so a credential in one is a credential in everyone's checkout.
+
+```
+ANIDB_USERNAME=...
+ANIDB_PASSWORD=...
+TVDB_APIKEY=...
+TMDB_ACCESS_TOKEN=...
+```
+
+The run configurations read it through IntelliJ's env-file support. A second account can live in another file and be reached as `alt.env`; see [docs/WorktreeSetup.md](docs/WorktreeSetup.md).
+
+## The sandbox
+
+A local folder tree to run against, so you are never pointing a work-in-progress build at your real library:
+
+```bash
+./gradlew sandboxInit     # creates sandbox/ with input, output, unknown, duplicates and media
+# copy a few real anime files into sandbox/media/
+./gradlew sandboxReset    # fills input/ from media/ and clears the rest
+```
+
+Then run the **Sandbox scan** configuration. It runs `sandboxReset` for you as a before-launch task, so every run starts from the same input; the watch configurations do the same. Note that this clears `output/`, so look at the results before starting the next run. **Sandbox Kodi** is left alone, since it has no input folder to refill.
+
+Use real files. AniDB identifies a file by its ed2k hash, so invented ones cannot be identified, and a run full of failed lookups is the quickest way to get your account banned. For the same reason the sandbox shares the ordinary lookup cache rather than starting an empty one, through `../aniAdd.sqlite`, which is the shared file in a worktree setup and an ordinary one in a plain clone. `sandbox/` is ignored by git; the configs that describe it are not.
+
+## Your own library
+
+`scan-local.yaml` and `scan-inplace.yaml` work on a real library rather than the sandbox. They say `../library/input/`, and `library` is a symlink to wherever yours actually lives. Set it once in the shared `.env`:
+
+```
+LIBRARY_ROOT=/path/to/your/anime
+```
+
+then `./gradlew envLink` creates the link. The tracked configs stay free of anyone's machine layout, and the only place your path appears is an untracked file.
+
+This is the same trick the Docker image uses, one level down: the container config says `/from/anidb` and the host path is supplied by a bind mount. A symlink for local runs, a mount for the container, generic paths in both.
+
+## Config files
+
+Run configurations live in `.run/` and are tracked, so they arrive with a clone and show up in a diff when they change.
+
+A config splits into two layers. A **settings** file describes where things go: paths, the cache, the tag system, and the mylist, Kodi and ban options. A **run** file carries only a `run:` block saying which task to start, and delegates the rest with `config: <settings file>`. `sandbox.yaml` and the `sandbox-*.yaml` files beside it are that pair.
+
+`anidb.cache.db` is required, and a config whose relative `db` now points somewhere new while the old location still has a cache is refused with the line to set, rather than silently starting on an empty one. It used to default to `aniAdd.sqlite` in whatever directory the command ran from, so the same config could open a different cache from the IDE than from a shell; starting from an empty cache means looking every file up again, which risks a ban. `config new` writes one for you.
+
+`file.move.confineTo` restricts a run to one folder: nothing outside it is moved, renamed or deleted, and a scan outside it is refused. The sandbox sets it.
+
+Two rules make those files portable:
+
+- **Paths are relative to the file they are written in**, never to the working directory, the same way compose files and tsconfig behave. Absolute paths are used as written. So a config means the same thing launched from the IDE, from a shell, or from a container, and symlinks are followed first.
+- **A tag system can live in its own file**, shared by every config that needs it, with `tags.tagSystemFile: <path>` instead of fifty pasted lines each. An inline `tags.tagSystem` still wins if both are given.
+
+## Several branches at once
+
+The project is usually developed as a bare repository with one worktree per branch, sharing a single `.env`, cache and sandbox. [docs/WorktreeSetup.md](docs/WorktreeSetup.md) has the layout and the setup tasks; `./gradlew setupCheck` verifies a checkout is wired up correctly.
 
 # DISCLAIMER
 This software is provided as is. I am not responsible for any damage caused by this software. Use at your own risk.

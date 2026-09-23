@@ -1,0 +1,15 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Sandbox watch" type="Application" factoryName="Application" folderName="Sandbox">
+    <option name="envFilePaths">
+      <option value="$PROJECT_DIR$/.env" />
+    </option>
+    <option name="MAIN_CLASS_NAME" value="startup.Main" />
+    <module name="aniadd-cli.main" />
+    <option name="PROGRAM_PARAMETERS" value="run --config=.run/sandbox-watch.yaml" />
+    <option name="VM_PARAMETERS" value="--enable-preview" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+      <option name="Gradle.BeforeRunTask" enabled="true" tasks="sandboxReset" externalProjectPath="$PROJECT_DIR$" vmOptions="" scriptParameters="" />
+    </method>
+  </configuration>
+</component>

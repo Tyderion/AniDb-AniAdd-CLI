@@ -1,0 +1,50 @@
+# Local run config: one-shot scan of the NAS sorting folder.
+# Usage: java --enable-preview -jar build/libs/aniadd-cli-all-<version>.jar run -c .run/scan-local.yaml
+# Required env: ANIDB_USERNAME, ANIDB_PASSWORD, TVDB_APIKEY, TMDB_ACCESS_TOKEN
+# (credentials and API keys are rejected if put in this file)
+run:
+  task: scan
+  args:
+    path: ../library/input/
+
+anidb:
+  cache:
+    db: ../aniAdd.sqlite
+    ttlInDays: 30
+  exitOnBan: false
+  localPort: 3333
+
+file:
+  move:
+    deleteEmptyDirs: true
+    mode: tagsystem
+    unknown:
+      folder: ../library/unknown/
+      mode: move
+    duplicates:
+      folder: ../library/duplicates/
+      mode: move
+  mylist:
+    add: false
+    overwrite: false
+    storageType: remote
+    watched: false
+  rename:
+    mode: tagsystem
+    related: true
+
+kodi:
+  pathFilter: anime
+  port: 9090
+  metadata:
+    generate: true
+
+tags:
+  paths:
+    movieFolders:
+      - path: ../library/output/movies/
+        tagSystemName: BaseMoviePath
+    tvShowFolders:
+      - path: ../library/output/series/
+        tagSystemName: BaseTVShowPath
+  tagSystemFile: ../config/tagging-system.kodi.txt
