@@ -419,14 +419,35 @@ fun sandboxViolations(): List<String> {
     return findings
 }
 
+/**
+ * The guard checks every sandbox configuration, not only the one being launched, so one wrong file blocks
+ * them all. The message has to say that, and has to carry the findings itself: IntelliJ shows the exception
+ * text prominently and the log lines above it not at all, and "a sandbox run could reach real folders" on a
+ * configuration you never touched sends you looking in the wrong file.
+ */
+fun sandboxBlocked(violations: List<String>): GradleException {
+    // By suffix, not by splitting on a space: the IntelliJ files are named like "Sandbox scan.run.xml".
+    val fileName = Regex("""^(.*?\.(?:run\.xml|yaml))\b""")
+    val files = violations.mapNotNull { fileName.find(it)?.groupValues?.get(1) }.distinct()
+    return GradleException(buildString {
+        append("All sandbox runs are blocked, including this one, until ")
+        append(if (violations.size == 1) "this is fixed" else "these ${violations.size} problems are fixed")
+        append(". The check covers every sandbox configuration, so the problem may be in a file you did not run")
+        append(" (")
+        append(files.joinToString(", "))
+        append("):\n")
+        violations.forEach { append("  - ").append(it).append('\n') }
+        append("Run ./gradlew sandboxGuard to check again once fixed.")
+    })
+}
+
 tasks.register("sandboxGuard") {
     group = "setup"
     description = "Refuse if any sandbox run configuration could read or write outside the sandbox. Used as a before-launch step."
     doLast {
         val violations = sandboxViolations()
         if (violations.isNotEmpty()) {
-            violations.forEach { logger.error("  - $it") }
-            throw GradleException("Refusing to start a sandbox run: ${violations.size} way(s) it could reach real folders.")
+            throw sandboxBlocked(violations)
         }
         logger.lifecycle("Sandbox runs are confined to ${sandboxRoot().canonicalFile}.")
     }
@@ -441,8 +462,7 @@ tasks.register("sandboxReset") {
         // Reset is the before-launch step of the sandbox configurations, so this is what makes the
         // confinement hold on every click rather than only when someone remembers setupCheck.
         sandboxViolations().takeIf { it.isNotEmpty() }?.let { violations ->
-            violations.forEach { logger.error("  - $it") }
-            throw GradleException("Refusing to reset: a sandbox run could reach real folders.")
+            throw sandboxBlocked(violations)
         }
         val media = File(sandbox, "media")
         if (!media.isDirectory) {
