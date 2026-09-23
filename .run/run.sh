@@ -1,7 +1,7 @@
 #!/bin/bash
 if [[ -z "${LOG_CONFIG_FILE}" ]]; then
-  echo "LOG_CONFIG_FILE is not set, using default logging.properties"
-  export LOG_CONFIG_FILE=logging.properties
+  echo "LOG_CONFIG_FILE is not set, using default /app/logging.properties"
+  export LOG_CONFIG_FILE=/app/logging.properties
 fi
 
 echo "Logging config is set to $LOG_CONFIG_FILE"

@@ -4,6 +4,7 @@ import aniAdd.misc.Misc;
 import config.blocks.PathConfig;
 import lombok.val;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,8 +28,8 @@ public class TagSystem {
                 }));
 
         if (folders != null) {
-            folders.movieFolders().forEach(c -> stringVars.put(c.tagSystemName(), c.path().toString()));
-            folders.tvShowFolders().forEach(c -> stringVars.put(c.tagSystemName(), c.path().toString()));
+            folders.movieFolders().forEach(c -> stringVars.put(c.tagSystemName(), STR."\{c.path()}\{File.separator}"));
+            folders.tvShowFolders().forEach(c -> stringVars.put(c.tagSystemName(), STR."\{c.path()}\{File.separator}"));
         }
         return Evaluate(sourceCode, stringVars);
     }

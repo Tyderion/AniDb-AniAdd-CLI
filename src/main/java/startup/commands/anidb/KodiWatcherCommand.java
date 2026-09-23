@@ -46,7 +46,7 @@ public class KodiWatcherCommand implements Callable<Integer> {
     @MapConfig(configPath = "kodi", required = true)
     private KodiConfig kodiConfig;
 
-    @MapConfig(configPath = "tags.path", required = true)
+    @MapConfig(configPath = "tags.paths", required = true)
     private PathConfig pathsConfig;
 
     @MapConfig(configPath = "anidb")
@@ -74,7 +74,7 @@ public class KodiWatcherCommand implements Callable<Integer> {
         val subscriber = new KodiNotificationSubscriber(
                 new URI(STR."ws://\{kodiConfig.host()}:\{kodiConfig.port()}/jsonrpc"),
                 aniAdd, pathsConfig, kodiConfig);
-        subscriber.connect();
+        subscriber.start();
     }
 
     public static String getName() {

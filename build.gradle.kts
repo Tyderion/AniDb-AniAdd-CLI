@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "ch.tyderion"
-version = "5.0.0.a.4"
+version = "5.0.0.kodi.a.5"
 
 java {
     targetCompatibility = JavaVersion.VERSION_21
@@ -36,6 +36,10 @@ dependencies {
     implementation("org.java-websocket:Java-WebSocket:1.5.6")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.0-M2")
+    // Without the jupiter engine on the test runtime classpath the platform discovers no tests at all
+    // and `gradlew test` still reports success. Every test in this repo is JUnit 5, and none of them
+    // had ever actually run. Vintage stays for any JUnit 4 test that shows up.
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.11.0-M2")
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.11.0-M2")
     testImplementation("org.mockito:mockito-core:5.12.0")
     testImplementation("org.hamcrest:hamcrest:3.0")
@@ -45,6 +49,7 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:3.46.0.0")
     implementation("org.slf4j:slf4j-simple:2.0.13")
     implementation("org.slf4j:jul-to-slf4j:1.7.36")
+    implementation("org.dom4j:dom4j:2.1.4")
 
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     // https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp
@@ -118,8 +123,11 @@ tasks.register("prepareForRelease") {
             into(project.layout.buildDirectory.dir("docker").get().asFile)
         }
         copy {
-            from(file(".run/logging.properties"))
+            // .run/logging.properties was removed in a8df8d6; config/logging.override.properties
+            // is its documented successor and ships as the image default (Readme.md "Logging Configuration").
+            from(file("config/logging.override.properties"))
             into(project.layout.buildDirectory.dir("docker").get().asFile)
+            rename { "logging.properties" }
         }
     }
 }
@@ -165,20 +173,20 @@ tasks.register<Exec>("createGitTag") {
     dependsOn("pushDockerImage")
     description = "Creates a Git tag for the release"
 
-    val branch: String = ByteArrayOutputStream().use { outputStream ->
-        project.exec {
-            commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")
-            standardOutput = outputStream
+    // Branch check must happen at execution time: throwing during task configuration
+    // fails every Gradle sync (IntelliJ included) on non-master branches.
+    doFirst {
+        val branch: String = ByteArrayOutputStream().use { outputStream ->
+            project.exec {
+                commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")
+                standardOutput = outputStream
+            }
+            outputStream.toString()
+        }.trim()
+        if (branch != "master" && !version.toString().contains("-SNAPSHOT")) {
+            throw GradleException("Not on master branch, no tag created")
         }
-        outputStream.toString()
-    }
-    if (branch.trim() == "master" || version.toString().contains("-SNAPSHOT")) {
         commandLine("git", "tag", "-a", version, "-m", "Release $version")
-        if (branch.trim() == "master") {
-            commandLine("git", "push", "origin", "tag", version)
-        }
-    } else {
-        throw GradleException("Not on master branch, no tag created")
     }
 }
 

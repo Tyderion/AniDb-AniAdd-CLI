@@ -10,7 +10,5 @@ public interface IAniAdd {
 
     void MarkFileAsWatched(@NotNull Path path);
 
-//    CliConfiguration getConfiguration();
-
     void Stop();
 }
