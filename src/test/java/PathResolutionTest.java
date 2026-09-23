@@ -100,6 +100,24 @@ public class PathResolutionTest {
         assertThat(args, hasItem(STR."--config=\{dir.resolve("settings.yaml")}"));
     }
 
+    /**
+     * db is a string in the args map rather than a Path, so it never reaches the parser's path handling.
+     * Without explicit resolution it would follow the working directory, and the same config would use a
+     * different cache from the IDE than from a shell.
+     */
+    @Test
+    public void aCachePathInArgsResolvesAgainstTheRunFile(@TempDir Path dir) throws Exception {
+        val runFile = dir.resolve("run.yaml");
+        val config = write(runFile, """
+                run:
+                  task: scan
+                  args:
+                    path: /media/input
+                    db: cache/aniAdd.sqlite
+                """);
+        assertThat(config.run().toCommandArgs(runFile), hasItem(STR."--db=\{dir.resolve("cache/aniAdd.sqlite")}"));
+    }
+
     @Test
     public void anAbsoluteDelegatedConfigIsLeftAlone(@TempDir Path dir) throws Exception {
         val runFile = dir.resolve("run.yaml");

@@ -79,7 +79,7 @@ fun git(vararg args: String, failOnError: Boolean = true): String {
 fun worktreePaths(): List<File> {
     val blocks = git("worktree", "list", "--porcelain").split("\n\n")
     return blocks.mapNotNull { block ->
-        if (block.lines().any { it.trim() == "bare" || it.trim() == "prunable" }) null
+        if (block.lines().any { it.trim() == "bare" || it.trim().startsWith("prunable") }) null
         else block.lines().firstOrNull { it.startsWith("worktree ") }?.removePrefix("worktree ")?.let(::File)
     }
 }
@@ -207,6 +207,8 @@ tasks.register("sandboxInit") {
     description = "Create the sandbox directories and, in the worktree layout, link the shared sandbox into every worktree."
     doLast {
         val sandbox = sandboxRoot()
+        // Creating folders through a link would build the sandbox's shape inside whatever it points at.
+        sandboxRootProblem(sandbox)?.let { throw GradleException("Refusing to set up the sandbox: $it") }
         sandboxDirs.forEach { File(sandbox, it).mkdirs() }
         logger.lifecycle("sandbox tree ready at $sandbox")
 
@@ -220,6 +222,38 @@ tasks.register("sandboxInit") {
         }
         logger.lifecycle("Put real media in ${File(sandbox, "media")}, then run ./gradlew sandboxReset.")
     }
+}
+
+/**
+ * Why the sandbox root is not where it should be, or null if it is. The containment check in
+ * clearInsideSandbox compares each folder with the sandbox's real path, so it cannot see a problem with the
+ * root itself: link the whole sandbox at a real library and both sides resolve under the library, the check
+ * passes, and a reset empties the library. So the root is pinned separately, before anything is cleared.
+ *
+ * A link above the sandbox is fine and deliberately allowed: it moves the whole container, sandbox
+ * included, which is an ordinary setup (a code directory that is itself a link, say). What is refused is
+ * the sandbox pointing somewhere other than its own container. A symlink shows up directly. A mount does
+ * not, since toRealPath sees a mounted directory as real, so the filesystem is compared too: that catches
+ * a network share or a different disk mounted there. A bind mount from the same filesystem is not caught.
+ */
+fun sandboxRootProblem(sandbox: File): String? {
+    if (!sandbox.exists()) return null
+    val path = sandbox.toPath()
+    if (Files.isSymbolicLink(path)) {
+        return "$sandbox is a symlink to ${Files.readSymbolicLink(path)}. The sandbox must be a real directory, " +
+            "or a reset would empty whatever it points at."
+    }
+    val parentReal = sandbox.absoluteFile.parentFile.toPath().toRealPath()
+    val expected = parentReal.resolve(sandbox.name)
+    val actual = path.toRealPath()
+    if (actual != expected) {
+        return "$sandbox resolves to $actual, expected $expected."
+    }
+    if (Files.getFileStore(actual) != Files.getFileStore(parentReal)) {
+        return "$sandbox is on a different filesystem from ${parentReal}, so something is mounted there. " +
+            "A reset would empty whatever that is."
+    }
+    return null
 }
 
 /**
@@ -268,6 +302,7 @@ tasks.register("sandboxReset") {
     description = "Refill the sandbox input from media/ and clear the output, unknown and duplicates folders."
     doLast {
         val sandbox = sandboxRoot()
+        sandboxRootProblem(sandbox)?.let { throw GradleException("Refusing to reset: $it") }
         val media = File(sandbox, "media")
         if (!media.isDirectory) {
             throw GradleException("No $media. Run ./gradlew sandboxInit first.")
@@ -328,6 +363,7 @@ tasks.register("setupCheck") {
             }
         }
 
+        sandboxRootProblem(sandboxRoot())?.let { findings += it }
         if (sandboxRoot().isDirectory) {
             sandboxDirs.forEach { name ->
                 if (!File(sandboxRoot(), name).isDirectory) findings += "missing sandbox directory $name"

@@ -79,7 +79,7 @@ Put real anime files in `media/`. The sandbox deliberately does not generate fak
 
 `sandboxReset` copies `media/` into `input/` and clears the rest. Run it before each test, because a scan moves its input into `output/`.
 
-It refuses to clear anything that resolves outside the sandbox, and unlinks rather than follows a symlink it finds inside one. That matters because the sandbox configurations run it automatically before launch, so pointing a sandbox folder at real media would otherwise mean a click of Run erased that folder.
+It refuses to clear anything that resolves outside the sandbox, and unlinks rather than follows a symlink it finds inside one. The sandbox itself must be a real directory in its own container: a sandbox that is a symlink, or has a different filesystem mounted on it, is refused before anything is touched. Otherwise linking the sandbox at your real library, which has exactly the same folder layout, would make the next reset empty the library. That matters because the sandbox configurations run it automatically before launch, so pointing a sandbox folder at real media would otherwise mean a click of Run erased that folder.
 
 A config file splits in two. `.run/sandbox.yaml` holds the settings and no run block; each `.run/sandbox-<task>.yaml` holds only a run block and delegates with `config: sandbox.yaml`. The `docker-<task>.yaml` files are the same shape for the image, delegating to `config/docker.yaml` instead. That way there is exactly one entry point per task and one place that defines where things go. Adding a task means adding one more `sandbox-<task>.yaml` and a run configuration for it.
 

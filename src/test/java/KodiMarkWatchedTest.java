@@ -7,6 +7,7 @@ import fileprocessor.FileProcessor;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 import processing.EpisodeProcessing;
 import udpapi.UdpApi;
 import utils.config.ConfigFileHandler;
@@ -35,8 +36,8 @@ public class KodiMarkWatchedTest {
 
     @Test
     public void aPlayIsWrittenToMyListByDefault() {
-        val processor = markWatchedWith(KodiConfig.builder().build());
-        verify(processor).AddFile(any(Path.class), any(FileConfig.class));
+        val written = writtenConfig(FileConfig.builder().build(), KodiConfig.builder().build());
+        assertRecordsTheWatch(written);
     }
 
     @Test
@@ -53,9 +54,18 @@ public class KodiMarkWatchedTest {
         val scansDoNotAdd = FileConfig.builder()
                 .mylist(MyListConfig.builder().add(false).overwrite(false).build())
                 .build();
-        val processor = mock(FileProcessor.class);
-        aniAdd(processor, scansDoNotAdd, KodiConfig.builder().build()).MarkFileAsWatched(Path.of("/tmp/x.mkv"));
-        verify(processor).AddFile(any(Path.class), any(FileConfig.class));
+        // Checking only that AddFile was called would pass if the call carried add=false, which is exactly
+        // the regression: the watch would be sent and then dropped because nothing is allowed to write.
+        assertRecordsTheWatch(writtenConfig(scansDoNotAdd, KodiConfig.builder().build()));
+    }
+
+    @Test
+    public void theStorageTypeFollowsTheConfig() {
+        val remote = FileConfig.builder()
+                .mylist(MyListConfig.builder().storageType(MyListConfig.StorageType.REMOTE).build())
+                .build();
+        assertThat(writtenConfig(remote, KodiConfig.builder().build()).mylist().storageType(),
+                is(MyListConfig.StorageType.REMOTE));
     }
 
     @Test
@@ -69,6 +79,21 @@ public class KodiMarkWatchedTest {
         val sandbox = new ConfigFileHandler<>(RootConfiguration.class)
                 .getConfiguration(Path.of(".run", "sandbox.yaml"));
         assertThat(sandbox.kodi().markWatched(), is(false));
+    }
+
+    /** What MarkFileAsWatched actually hands to the processor, so tests can assert on content, not on a call. */
+    private FileConfig writtenConfig(FileConfig fileConfig, KodiConfig kodiConfig) {
+        val processor = mock(FileProcessor.class);
+        aniAdd(processor, fileConfig, kodiConfig).MarkFileAsWatched(Path.of("/tmp/x.mkv"));
+        val captor = ArgumentCaptor.forClass(FileConfig.class);
+        verify(processor).AddFile(any(Path.class), captor.capture());
+        return captor.getValue();
+    }
+
+    private static void assertRecordsTheWatch(FileConfig written) {
+        assertThat("watched", written.mylist().watched(), is(true));
+        assertThat("add", written.mylist().add(), is(true));
+        assertThat("overwrite", written.mylist().overwrite(), is(true));
     }
 
     private FileProcessor markWatchedWith(KodiConfig kodiConfig) {
